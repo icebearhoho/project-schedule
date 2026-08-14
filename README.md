@@ -71,6 +71,21 @@ is how you reuse one as a template.
 pushes everything after it. Non-working days are shaded in the Gantt and exported into
 the MS Project XML as calendar exceptions.
 
+## Timeline focus
+
+The **Day / Week / Month / 3 months / All** buttons set how much calendar the Gantt shows
+at once. A chosen range is scaled to fit the pane exactly, so there's nothing to scroll —
+pick `Week` and you get one wide week, pick `3 months` and the quarter is squeezed in.
+`All` goes back to the whole plan at a fixed day width, scrolling sideways.
+
+`‹` and `›` move the window (by three quarters of a span, so you keep some overlap) and
+**Today** jumps back to now. A task whose bar falls outside the window keeps its row and
+shows a small arrow at the edge pointing the way, so nothing silently disappears.
+
+The view is per browser, not part of the plan: changing it never marks a draft and never
+affects what teammates see. Exports are unaffected too — Excel always covers the whole
+plan; only the PDF follows what's on screen, since it prints the current view.
+
 ## Dependencies
 
 The **Pred** column takes MS Project syntax. Separate several with commas.
