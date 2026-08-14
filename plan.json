@@ -1,0 +1,108 @@
+{
+  "rev": 1,
+  "data": {
+    "projects": [
+      {
+        "name": "Project 1",
+        "start": "2026-08-14",
+        "calendar": {
+          "workdays": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "holidays": []
+        },
+        "tasks": [
+          {
+            "id": 1,
+            "name": "Task 1",
+            "duration": 5,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          }
+        ],
+        "nextId": 2
+      },
+      {
+        "name": "test",
+        "start": "2026-08-14",
+        "calendar": {
+          "workdays": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "holidays": []
+        },
+        "tasks": [
+          {
+            "id": 1,
+            "name": "Task 1",
+            "duration": 5,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 2,
+            "name": "New task",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "collapsed": false
+          },
+          {
+            "id": 3,
+            "name": "New task",
+            "duration": 1,
+            "level": 2,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 4,
+            "name": "New task",
+            "duration": 1,
+            "level": 3,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 5,
+            "name": "New task",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 6,
+            "name": "New task",
+            "duration": 0,
+            "level": 2,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 7,
+            "name": "New task",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          }
+        ],
+        "nextId": 8
+      }
+    ],
+    "nextPid": 3
+  },
+  "at": "2026-08-14T07:21:18.213Z"
+}
