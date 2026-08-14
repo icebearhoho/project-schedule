@@ -1,0 +1,10 @@
+{
+  "name": "project-planner",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node serve.js",
+    "test": "node test.js"
+  },
+  "engines": { "node": ">=18" }
+}

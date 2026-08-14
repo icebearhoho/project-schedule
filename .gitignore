@@ -1,0 +1,6 @@
+project.json
+project.json.tmp
+node_modules/
+*.xlsx
+*.csv
+*.pdf

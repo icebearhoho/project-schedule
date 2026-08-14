@@ -1,0 +1,433 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Project Planner</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font: 13px/1.4 "Segoe UI", Arial, sans-serif; margin: 0; color: #222; background: #fff; color-scheme: light; }
+  #bar { display: flex; gap: 6px; align-items: center; padding: 6px; background: #f3f3f3; border-bottom: 1px solid #ccc; flex-wrap: wrap; }
+  #bar input[type=text] { padding: 3px; }
+  button { padding: 4px 8px; }
+  button.hot { background: #c5361c; color: #fff; border-color: #a32c16; font-weight: 600; animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 4px rgba(197, 54, 28, .25); } }
+  #sync { font-weight: 600; }
+  #panes { display: flex; height: calc(100vh - 45px); }
+  #left { overflow: auto; border-right: 2px solid #999; flex: 0 0 auto; }
+  #right { overflow: auto; flex: 1; }
+  table { border-collapse: collapse; }
+  th, td { border: 1px solid #ddd; padding: 0; height: 26px; white-space: nowrap; }
+  th { background: #eaeaea; padding: 0 6px; font-weight: 600; position: sticky; top: 0; z-index: 2; }
+  td input { border: 0; padding: 0 5px; height: 24px; width: 100%; font: inherit; background: transparent; }
+  td input:focus { outline: 2px solid #2b579a; }
+  td.num { text-align: center; padding: 0 6px; color: #666; }
+  td.ro { padding: 0 6px; color: #444; }
+  tr.sel td { background: #dce6f5; }
+  #gantt { position: relative; }
+  .gridhead { display: flex; position: sticky; top: 0; background: #eaeaea; z-index: 2; height: 26px; }
+  .gridhead div { flex: 0 0 auto; border-right: 1px solid #ddd; text-align: center; font-size: 10px; line-height: 26px; color: #666; }
+  .row { position: relative; height: 26px; border-bottom: 1px solid #eee; }
+  .row.we { background: transparent; }
+  .bar { position: absolute; top: 5px; height: 16px; background: #2b579a; border-radius: 2px; }
+  .bar .done { height: 100%; background: #17325e; border-radius: 2px 0 0 2px; }
+  .bar .lbl { position: absolute; left: 100%; padding-left: 6px; font-size: 11px; color: #555; line-height: 16px; }
+  .ms { position: absolute; top: 5px; width: 14px; height: 14px; background: #222; transform: rotate(45deg); }
+  .weekend { position: absolute; top: 0; bottom: 0; background: #f6f6f6; }
+  #err { color: #b00; padding: 4px 8px; }
+  #ptitle { display: none; }
+  @media print {
+    @page { size: A3 landscape; margin: 8mm; }
+    body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    #bar, #err { display: none; }
+    #ptitle { display: block; font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    #panes { display: flex; height: auto; transform: scale(var(--ps, 1)); transform-origin: top left; width: max-content; }
+    #left, #right { overflow: visible; }
+    th { position: static; }
+    .gridhead { position: static; }
+  }
+</style>
+</head>
+<body>
+<div id="bar">
+  <input type="text" id="pname" size="24" placeholder="Project name">
+  Start <input type="date" id="pstart">
+  <button onclick="addTask()">Add task</button>
+  <button onclick="delTask()">Delete row</button>
+  <button onclick="move(-1)">Up</button>
+  <button onclick="move(1)">Down</button>
+  <span style="width:12px"></span>
+  <button onclick="exportXML()">Export .xml (MS Project)</button>
+  <button onclick="exportXLSX()">Export .xlsx</button>
+  <button onclick="exportPDF()">Export .pdf</button>
+  <button onclick="exportCSV()">Export .csv</button>
+  <button onclick="save()">Save .json</button>
+  <button onclick="document.getElementById('file').click()">Open .json</button>
+  <input type="file" id="file" accept=".json" style="display:none" onchange="open_(this)">
+  <button id="pub" onclick="publish()" style="display:none">Publish changes</button>
+  <button id="discard" onclick="discard()" style="display:none">Discard draft</button>
+  <span id="sync">local only</span>
+</div>
+<div id="err"></div>
+<div id="ptitle"></div>
+<div id="panes">
+  <div id="left"><table id="tbl"></table></div>
+  <div id="right"><div id="gantt"></div></div>
+</div>
+
+<script src="schedule.js"></script>
+<script>
+const DAY_W = 22, HOURS_PER_DAY = 8;
+let proj = load() || {
+  name: 'New Project',
+  start: fmtDate(new Date()),
+  tasks: [{ id: 1, name: 'Task 1', duration: 5, preds: [], pct: 0, res: '' }],
+  nextId: 2,
+};
+let sel = 0;
+
+function load() { try { return JSON.parse(localStorage.getItem('proj')); } catch (e) { return null; } }
+function store() {
+  localStorage.setItem('proj', JSON.stringify(proj));
+  if (shared && !applying) { dirty = true; localStorage.setItem('dirty', '1'); paint(); }
+}
+
+/* ---- shared storage (serve.js). Edits stay a local draft until Publish. ---- */
+let shared = false, rev = 0, dirty = false, serverAhead = false, publishing = false, applying = false;
+const key = () => localStorage.getItem('key') || new URLSearchParams(location.search).get('key') || '';
+const strip = p => ({ ...p, tasks: p.tasks.map(({ startDate, endExclusive, finishDate, ...t }) => t) });
+let note = 'local only (this browser)', noteBad = false;
+const status = (s, bad) => { note = s; noteBad = !!bad; paint(); };
+
+function paint() {
+  const e = document.getElementById('sync'), b = document.getElementById('pub'), d = document.getElementById('discard');
+  e.textContent = (dirty ? 'DRAFT - not published yet. ' : '') + note;
+  e.style.color = noteBad || dirty ? '#b00' : '#137333';
+  b.style.display = d.style.display = shared ? '' : 'none';
+  b.disabled = !dirty || publishing;
+  b.className = dirty ? 'hot' : '';
+  b.textContent = serverAhead ? 'Publish (overwrites theirs)' : 'Publish changes';
+}
+
+async function api(method, body) {
+  const r = await fetch('/api/project', {
+    method, headers: { 'Content-Type': 'application/json', 'X-Key': key() },
+    body: body && JSON.stringify(body),
+  });
+  return { code: r.status, body: await r.json() };
+}
+
+async function connect() {
+  let r;
+  try { r = await api('GET'); } catch (e) { status('local only (this browser)'); return; }
+  if (r.code === 401) {
+    const k = prompt('Team key for this planner:');
+    if (k) { localStorage.setItem('key', k); return connect(); }
+    status('locked - key required', true); return;
+  }
+  shared = true; rev = r.body.rev;
+  if (localStorage.getItem('dirty') === '1' && r.body.project) {
+    dirty = true; // an unpublished draft survives a page reload
+    status('your unpublished draft was restored - Publish when ready');
+  } else if (r.body.project) {
+    adopt(r.body.project); status('published version');
+  } else { dirty = true; status('nothing on the server yet - press Publish'); }
+  paint();
+  setInterval(poll, 5000);
+}
+
+function adopt(p) { applying = true; proj = p; sel = 0; render(); applying = false; }
+
+async function publish() {
+  if (!shared || publishing || !dirty) return;
+  publishing = true; status('publishing...');
+  try {
+    const r = await api('PUT', { rev, project: strip(proj) });
+    if (r.code === 200) {
+      rev = r.body.rev; dirty = false; serverAhead = false;
+      localStorage.removeItem('dirty');
+      status('published ' + new Date().toLocaleTimeString());
+    } else if (r.code === 409) {
+      // Someone published while you were drafting. Your draft stays on screen; taking their
+      // rev means a second, deliberate Publish click is what overwrites them.
+      rev = r.body.rev; serverAhead = true;
+      status('a teammate published in the meantime - Publish again to overwrite theirs, or Discard draft to take it', true);
+    } else status('publish failed: ' + (r.body.error || r.code), true);
+  } catch (e) { status('offline - draft kept in this browser', true); }
+  publishing = false; paint();
+}
+
+async function discard() {
+  if (!confirm('Throw away your unpublished draft and load the published version?')) return;
+  let r; try { r = await api('GET'); } catch (e) { return status('could not reach the server', true); }
+  if (r.code !== 200) return status('could not reach the server', true);
+  rev = r.body.rev; dirty = false; serverAhead = false;
+  localStorage.removeItem('dirty');
+  if (r.body.project) adopt(r.body.project);
+  status('published version');
+}
+
+async function poll() {
+  if (publishing) return;
+  try {
+    const r = await api('GET');
+    if (r.code !== 200 || r.body.rev === rev || !r.body.project) return;
+    if (dirty) { serverAhead = true; status('a teammate published a newer version - your draft is untouched', true); }
+    else { rev = r.body.rev; adopt(r.body.project); status('updated by a teammate'); }
+  } catch (e) { /* offline; poll again later */ }
+}
+
+addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+function addTask() {
+  proj.tasks.splice(sel + 1, 0, { id: proj.nextId++, name: 'New task', duration: 1, preds: [], pct: 0, res: '' });
+  sel++; render();
+}
+function delTask() {
+  if (!proj.tasks.length) return;
+  const gone = proj.tasks[sel].id;
+  proj.tasks.splice(sel, 1);
+  proj.tasks.forEach(t => t.preds = (t.preds || []).filter(p => (parsePred(p) || {}).id !== gone));
+  sel = Math.min(sel, proj.tasks.length - 1); render();
+}
+function move(d) {
+  const j = sel + d;
+  if (j < 0 || j >= proj.tasks.length) return;
+  [proj.tasks[sel], proj.tasks[j]] = [proj.tasks[j], proj.tasks[sel]];
+  sel = j; render();
+}
+
+function edit(i, field, v) {
+  const t = proj.tasks[i];
+  if (field === 'duration') t.duration = Math.max(0, Number(v) || 0);
+  else if (field === 'pct') t.pct = Math.min(100, Math.max(0, Number(v) || 0));
+  else if (field === 'preds') t.preds = String(v).split(/[,;]+/).map(s => s.trim()).filter(Boolean);
+  else if (field === 'start') t.start = v || undefined;
+  else t[field] = v;
+  render();
+}
+
+function render() {
+  const err = document.getElementById('err');
+  err.textContent = '';
+  try { schedule(proj.tasks, proj.start); }
+  catch (e) { err.textContent = e.message; }
+  store();
+  document.getElementById('pname').value = proj.name;
+  document.getElementById('pstart').value = proj.start;
+
+  const cell = (i, f, v, w, ph) => `<td><input value="${String(v ?? '').replace(/"/g, '&quot;')}" style="width:${w}px"
+      placeholder="${ph || ''}" onchange="edit(${i},'${f}',this.value)" onfocus="sel=${i};hl()"></td>`;
+  let h = `<tr><th>ID</th><th>Task name</th><th>Days</th><th>Start</th><th>Finish</th>` +
+    `<th title="Predecessor. 3 = finish-to-start. Also 3FS, 3SS, 3FF, 3SF, with lag in working days: 3SS+2, 3FF-1. Separate several with commas.">Pred *</th>` +
+    `<th>%</th><th>Resource</th></tr>`;
+  proj.tasks.forEach((t, i) => {
+    h += `<tr id="r${i}" class="${i === sel ? 'sel' : ''}" onclick="sel=${i};hl()">` +
+      `<td class="num">${t.id}</td>` +
+      cell(i, 'name', t.name, 220) + cell(i, 'duration', t.duration, 45) +
+      cell(i, 'start', t.start || '', 90, t.startDate ? fmtDate(t.startDate) : '') +
+      `<td class="ro">${t.finishDate ? fmtDate(t.finishDate) : ''}</td>` +
+      cell(i, 'preds', (t.preds || []).map(fmtPred).join(','), 72) + cell(i, 'pct', t.pct, 40) +
+      cell(i, 'res', t.res, 110) + `</tr>`;
+  });
+  document.getElementById('tbl').innerHTML = h;
+  drawGantt();
+}
+function hl() {
+  document.querySelectorAll('#tbl tr').forEach(r => r.classList.remove('sel'));
+  const r = document.getElementById('r' + sel); if (r) r.classList.add('sel');
+}
+
+function bounds() {
+  const dates = proj.tasks.flatMap(t => t.startDate ? [t.startDate, t.endExclusive] : []);
+  const min = nextWorkday(parseDate(proj.start));
+  const max = dates.length ? new Date(Math.max(...dates.map(d => +d))) : new Date(+min + 10 * 864e5);
+  return [min, new Date(+max + 5 * 864e5)];
+}
+const dayIdx = (from, d) => Math.round((+new Date(d.getFullYear(), d.getMonth(), d.getDate()) - +new Date(from.getFullYear(), from.getMonth(), from.getDate())) / 864e5);
+
+function drawGantt() {
+  const [from, to] = bounds();
+  const n = Math.max(20, dayIdx(from, to));
+  let head = '', shade = '';
+  for (let i = 0; i < n; i++) {
+    const d = new Date(from); d.setDate(d.getDate() + i);
+    head += `<div style="width:${DAY_W}px" title="${fmtDate(d)}">${d.getDate() === 1 || i === 0 ? d.toLocaleString('en', { month: 'short' }) : d.getDate()}</div>`;
+    if (!isWorkday(d)) shade += `<div class="weekend" style="left:${i * DAY_W}px;width:${DAY_W}px"></div>`;
+  }
+  let rows = '';
+  proj.tasks.forEach((t, i) => {
+    let inner = '';
+    if (t.startDate) {
+      const x = dayIdx(from, t.startDate) * DAY_W;
+      if (Number(t.duration) === 0) inner = `<div class="ms" style="left:${x}px"></div><div class="bar" style="left:${x + 18}px;width:0"><span class="lbl">${t.name}</span></div>`;
+      else {
+        const w = Math.max(1, dayIdx(t.startDate, t.endExclusive)) * DAY_W - 2;
+        inner = `<div class="bar" style="left:${x}px;width:${w}px"><div class="done" style="width:${t.pct || 0}%"></div><span class="lbl">${t.res || ''}</span></div>`;
+      }
+    }
+    rows += `<div class="row" style="width:${n * DAY_W}px" onclick="sel=${i};hl()">${inner}</div>`;
+  });
+  document.getElementById('gantt').innerHTML =
+    `<div class="gridhead" style="width:${n * DAY_W}px">${head}</div>` +
+    `<div style="position:relative;width:${n * DAY_W}px">${shade}${rows}</div>`;
+}
+
+/* ---- export ---- */
+const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const dt = (d, h) => fmtDate(d) + 'T' + (h || '08:00:00');
+
+function download(name, text, mime) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: mime }));
+  a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+
+// MSPDI (Microsoft Project XML) — File > Open in MS Project, or import in ProjectLibre.
+function exportXML() {
+  const res = [...new Set(proj.tasks.map(t => (t.res || '').trim()).filter(Boolean))];
+  const tasks = proj.tasks.map((t, i) => {
+    const dur = Number(t.duration) || 0;
+    return `    <Task>
+      <UID>${t.id}</UID><ID>${i + 1}</ID><Name>${esc(t.name)}</Name>
+      <Active>1</Active><Manual>0</Manual><Type>1</Type><OutlineLevel>1</OutlineLevel>
+      <Start>${dt(t.startDate)}</Start><Finish>${dt(t.finishDate, dur ? '17:00:00' : '08:00:00')}</Finish>
+      <Duration>PT${dur * HOURS_PER_DAY}H0M0S</Duration><DurationFormat>7</DurationFormat>
+      <Milestone>${dur === 0 ? 1 : 0}</Milestone><Summary>0</Summary>
+      <PercentComplete>${t.pct || 0}</PercentComplete><ConstraintType>0</ConstraintType>
+${(t.preds || []).map(parsePred).filter(Boolean).map(p =>
+      // MSPDI link types: 0=FF 1=FS 2=SF 3=SS. LinkLag is in tenths of a minute.
+      `      <PredecessorLink><PredecessorUID>${p.id}</PredecessorUID><Type>${{ FF: 0, FS: 1, SF: 2, SS: 3 }[p.type]}</Type><LinkLag>${p.lag * HOURS_PER_DAY * 600}</LinkLag><LagFormat>7</LagFormat></PredecessorLink>`).join('\n')}
+    </Task>`;
+  }).join('\n');
+
+  const assigns = proj.tasks.flatMap((t, i) => {
+    const r = res.indexOf((t.res || '').trim());
+    return r < 0 ? [] : [`    <Assignment><UID>${i + 1}</UID><TaskUID>${t.id}</TaskUID><ResourceUID>${r + 1}</ResourceUID><Units>1</Units></Assignment>`];
+  }).join('\n');
+
+  const day = k => `        <WeekDay><DayType>${k}</DayType><DayWorking>${k >= 2 && k <= 6 ? 1 : 0}</DayWorking>${k >= 2 && k <= 6 ? `
+          <WorkingTimes><WorkingTime><FromTime>08:00:00</FromTime><ToTime>12:00:00</ToTime></WorkingTime><WorkingTime><FromTime>13:00:00</FromTime><ToTime>17:00:00</ToTime></WorkingTime></WorkingTimes>` : ''}
+        </WeekDay>`;
+
+  const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Project xmlns="http://schemas.microsoft.com/project">
+  <Name>${esc(proj.name)}.xml</Name>
+  <Title>${esc(proj.name)}</Title>
+  <ScheduleFromStart>1</ScheduleFromStart>
+  <StartDate>${dt(nextWorkday(parseDate(proj.start)))}</StartDate>
+  <CalendarUID>1</CalendarUID>
+  <DefaultStartTime>08:00:00</DefaultStartTime>
+  <DefaultFinishTime>17:00:00</DefaultFinishTime>
+  <MinutesPerDay>480</MinutesPerDay>
+  <MinutesPerWeek>2400</MinutesPerWeek>
+  <DaysPerMonth>20</DaysPerMonth>
+  <Calendars>
+    <Calendar>
+      <UID>1</UID><Name>Standard</Name><IsBaseCalendar>1</IsBaseCalendar><BaseCalendarUID>-1</BaseCalendarUID>
+      <WeekDays>
+${[1, 2, 3, 4, 5, 6, 7].map(day).join('\n')}
+      </WeekDays>
+    </Calendar>
+  </Calendars>
+  <Tasks>
+${tasks}
+  </Tasks>
+  <Resources>
+${res.map((r, i) => `    <Resource><UID>${i + 1}</UID><ID>${i + 1}</ID><Name>${esc(r)}</Name><Type>1</Type><MaxUnits>1</MaxUnits></Resource>`).join('\n')}
+  </Resources>
+  <Assignments>
+${assigns}
+  </Assignments>
+</Project>`;
+  download(proj.name.replace(/[\\/:*?"<>|]/g, '_') + '.xml', xml, 'application/xml');
+}
+
+function tableRows() {
+  return [['ID', 'Task name', 'Duration (days)', 'Start', 'Finish', 'Predecessors', '% Complete', 'Resource'],
+  ...proj.tasks.map(t => [t.id, t.name, Number(t.duration) || 0,
+    t.startDate ? fmtDate(t.startDate) : '', t.finishDate ? fmtDate(t.finishDate) : '',
+    (t.preds || []).map(fmtPred).join(','), Number(t.pct) || 0, t.res || ''])];
+}
+
+// Excel: task columns + a real Gantt drawn as coloured day cells to the right.
+async function exportXLSX() {
+  if (!window.ExcelJS) await new Promise((ok, no) => { // loaded on demand: rest of the app works offline
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+    s.onload = ok; s.onerror = () => no(new Error('Could not load the Excel library (no internet?). Use Export .csv instead.'));
+    document.head.appendChild(s);
+  }).catch(e => { document.getElementById('err').textContent = e.message; throw e; });
+
+  const FIELDS = 8;
+  const [from, to] = bounds();
+  const days = Math.max(20, dayIdx(from, to));
+  const fill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Gantt', { views: [{ state: 'frozen', xSplit: FIELDS, ySplit: 1 }] });
+  ws.columns = [{ width: 5 }, { width: 30 }, { width: 8 }, { width: 12 }, { width: 12 }, { width: 10 }, { width: 5 }, { width: 16 },
+  ...Array.from({ length: days }, () => ({ width: 3 }))];
+
+  const rows = tableRows();
+  const head = ws.addRow([...rows[0], ...Array.from({ length: days }, (_, i) => {
+    const d = new Date(from); d.setDate(d.getDate() + i);
+    return d.getDate() === 1 || i === 0 ? d.toLocaleString('en', { month: 'short' }) + ' ' + d.getDate() : d.getDate();
+  })]);
+  head.font = { bold: true };
+  head.alignment = { horizontal: 'center' };
+
+  proj.tasks.forEach((t, r) => {
+    const row = ws.addRow(rows[r + 1]);
+    if (!t.startDate) return;
+    const s = dayIdx(from, t.startDate), n = Math.max(1, dayIdx(t.startDate, t.endExclusive));
+    const donePortion = Math.round(n * (Number(t.pct) || 0) / 100);
+    for (let i = 0; i < days; i++) {
+      const d = new Date(from); d.setDate(d.getDate() + i);
+      const c = row.getCell(FIELDS + 1 + i);
+      if (Number(t.duration) === 0) { if (i === s) { c.value = '◆'; c.alignment = { horizontal: 'center' }; } }
+      else if (i >= s && i < s + n) c.fill = fill(i < s + donePortion ? 'FF17325E' : 'FF2B579A');
+      else if (!isWorkday(d)) c.fill = fill('FFF2F2F2');
+    }
+  });
+  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: proj.tasks.length + 1, column: FIELDS } };
+
+  const buf = await wb.xlsx.writeBuffer();
+  download(proj.name.replace(/[\\/:*?"<>|]/g, '_') + '.xlsx', buf, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+
+// PDF via the browser's own print dialog: pick "Save as PDF". Prints the grid and the
+// Gantt exactly as drawn, scaled to fit A3 landscape.
+function exportPDF() {
+  document.getElementById('ptitle').textContent = proj.name + ' - ' + fmtDate(new Date());
+  const w = document.getElementById('tbl').offsetWidth + (document.querySelector('.gridhead')?.offsetWidth || 0);
+  document.documentElement.style.setProperty('--ps', Math.min(1, 1400 / w));
+  window.print();
+}
+
+function exportCSV() {
+  const q = s => '"' + String(s ?? '').replace(/"/g, '""') + '"';
+  const rows = [['ID', 'Name', 'Duration', 'Start', 'Finish', 'Predecessors', 'Percent Complete', 'Resource Names']];
+  proj.tasks.forEach(t => rows.push([t.id, t.name, (t.duration || 0) + ' days',
+    t.startDate ? fmtDate(t.startDate) : '', t.finishDate ? fmtDate(t.finishDate) : '',
+    (t.preds || []).map(fmtPred).join(','), t.pct || 0, t.res || '']));
+  download(proj.name.replace(/[\\/:*?"<>|]/g, '_') + '.csv', '﻿' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
+}
+
+function save() {
+  const clean = { ...proj, tasks: proj.tasks.map(({ startDate, endExclusive, finishDate, ...t }) => t) };
+  download(proj.name.replace(/[\\/:*?"<>|]/g, '_') + '.json', JSON.stringify(clean, null, 2), 'application/json');
+}
+function open_(input) {
+  const f = input.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => { proj = JSON.parse(r.result); sel = 0; render(); };
+  r.readAsText(f); input.value = '';
+}
+
+document.getElementById('pname').onchange = e => { proj.name = e.target.value; render(); };
+document.getElementById('pstart').onchange = e => { proj.start = e.target.value; render(); };
+render();
+connect();
+</script>
+</body>
+</html>
