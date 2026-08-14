@@ -1,5 +1,5 @@
 {
-  "rev": 5,
+  "rev": 6,
   "data": {
     "projects": [
       {
@@ -18,25 +18,165 @@
         "tasks": [
           {
             "id": 1,
-            "name": "Task 1",
+            "name": "Ngọt",
             "duration": 5,
             "level": 1,
             "preds": [],
             "pct": 0,
-            "start": "2027-1-1"
+            "start": "2026-8-14"
           },
           {
             "id": 2,
-            "name": "New task",
+            "name": "Cho tôi lang thang",
+            "duration": 4,
+            "level": 1,
+            "preds": [
+              "1"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 3,
+            "name": "Gội đầu",
+            "duration": 1,
+            "level": 1,
+            "preds": [
+              "2"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 4,
+            "name": "Thôi em đừng đi",
+            "duration": 6,
+            "level": 1,
+            "preds": [
+              "3"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 5,
+            "name": "Phép màu",
+            "duration": 1,
+            "level": 1,
+            "preds": [
+              "4"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 6,
+            "name": "Come my way",
+            "duration": 1,
+            "level": 1,
+            "preds": [
+              "3"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 7,
+            "name": "Paint the forest",
             "duration": 1,
             "level": 1,
             "preds": [
               "1"
             ],
             "pct": 0
+          },
+          {
+            "id": 8,
+            "name": "Mối tình lỡ",
+            "duration": 1,
+            "level": 1,
+            "preds": [
+              "5"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 13,
+            "name": "Bánh cuốn cao bằng",
+            "duration": 6,
+            "level": 1,
+            "preds": [
+              "10FF + 10"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 9,
+            "name": "Sang nhưng khó tính",
+            "duration": 1,
+            "level": 1,
+            "preds": [
+              "2FS + 5"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 10,
+            "name": "Idiot Sandwich",
+            "duration": 2,
+            "level": 1,
+            "preds": [
+              "1SS+ 1"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 16,
+            "name": "Bún chả nước mém",
+            "duration": 1,
+            "level": 1,
+            "preds": [
+              "10SF+15"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 11,
+            "name": "Gordon Ramsay",
+            "duration": 1,
+            "level": 1,
+            "preds": [
+              "1FF + 3"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 12,
+            "name": "Beat it ",
+            "duration": 1,
+            "level": 1,
+            "preds": [
+              "9"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 15,
+            "name": "Phở Lý Quốc Sư",
+            "duration": 1,
+            "level": 1,
+            "preds": [
+              "1FF + 15"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 18,
+            "name": "Bông kia sên bên kia sông",
+            "duration": 1,
+            "level": 1,
+            "preds": [
+              "5"
+            ],
+            "pct": 0
           }
         ],
-        "nextId": 3
+        "nextId": 19
       },
       {
         "name": "test",
@@ -58,7 +198,7 @@
             "duration": 5,
             "level": 1,
             "preds": [],
-            "pct": 50
+            "pct": 0
           },
           {
             "id": 2,
@@ -111,34 +251,9 @@
           }
         ],
         "nextId": 8
-      },
-      {
-        "name": "Ocean",
-        "start": "2026-08-14",
-        "calendar": {
-          "workdays": [
-            1,
-            2,
-            3,
-            4,
-            5
-          ],
-          "holidays": []
-        },
-        "tasks": [
-          {
-            "id": 1,
-            "name": "Task 1",
-            "duration": 5,
-            "level": 1,
-            "preds": [],
-            "pct": 0
-          }
-        ],
-        "nextId": 2
       }
     ],
-    "nextPid": 4
+    "nextPid": 3
   },
-  "at": "2026-08-14T09:44:50.082Z"
+  "at": "2026-08-14T09:45:04.877Z"
 }
