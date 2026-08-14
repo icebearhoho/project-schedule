@@ -87,6 +87,22 @@ same colours.
 Bars carry no text: the task name is already on the same row in the grid. Hover a bar for
 its name, dates and percentage.
 
+A bar is drawn only on the days the task actually occupies: it breaks over weekends,
+holidays and any day you untick in **Schedule**, so its painted length matches the day
+count in the grid. (Below about 8px per day the gaps would read as noise, so at `3 months`
+and wider zooms the bar is drawn solid.)
+
+## Room for the chart
+
+Drag the divider between the table and the chart to give either side more room — the
+timeline refits as you drag, so a wider chart means wider days rather than more
+scrolling. Drag it fully left for chart-only; double-click it to reset. It also takes
+arrow keys (with Shift for bigger steps) when focused, and the position is remembered
+per browser.
+
+The expand button next to the range buttons puts the plan **full screen**; Esc or the
+button in the corner comes back.
+
 ## Timeline focus
 
 The **Day / Week / Month / 3 months / All** buttons set how much calendar the Gantt shows
@@ -223,6 +239,17 @@ Back it up by copying `project.json`, or from the app with **File > Save project
 **PDF**: the menu item opens your browser's print dialog — choose *Destination: Save as PDF*.
 The toolbar is hidden, the whole Gantt is unrolled (no scrollbars) and scaled to fit A3
 landscape. Chrome needs *More settings > Background graphics* left on, or the bars print white.
+
+### Checking the XML is good
+
+1. **Is it well formed?** Open it in Chrome or Edge. A collapsible tree means the file is
+   valid XML; a red parse error means it is not.
+2. **Does a scheduler accept it?** The real test: install the free
+   [ProjectLibre](https://www.projectlibre.com/), then **File > Open** and pick the
+   `.xml`. Your tasks, outline, links and dates should appear with a Gantt beside them.
+   MS Project: **File > Open > Browse**, set the file-type filter to XML, pick the file.
+3. **Did everything survive?** Compare the task count, the WBS numbers and the finish
+   date of the last task against this app. Those three matching means the export is sound.
 
 **The `.xml` export is not a document to look at** — double-clicking it opens your
 browser, which shows the raw code. It is an interchange file: open MS Project (or the
