@@ -7,7 +7,8 @@ const fs = require('fs'), path = require('path');
 
 const env = () => ({
   token: process.env.GITHUB_TOKEN || '',
-  repo: process.env.GITHUB_REPO || '',
+  repo: process.env.GITHUB_REPO || 'icebearhoho/project-schedule', // so only GITHUB_TOKEN has to be set
+
   branch: process.env.GITHUB_BRANCH || 'plan-data',
   path: process.env.GITHUB_PATH || 'plan.json',
   api: process.env.GITHUB_API || 'https://api.github.com',
