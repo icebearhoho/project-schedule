@@ -5,29 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Project Planner</title>
 <style>
-  /* ---- tokens: one palette, redefined for dark mode ---- */
+  /* ---- tokens ----
+     Light is the base. Dark is defined twice on purpose: once for people whose OS says
+     dark and who haven't chosen (so "System" follows the OS), once for an explicit
+     choice (so the toggle wins either way). Both palettes are tuned to the same rhythm:
+     surface lighter than the page, sunken darker, one accent, and "done" always the more
+     prominent blue of the pair — darker than the bar in light, brighter in dark. ---- */
   :root {
-    --bg: #f6f7f9;        --surface: #ffffff;     --sunken: #eef0f4;
-    --line: #d8dce4;      --line-soft: #e8eaf0;
-    --text: #1b1c1f;      --muted: #5a6070;       --faint: #5f6575; /* dark enough for 4.5:1 on --sunken */
-    --accent: #1f5fbf;    --accent-text: #ffffff; --accent-soft: #e4edfb;
-    --bar: #3b6fd4;       --bar-done: #1d3f80;    --bar-summary: #3c4250;
-    --danger: #b3261e;    --danger-soft: #fdecea; --warn: #7a5800; --warn-soft: #fdf6e3;
-    --ok: #14663c;
+    --bg: #f4f6f9;        --surface: #ffffff;     --sunken: #eaedf3;
+    --line: #d3d9e3;      --line-soft: #e6e9f1;
+    --text: #191b1f;      --muted: #545b6b;       --faint: #5f6575; /* dark enough for 4.5:1 on --sunken */
+    --accent: #1f5fbf;    --accent-text: #ffffff; --accent-soft: #e3ecfb;
+    --bar: #4275d6;       --bar-done: #1c3f80;    --bar-summary: #3a4150;
+    --danger: #b3261e;    --danger-soft: #fdecea; --warn: #7a5800; --warn-soft: #fdf5e0;
+    --ok: #146b3f;
     --focus: #1f5fbf;     --shadow: 0 6px 20px rgba(20, 24, 35, .14);
     --row: 32px;
+    color-scheme: light; /* native scrollbars, date picker and form controls follow the theme */
   }
   @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #14161b;      --surface: #1c1f26;     --sunken: #23262f;
-      --line: #343945;    --line-soft: #2a2e38;
-      --text: #e7e9ef;    --muted: #a3aab9;       --faint: #8b93a3;
-      --accent: #4f8cf0;  --accent-text: #0d1017; --accent-soft: #22314b;
-      --bar: #4f8cf0;     --bar-done: #a9c8fb;    --bar-summary: #b6bdcc;
-      --danger: #ff9d95;  --danger-soft: #3a1d1a; --warn: #e8c95f; --warn-soft: #322b12;
-      --ok: #6ddba0;
-      --focus: #7fb0ff;   --shadow: 0 6px 20px rgba(0, 0, 0, .5);
+    :root:not([data-theme="light"]) {
+      --bg: #12151b;      --surface: #191d24;     --sunken: #222630;
+      --line: #333947;    --line-soft: #272c36;
+      --text: #e6e9f0;    --muted: #a6adbb;       --faint: #8d94a3;
+      --accent: #5a95f5;  --accent-text: #0b0e14; --accent-soft: #1e2b42;
+      --bar: #3d6bb8;     --bar-done: #7fb0ff;    --bar-summary: #9aa3b5;
+      --danger: #ff9a91;  --danger-soft: #3a1d1a; --warn: #e6c860; --warn-soft: #322c12;
+      --ok: #63d69b;
+      --focus: #86b4ff;   --shadow: 0 6px 20px rgba(0, 0, 0, .5);
+      color-scheme: dark;
     }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b;        --surface: #191d24;     --sunken: #222630;
+    --line: #333947;      --line-soft: #272c36;
+    --text: #e6e9f0;      --muted: #a6adbb;       --faint: #8d94a3;
+    --accent: #5a95f5;    --accent-text: #0b0e14; --accent-soft: #1e2b42;
+    --bar: #3d6bb8;       --bar-done: #7fb0ff;    --bar-summary: #9aa3b5;
+    --danger: #ff9a91;    --danger-soft: #3a1d1a; --warn: #e6c860; --warn-soft: #322c12;
+    --ok: #63d69b;
+    --focus: #86b4ff;     --shadow: 0 6px 20px rgba(0, 0, 0, .5);
+    color-scheme: dark;
   }
 
   * { box-sizing: border-box; }
@@ -38,6 +56,8 @@
     -webkit-font-smoothing: antialiased;
   }
   :focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; border-radius: 4px; }
+  /* A theme swap should be instant, not 15 elements crossfading at once. */
+  .no-anim * { transition: none !important; }
   .icon { width: 16px; height: 16px; flex: 0 0 16px; fill: none; stroke: currentColor; stroke-width: 1.8;
           stroke-linecap: round; stroke-linejoin: round; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -56,7 +76,9 @@
   button, select, input, textarea { font: inherit; color: inherit; }
   .btn { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 6px 10px;
          background: var(--surface); color: var(--text); border: 1px solid var(--line);
-         border-radius: 7px; cursor: pointer; transition: background .12s ease, border-color .12s ease; }
+         /* background-color, not the `background` shorthand: transitioning the shorthand
+            across a var() swap leaves the old theme's colour stuck on the element. */
+         border-radius: 7px; cursor: pointer; transition: background-color .12s ease, border-color .12s ease; }
   .btn:hover:not(:disabled) { background: var(--sunken); }
   .btn:disabled { opacity: .45; cursor: default; }
   .btn.icon-only { padding: 6px 8px; }
@@ -192,8 +214,10 @@
   }
   @media print {
     @page { size: A3 landscape; margin: 8mm; }
-    :root { --bg: #fff; --surface: #fff; --sunken: #f2f3f6; --text: #111; --muted: #444;
-            --faint: #666; --line: #ccc; --line-soft: #e3e3e8; --bar: #3b6fd4; --bar-done: #1d3f80;
+    /* [data-theme] is repeated so an explicit dark choice still prints on white paper */
+    :root, :root[data-theme] {
+            --bg: #fff; --surface: #fff; --sunken: #f2f3f6; --text: #111; --muted: #444;
+            --faint: #5f6575; --line: #ccc; --line-soft: #e3e3e8; --bar: #4275d6; --bar-done: #1c3f80;
             --bar-summary: #333; --accent-soft: #fff; }
     body { print-color-adjust: exact; -webkit-print-color-adjust: exact; background: #fff; }
     .appbar, .toolbar, .banner { display: none !important; }
@@ -224,6 +248,9 @@
   <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
   <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
   <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></symbol>
+  <symbol id="i-auto" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18a9 9 0 0 0 0-18z" fill="currentColor"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 8v5M12 16.5v.5M12 3l9 17H3z"/></symbol>
 </defs></svg>
 
@@ -238,6 +265,7 @@
   <button class="btn icon-only" onclick="delProject()" title="Delete this project" aria-label="Delete this project">
     <svg class="icon"><use href="#i-trash"/></svg></button>
   <span class="grow"></span>
+  <button class="btn icon-only" id="themeBtn" onclick="cycleTheme()"><svg class="icon"><use id="themeIcon" href="#i-auto"/></svg></button>
   <span id="sync" class="pill off" role="status" aria-live="polite"><span class="dot"></span><span id="syncText">local only</span></span>
   <button class="btn primary" id="pub" onclick="publish()" hidden>
     <svg class="icon"><use href="#i-cloud"/></svg><span id="pubText">Publish changes</span></button>
@@ -320,6 +348,29 @@
 <script src="schedule.js"></script>
 <script>
 const DAY_W = 24, HOURS_PER_DAY = 8;
+
+/* ---- theme: System follows the OS, or pick Light/Dark explicitly. Per browser, like
+   the timeline view — it is a preference, not part of the plan. ---- */
+const THEMES = ['system', 'light', 'dark'];
+const THEME_ICON = { system: '#i-auto', light: '#i-sun', dark: '#i-moon' };
+let theme = THEMES.includes(localStorage.getItem('theme')) ? localStorage.getItem('theme') : 'system';
+function applyTheme() {
+  const root = document.documentElement;
+  root.classList.add('no-anim');
+  if (theme === 'system') delete root.dataset.theme; else root.dataset.theme = theme;
+  requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('no-anim')));
+  const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+  document.getElementById('themeIcon').setAttribute('href', THEME_ICON[theme]);
+  const btn = document.getElementById('themeBtn');
+  btn.title = `Theme: ${theme} — switch to ${next}`;
+  btn.setAttribute('aria-label', btn.title);
+}
+function cycleTheme() {
+  theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+  localStorage.setItem('theme', theme);
+  applyTheme();
+}
+applyTheme();
 
 /* ---- timeline focus: how much of the calendar the Gantt shows at once.
    Kept in localStorage, never in the plan, so changing the view is not an edit. ---- */

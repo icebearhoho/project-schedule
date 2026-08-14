@@ -86,6 +86,19 @@ The view is per browser, not part of the plan: changing it never marks a draft a
 affects what teammates see. Exports are unaffected too — Excel always covers the whole
 plan; only the PDF follows what's on screen, since it prints the current view.
 
+## Light and dark
+
+The sun/moon button in the header cycles **System → Light → Dark**. System follows your
+OS setting; the other two override it. Like the timeline view, it's stored per browser
+and is never part of the plan, so your choice doesn't follow teammates around.
+
+Both palettes are built from the same tokens and tuned to the same rhythm: page darker
+than the surface it holds, one accent, and the completed part of a bar always the more
+prominent blue of the pair — darker than the bar in light, brighter in dark, so "done"
+reads the same way in both. Every text pair clears WCAG AA (4.5:1) in both themes, and
+bars clear 3:1 against their row. Printing always uses the light palette on white paper,
+whichever theme is on screen.
+
 ## Dependencies
 
 The **Pred** column takes MS Project syntax. Separate several with commas.
