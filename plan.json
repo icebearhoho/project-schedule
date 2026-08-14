@@ -1,5 +1,5 @@
 {
-  "rev": 3,
+  "rev": 4,
   "data": {
     "projects": [
       {
@@ -18,7 +18,7 @@
         "tasks": [
           {
             "id": 1,
-            "name": "Task 1",
+            "name": "HAHahahhahahahhaha",
             "duration": 5,
             "level": 1,
             "preds": [],
@@ -27,7 +27,7 @@
           },
           {
             "id": 2,
-            "name": "New task",
+            "name": "HOhoohohohoohoho",
             "duration": 1,
             "level": 1,
             "preds": [
@@ -115,5 +115,5 @@
     ],
     "nextPid": 3
   },
-  "at": "2026-08-14T07:35:56.241Z"
+  "at": "2026-08-14T09:27:24.811Z"
 }
