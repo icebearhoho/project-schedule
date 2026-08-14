@@ -30,6 +30,38 @@ watching each keystroke — and without hammering the server.
 
 Teammates on the same office network can use `http://<your-ip>:5173` while it runs.
 
+## Outline (WBS)
+
+**Indent** makes a row a subtask of the row above; **Outdent** promotes it. A row with
+subtasks becomes a **summary**: grey and bold, dates spanning its children, duration and
+% complete rolled up (weighted by each subtask's length), and a `−`/`+` to fold it away.
+The WBS column numbers rows as `1`, `1.1`, `1.2`, `2`. Up/Down move a row with its whole
+subtree, and deleting a summary offers to take its subtasks with it.
+
+Other tasks can depend on a summary (it means "when that whole phase is done"). Links
+put *on* a summary row are ignored, with a note in the yellow bar — put them on the
+subtasks instead.
+
+**Ctrl+Z** (or the Undo button) walks back through the last 100 changes.
+
+## Multiple projects
+
+The **Project** dropdown switches between plans; **New** and **Delete project** manage
+the list. All projects live in one workspace file and are published together, so
+switching projects is not itself a change and won't mark a draft.
+
+Exports always cover the project you're looking at. **Save .json** saves the current
+project; **Open .json** adds a saved project (or a whole workspace) to the list — which
+is how you reuse one as a template.
+
+## Working calendar
+
+**Working calendar** opens a panel per project: tick which weekdays are working days
+(any combination — a 6-day week is fine) and list holidays or shutdown days, one
+`YYYY-MM-DD` per line. Durations, links and lag all count in working days, so a holiday
+pushes everything after it. Non-working days are shaded in the Gantt and exported into
+the MS Project XML as calendar exceptions.
+
 ## Dependencies
 
 The **Pred** column takes MS Project syntax. Separate several with commas.
@@ -64,20 +96,21 @@ ssh -R 80:localhost:5173 nokey@localhost.run
 It prints a public https URL anyone can open. Dies when you close the terminal or shut
 down, so set `PLANNER_TOKEN` first if the plan isn't public information.
 
-**3. Always-on hosting (real answer for a team).** The repo is committed and
-`render.yaml` + `package.json` are in place, so it's four steps:
+**3. Always-on hosting (real answer for a team).** The code is already pushed to
+https://github.com/icebearhoho/project-schedule, so only the Render half is left — it
+needs your own login, which is why it isn't done for you:
+
+1. Sign in at https://render.com with the GitHub account that owns the repo.
+2. **New > Blueprint**, pick `icebearhoho/project-schedule`, **Apply**. It reads
+   `render.yaml` — Node runtime, no build command, 1 GB disk mounted at `/data`.
+3. In the service's **Environment** tab set `PLANNER_TOKEN` to a shared password.
+4. Send teammates the URL and that password.
+
+Later changes go live with:
 
 ```bash
-git remote add origin https://github.com/<you>/project-planner.git
-git push -u origin main
+git push
 ```
-
-1. Create an empty GitHub repo named `project-planner` (don't add a README).
-2. Run the two commands above from this folder.
-3. On https://render.com: **New > Blueprint**, pick the repo, **Apply**. It reads
-   `render.yaml` — Node runtime, no build command, 1 GB disk mounted at `/data`.
-4. In the service's **Environment** tab set `PLANNER_TOKEN` to a shared password.
-   Send teammates the URL and that password.
 
 Railway, Fly.io, or any $5 VPS work the same way — start command `node serve.js`,
 it uses `$PORT` if the host sets one.
@@ -132,5 +165,6 @@ conflicting-save rejection.
 
 ## Not implemented
 
-Summary/outline tasks (WBS levels), lags and SS/FF/SF link types, resource leveling,
-critical path, per-user logins/history.
+Resources and assignments (the column was removed on request), workload and levelling,
+cost and effort, critical path and baselines, kanban board, dashboard, comments, and
+per-user logins — everyone with the URL and team key is an editor.
