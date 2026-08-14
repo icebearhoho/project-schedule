@@ -1,7 +1,16 @@
 # Project Planner
 
-Tiny MS-Project-style planner: task grid + Gantt, exports to MS Project XML, Excel, CSV.
-No build step, no npm install. Node 18+ only.
+Tiny MS-Project-style planner: WBS task grid + Gantt, FS/SS/FF/SF dependencies, exports
+to MS Project XML, Excel, PDF and CSV. No build step, no npm install. Node 18+ only.
+
+| File | What it is |
+|---|---|
+| `index.html` | the whole app (grid, Gantt, exports, draft/publish) |
+| `schedule.js` | scheduling engine — dates, links, rollups, calendar |
+| `storage.js` | where the shared plan lives: local file, or a GitHub repo |
+| `serve.js` | static files + API, for running as a normal server |
+| `api/data.js` | the same API as a serverless function (Vercel) |
+| `test.js` | `node test.js` — scheduler, storage and API checks |
 
 ## Run
 
@@ -96,25 +105,36 @@ ssh -R 80:localhost:5173 nokey@localhost.run
 It prints a public https URL anyone can open. Dies when you close the terminal or shut
 down, so set `PLANNER_TOKEN` first if the plan isn't public information.
 
-**3. Always-on hosting, free (real answer for a team).** Render's *free* plan needs no
-payment details — only its persistent disk costs money, so the plan is stored in this
-GitHub repo instead. Every publish becomes a commit on the `plan-data` branch, which
-means the plan survives restarts *and* you get its full history.
+**3. Always-on hosting, free.** There is no disk to pay for: the plan is stored in this
+GitHub repo, as a file on a `plan-data` branch. Every publish is a commit, so the plan
+survives restarts *and* you get its history.
 
-1. Create a GitHub token: **Settings > Developer settings > Personal access tokens >
-   Fine-grained tokens > Generate new token**. Repository access: only
-   `project-schedule`. Permissions: **Contents: Read and write**. Copy the token.
-2. Sign in at https://render.com with that GitHub account.
-3. **New > Blueprint**, pick `icebearhoho/project-schedule`, **Apply** (it reads
-   `render.yaml`). If the repo isn't listed, click **Configure account** and grant
-   access, or paste the repo URL in the **Public Git repository** field.
-4. In the service's **Environment** tab set `GITHUB_TOKEN` to the token from step 1 and
-   `PLANNER_TOKEN` to a password your team will share.
-5. Send teammates the URL and that password.
+First, the token both options need: GitHub **Settings > Developer settings > Personal
+access tokens > Fine-grained tokens > Generate new token**. Repository access: only
+`project-schedule`. Permissions: **Contents: Read and write**. Copy it.
 
-What free costs you: after ~15 minutes with nobody connected the instance sleeps, and
-the next visit takes ~30s to wake. While anyone has the page open it stays awake, since
-the page polls every 3 seconds.
+*Vercel* (Hobby plan, no payment details):
+
+1. https://vercel.com > **Add New > Project** > import `icebearhoho/project-schedule`.
+2. Framework preset **Other**, no build command. Deploy.
+3. **Settings > Environment Variables**: `GITHUB_TOKEN` = your token,
+   `GITHUB_REPO` = `icebearhoho/project-schedule`, `PLANNER_TOKEN` = a shared password.
+   Redeploy so they take effect.
+
+`api/data.js` is the serverless half; the page itself is served as a static file. Never
+sleeps, and there's no wake-up delay.
+
+*Render free plan* — note that Render asks for a payment method for **Blueprints**, so
+skip `render.yaml` and create the service by hand:
+
+1. **New > Web Service** > connect the repo.
+2. Runtime `Node`, build command empty, start command `node serve.js`, instance type
+   **Free**.
+3. Add `GITHUB_TOKEN`, `GITHUB_REPO` and `PLANNER_TOKEN` as environment variables.
+
+Free Render instances sleep after ~15 minutes with nobody connected, so the next visit
+waits ~30s for a wake-up; while anyone has the page open the 3-second polling keeps it
+awake.
 
 Later changes go live with:
 

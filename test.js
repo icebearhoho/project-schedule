@@ -193,6 +193,34 @@ assert.equal(fmtDate(t[0].startDate), '2026-08-17');
       assert.equal(after.body.rev, 1);
       assert.equal((await ghCall('PUT', { rev: 99, data: wsOf('stale') })).code, 409);
       assert.equal(JSON.parse(stored).data.projects[0].name, 'Cloud plan'); // stale write changed nothing
+      // --- the serverless handler (Vercel) against the same stub ---
+      Object.assign(process.env, {
+        GITHUB_TOKEN: 'x', GITHUB_REPO: 'o/r', GITHUB_API: 'http://localhost:5201',
+        GITHUB_BRANCH: 'plan-data', GITHUB_PATH: 'plan.json',
+      });
+      const handler = require('./api/data.js');
+      const call = async (method, body) => {
+        const out = { code: 0, body: null, headers: {} };
+        const req = Object.assign(new (require('stream').Readable)({ read() { this.push(null); } }),
+          { method, url: '/api/data', headers: {}, body });
+        const res = {
+          set statusCode(c) { out.code = c; }, get statusCode() { return out.code; },
+          setHeader(k, v) { out.headers[k] = v; }, end(s) { out.body = JSON.parse(s); },
+        };
+        await handler(req, res);
+        return out;
+      };
+      const got = await call('GET');
+      assert.equal(got.code, 200);
+      assert.equal(got.body.data.projects[0].name, 'Cloud plan'); // reads what the server wrote
+      const fresh = await call('PUT', { rev: got.body.rev, data: wsOf('From serverless') });
+      assert.equal(fresh.code, 200);
+      assert.equal(JSON.parse(stored).data.projects[0].name, 'From serverless');
+      const staleServerless = await call('PUT', { rev: 1, data: wsOf('stale') });
+      assert.equal(staleServerless.code, 409);
+      assert.equal(staleServerless.body.data.projects[0].name, 'From serverless');
+      assert.equal((await call('PUT', { rev: 99, data: { nope: 1 } })).code, 400);
+      assert.equal((await call('DELETE')).code, 405);
     } finally { srv3.kill(); stub.close(); fs.rmSync(data + '.unused', { force: true }); }
     console.log('ok');
   } finally { srv.kill(); try { fs.unlinkSync(data); } catch (e) { } }
