@@ -26,15 +26,15 @@ Your edits are a **private draft** until you press **Publish changes**. Nothing 
 the shared file while you're typing, so you can rearrange a plan freely without everyone
 watching each keystroke — and without hammering the server.
 
-- The **Publish changes** button turns red and pulses while you have unpublished work,
-  and the toolbar says `DRAFT - not published yet`.
+- The **Publish changes** button in the header highlights and pulses while you have
+  unpublished work, and the status pill next to it reads `Draft — …`.
 - **Discard draft** throws your draft away and reloads the published version.
 - A draft survives closing the tab (it's kept in your browser); closing with unpublished
   work warns you first.
 - If a teammate publishes while you're drafting, you're told, and your draft is left
   alone. Publishing then needs a second, deliberate click labelled
   **Publish (overwrites theirs)** — or press **Discard draft** to take their version.
-- **local only (this browser)** in the toolbar means no server was reachable (e.g. you
+- **local only (this browser)** in the status pill means no server was reachable (e.g. you
   opened `index.html` by double-clicking it); edits stay in that browser.
 
 Teammates on the same office network can use `http://<your-ip>:5173` while it runs.
@@ -43,7 +43,7 @@ Teammates on the same office network can use `http://<your-ip>:5173` while it ru
 
 **Indent** makes a row a subtask of the row above; **Outdent** promotes it. A row with
 subtasks becomes a **summary**: grey and bold, dates spanning its children, duration and
-% complete rolled up (weighted by each subtask's length), and a `−`/`+` to fold it away.
+% complete rolled up (weighted by each subtask's length), and a chevron to fold it away.
 The WBS column numbers rows as `1`, `1.1`, `1.2`, `2`. Up/Down move a row with its whole
 subtree, and deleting a summary offers to take its subtasks with it.
 
@@ -59,13 +59,13 @@ The **Project** dropdown switches between plans; **New** and **Delete project** 
 the list. All projects live in one workspace file and are published together, so
 switching projects is not itself a change and won't mark a draft.
 
-Exports always cover the project you're looking at. **Save .json** saves the current
-project; **Open .json** adds a saved project (or a whole workspace) to the list — which
+Exports always cover the project you're looking at. **File > Save project** saves the
+current one; **File > Open project** adds a saved project (or a whole workspace) — which
 is how you reuse one as a template.
 
 ## Working calendar
 
-**Working calendar** opens a panel per project: tick which weekdays are working days
+**Schedule** in the toolbar opens a panel per project: tick which weekdays are working days
 (any combination — a 6-day week is fine) and list holidays or shutdown days, one
 `YYYY-MM-DD` per line. Durations, links and lag all count in working days, so a holiday
 pushes everything after it. Non-working days are shaded in the Gantt and exported into
@@ -159,19 +159,19 @@ Environment variables:
 
 Locally, with no `GITHUB_TOKEN` set, nothing changes — it still uses the local file.
 
-Back it up by copying `project.json`, or from the app with **Save .json**.
+Back it up by copying `project.json`, or from the app with **File > Save project**.
 
 ## Exports
 
 | Button | File | Chart included? | Opens in |
 |---|---|---|---|
-| Export .xml | MSPDI XML | yes, MS Project draws its own Gantt from the dates | MS Project (File > Open), ProjectLibre |
-| Export .xlsx | Excel workbook | yes, Gantt bars as coloured day cells next to the task columns | Excel, Google Sheets |
-| Export .pdf | print dialog | yes, exactly what's on screen | anything |
-| Export .csv | CSV | no, data only | anything |
-| Save .json | app's own format | n/a | this app (**Open .json**) |
+| Export > MS Project XML | MSPDI XML | yes, MS Project draws its own Gantt from the dates | MS Project (File > Open), ProjectLibre |
+| Export > Excel with Gantt | Excel workbook | yes, Gantt bars as coloured day cells next to the task columns | Excel, Google Sheets |
+| Export > PDF / print | print dialog | yes, exactly what's on screen | anything |
+| Export > CSV | CSV | no, data only | anything |
+| File > Save project | app's own format | n/a | this app (**File > Open project**) |
 
-**PDF**: the button opens your browser's print dialog — choose *Destination: Save as PDF*.
+**PDF**: the menu item opens your browser's print dialog — choose *Destination: Save as PDF*.
 The toolbar is hidden, the whole Gantt is unrolled (no scrollbars) and scaled to fit A3
 landscape. Chrome needs *More settings > Background graphics* left on, or the bars print white.
 
