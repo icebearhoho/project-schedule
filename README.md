@@ -96,15 +96,25 @@ ssh -R 80:localhost:5173 nokey@localhost.run
 It prints a public https URL anyone can open. Dies when you close the terminal or shut
 down, so set `PLANNER_TOKEN` first if the plan isn't public information.
 
-**3. Always-on hosting (real answer for a team).** The code is already pushed to
-https://github.com/icebearhoho/project-schedule, so only the Render half is left — it
-needs your own login, which is why it isn't done for you:
+**3. Always-on hosting, free (real answer for a team).** Render's *free* plan needs no
+payment details — only its persistent disk costs money, so the plan is stored in this
+GitHub repo instead. Every publish becomes a commit on the `plan-data` branch, which
+means the plan survives restarts *and* you get its full history.
 
-1. Sign in at https://render.com with the GitHub account that owns the repo.
-2. **New > Blueprint**, pick `icebearhoho/project-schedule`, **Apply**. It reads
-   `render.yaml` — Node runtime, no build command, 1 GB disk mounted at `/data`.
-3. In the service's **Environment** tab set `PLANNER_TOKEN` to a shared password.
-4. Send teammates the URL and that password.
+1. Create a GitHub token: **Settings > Developer settings > Personal access tokens >
+   Fine-grained tokens > Generate new token**. Repository access: only
+   `project-schedule`. Permissions: **Contents: Read and write**. Copy the token.
+2. Sign in at https://render.com with that GitHub account.
+3. **New > Blueprint**, pick `icebearhoho/project-schedule`, **Apply** (it reads
+   `render.yaml`). If the repo isn't listed, click **Configure account** and grant
+   access, or paste the repo URL in the **Public Git repository** field.
+4. In the service's **Environment** tab set `GITHUB_TOKEN` to the token from step 1 and
+   `PLANNER_TOKEN` to a password your team will share.
+5. Send teammates the URL and that password.
+
+What free costs you: after ~15 minutes with nobody connected the instance sleeps, and
+the next visit takes ~30s to wake. While anyone has the page open it stays awake, since
+the page polls every 3 seconds.
 
 Later changes go live with:
 
@@ -115,18 +125,19 @@ git push
 Railway, Fly.io, or any $5 VPS work the same way — start command `node serve.js`,
 it uses `$PORT` if the host sets one.
 
-One catch worth knowing: free tiers usually have a throwaway filesystem, so the plan
-would reset on each redeploy or restart. The included blueprint attaches a 1 GB disk and
-points `DATA_FILE` at it (Render's starter plan, ~$7/mo). If you'd rather stay free, keep
-option 1 or 2 and click **Save .json** now and then as a backup.
-
 Environment variables:
 
 | Var | Meaning |
 |---|---|
 | `PORT` | listen port (default 5173) |
 | `PLANNER_TOKEN` | shared password; asked once per browser, or pass `?key=...` |
-| `DATA_FILE` | where the plan is stored (default `./project.json`) |
+| `DATA_FILE` | local storage path (default `./project.json`), used when no `GITHUB_TOKEN` |
+| `GITHUB_TOKEN` | fine-grained token, Contents read+write; switches storage to GitHub |
+| `GITHUB_REPO` | `owner/name` holding the plan |
+| `GITHUB_BRANCH` | branch to commit to (default `plan-data`, deliberately not `main`) |
+| `GITHUB_PATH` | file in that branch (default `plan.json`) |
+
+Locally, with no `GITHUB_TOKEN` set, nothing changes — it still uses the local file.
 
 Back it up by copying `project.json`, or from the app with **Save .json**.
 

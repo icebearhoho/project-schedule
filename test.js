@@ -144,6 +144,56 @@ assert.equal(fmtDate(t[0].startDate), '2026-08-17');
       assert.equal(migrated.data.projects[0].name, 'Old');
       assert.equal(migrated.rev, 7);
     } finally { srv2.kill(); }
+
+    // --- GitHub-backed storage, against a stub of the bits of the API we use ---
+    const http = require('http');
+    let stored = null, storedSha = null, branches = [], commits = 0;
+    const stub = http.createServer((rq, rs) => {
+      let body = '';
+      rq.on('data', c => body += c);
+      rq.on('end', () => {
+        const send = (code, o) => rs.writeHead(code, { 'Content-Type': 'application/json' }).end(JSON.stringify(o));
+        const p = rq.url.split('?')[0];
+        if (p === '/repos/o/r/git/refs/heads') return send(200, [{ object: { sha: 'mainsha' } }]);
+        if (p === '/repos/o/r/git/ref/heads/plan-data') return branches.includes('plan-data') ? send(200, {}) : send(404, {});
+        if (p === '/repos/o/r/git/refs' && rq.method === 'POST') { branches.push('plan-data'); return send(201, {}); }
+        if (p === '/repos/o/r/contents/plan.json') {
+          if (rq.method === 'GET') return stored ? send(200, { sha: storedSha, content: Buffer.from(stored).toString('base64') }) : send(404, {});
+          const b = JSON.parse(body);
+          if (storedSha && b.sha !== storedSha) return send(409, { message: 'sha mismatch' }); // real CAS
+          stored = Buffer.from(b.content, 'base64').toString('utf8');
+          storedSha = 'sha' + (++commits);
+          return send(201, { content: { sha: storedSha } });
+        }
+        send(404, {});
+      });
+    });
+    await new Promise(r => stub.listen(5201, r));
+    const ghEnv = {
+      ...process.env, PORT: '5202', GITHUB_TOKEN: 'x', GITHUB_REPO: 'o/r',
+      GITHUB_API: 'http://localhost:5201', DATA_FILE: data + '.unused',
+    };
+    const ghCall = async (m, b) => {
+      const r = await fetch('http://localhost:5202/api/data',
+        { method: m, headers: { 'Content-Type': 'application/json' }, body: b && JSON.stringify(b) });
+      return { code: r.status, body: await r.json() };
+    };
+    const waitUp = async () => { for (let i = 0; ; i++) { try { return await ghCall('GET'); } catch (e) { if (i > 50) throw e; await new Promise(r => setTimeout(r, 100)); } } };
+    let srv3 = cp.spawn(process.execPath, [require.resolve('./serve.js')], { env: ghEnv, stdio: 'ignore' });
+    try {
+      assert.equal((await waitUp()).body.data, null);
+      assert.deepEqual(branches, ['plan-data']);              // data branch created, off main
+      const put = await ghCall('PUT', { rev: 0, data: wsOf('Cloud plan') });
+      assert.equal(put.code, 200);
+      assert.equal(JSON.parse(stored).data.projects[0].name, 'Cloud plan'); // really committed
+      srv3.kill();
+      srv3 = cp.spawn(process.execPath, [require.resolve('./serve.js')], { env: ghEnv, stdio: 'ignore' });
+      const after = await waitUp();                            // survives a wiped filesystem
+      assert.equal(after.body.data.projects[0].name, 'Cloud plan');
+      assert.equal(after.body.rev, 1);
+      assert.equal((await ghCall('PUT', { rev: 99, data: wsOf('stale') })).code, 409);
+      assert.equal(JSON.parse(stored).data.projects[0].name, 'Cloud plan'); // stale write changed nothing
+    } finally { srv3.kill(); stub.close(); fs.rmSync(data + '.unused', { force: true }); }
     console.log('ok');
   } finally { srv.kill(); try { fs.unlinkSync(data); } catch (e) { } }
 })();

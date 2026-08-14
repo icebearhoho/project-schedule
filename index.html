@@ -328,7 +328,7 @@ async function connect() {
     adopt(r.body.data); status('published version');
   } else { dirty = true; status('nothing on the server yet - press Publish'); }
   paint();
-  setInterval(poll, 5000);
+  setInterval(poll, 3000); // how quickly a teammate's publish shows up here
 }
 
 function adopt(w) {
