@@ -1,5 +1,5 @@
 {
-  "rev": 4,
+  "rev": 5,
   "data": {
     "projects": [
       {
@@ -18,7 +18,7 @@
         "tasks": [
           {
             "id": 1,
-            "name": "HAHahahhahahahhaha",
+            "name": "Task 1",
             "duration": 5,
             "level": 1,
             "preds": [],
@@ -27,7 +27,7 @@
           },
           {
             "id": 2,
-            "name": "HOhoohohohoohoho",
+            "name": "New task",
             "duration": 1,
             "level": 1,
             "preds": [
@@ -58,7 +58,7 @@
             "duration": 5,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 50
           },
           {
             "id": 2,
@@ -111,9 +111,34 @@
           }
         ],
         "nextId": 8
+      },
+      {
+        "name": "Ocean",
+        "start": "2026-08-14",
+        "calendar": {
+          "workdays": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "holidays": []
+        },
+        "tasks": [
+          {
+            "id": 1,
+            "name": "Task 1",
+            "duration": 5,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          }
+        ],
+        "nextId": 2
       }
     ],
-    "nextPid": 3
+    "nextPid": 4
   },
-  "at": "2026-08-14T09:27:24.811Z"
+  "at": "2026-08-14T09:44:50.082Z"
 }
