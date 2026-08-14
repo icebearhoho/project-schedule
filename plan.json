@@ -1,5 +1,5 @@
 {
-  "rev": 6,
+  "rev": 7,
   "data": {
     "projects": [
       {
@@ -23,7 +23,8 @@
             "level": 1,
             "preds": [],
             "pct": 0,
-            "start": "2026-8-14"
+            "start": "2026-8-14",
+            "color": "rose"
           },
           {
             "id": 2,
@@ -33,7 +34,8 @@
             "preds": [
               "1"
             ],
-            "pct": 0
+            "pct": 0,
+            "color": "green"
           },
           {
             "id": 3,
@@ -174,9 +176,55 @@
               "5"
             ],
             "pct": 0
+          },
+          {
+            "id": 21,
+            "name": "New phase",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "color": "amber"
+          },
+          {
+            "id": 22,
+            "name": "First task",
+            "duration": 3,
+            "level": 2,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 23,
+            "name": "New task",
+            "duration": 3,
+            "level": 2,
+            "preds": [
+              "22"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 24,
+            "name": "New task",
+            "duration": 9,
+            "level": 2,
+            "preds": [
+              "23"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 25,
+            "name": "New task",
+            "duration": 1,
+            "level": 2,
+            "preds": [],
+            "pct": 0
           }
         ],
-        "nextId": 19
+        "nextId": 26,
+        "color": "rose"
       },
       {
         "name": "test",
@@ -255,5 +303,5 @@
     ],
     "nextPid": 3
   },
-  "at": "2026-08-14T09:45:04.877Z"
+  "at": "2026-08-14T09:52:52.729Z"
 }
