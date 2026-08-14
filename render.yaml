@@ -3,7 +3,6 @@ services:
     name: project-planner
     runtime: node
     plan: starter          # free plan has no disk; the disk below keeps the plan across deploys
-    buildCommand: ""       # no dependencies to install
     startCommand: node serve.js
     disk:
       name: data
