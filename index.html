@@ -161,6 +161,12 @@
   td.n { padding: 0 8px; color: var(--faint); font-variant-numeric: tabular-nums; }
   td input { width: 100%; height: calc(var(--row) - 2px); padding: 0 7px; background: transparent;
              border: 1px solid transparent; border-radius: 5px; font-variant-numeric: tabular-nums; }
+  /* Numeric columns: the input's text must sit under the header, not opposite it.
+     An input already carries its own 8px inset, so the cell must not add a second one. */
+  td.n input { text-align: right; }
+  td.n:has(input), td.ro:has(input) { padding: 0; }
+  /* The name header clears the fold-chevron gutter so it lines up with top-level tasks. */
+  th.tname { padding-left: 32px; }
   td input:hover { border-color: var(--line); }
   td input:focus { background: var(--surface); border-color: var(--accent); outline: none; }
   td input::placeholder { color: var(--faint); }
@@ -706,7 +712,7 @@ function render() {
   const hidden = hiddenRows();
   const cell = (i, f, v, cls, ph) => `<td class="${cls || ''}"><input value="${esc(v ?? '')}"
       placeholder="${ph || ''}" aria-label="${f}" onchange="edit(${i},'${f}',this.value)" onfocus="sel=${i};hl()"></td>`;
-  let h = `<thead><tr><th>WBS</th><th class="n">ID</th><th>Task name</th><th class="n">Days</th>
+  let h = `<thead><tr><th>WBS</th><th class="n">ID</th><th class="tname">Task name</th><th class="n">Days</th>
       <th>Start</th><th>Finish</th>
       <th title="Predecessor. 3 = finish-to-start. Also 3FS, 3SS, 3FF, 3SF, with lag in working days: 3SS+2, 3FF-1. Separate several with commas.">Pred</th>
       <th class="n">%</th></tr></thead><tbody>`;
