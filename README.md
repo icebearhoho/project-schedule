@@ -71,6 +71,22 @@ is how you reuse one as a template.
 pushes everything after it. Non-working days are shaded in the Gantt and exported into
 the MS Project XML as calendar exceptions.
 
+## Phases and colours
+
+**Add phase** creates a summary row with a first subtask already under it — the quickest
+way to give a plan structure. (A phase is just a task with children; **Indent** on
+existing rows does the same thing by hand.)
+
+**Colour** sets the chart colour of the selected row, or of the whole project. A phase's
+colour carries down to its subtasks unless a subtask picks its own, so one click colours
+a whole workstream. The eight colours are mid-tones chosen to clear 3:1 contrast against
+both the light and the dark background, and the completed part of each bar is derived
+from the bar's own colour — darker on light, lighter on dark. The Excel export uses the
+same colours.
+
+Bars carry no text: the task name is already on the same row in the grid. Hover a bar for
+its name, dates and percentage.
+
 ## Timeline focus
 
 The **Day / Week / Month / 3 months / All** buttons set how much calendar the Gantt shows
@@ -110,6 +126,11 @@ The **Pred** column takes MS Project syntax. Separate several with commas.
 | `3FF` | finish-to-finish: finishes when 3 finishes |
 | `3SF` | start-to-finish: finishes when 3 starts |
 | `3SS+2`, `3FF-1` | same, with lag/lead in **working** days |
+
+**Start** and **Finish** are date pickers. Start is filled in with the scheduled date;
+picking one pins the task to "no earlier than that" and shows it in the accent colour.
+Picking a **Finish** date sets the duration that lands on it, counting working days only.
+Summary rows and milestones show their dates as plain text, since they are derived.
 
 Nothing is scheduled before the project start date, so a link that would push a task
 earlier than that is clamped to it. Unreadable entries and circular links show up in
@@ -202,6 +223,11 @@ Back it up by copying `project.json`, or from the app with **File > Save project
 **PDF**: the menu item opens your browser's print dialog — choose *Destination: Save as PDF*.
 The toolbar is hidden, the whole Gantt is unrolled (no scrollbars) and scaled to fit A3
 landscape. Chrome needs *More settings > Background graphics* left on, or the bars print white.
+
+**The `.xml` export is not a document to look at** — double-clicking it opens your
+browser, which shows the raw code. It is an interchange file: open MS Project (or the
+free ProjectLibre), then **File > Open**, switch the file-type filter to XML, and pick it.
+For something readable on its own, use the PDF or Excel export.
 
 `.mpp` is not possible — it's a closed binary format; XML is Microsoft's supported
 interchange file. The `.xlsx` export pulls the ExcelJS library from a CDN on first click,

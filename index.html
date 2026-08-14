@@ -21,6 +21,9 @@
     --ok: #146b3f;
     --focus: #1f5fbf;     --shadow: 0 6px 20px rgba(20, 24, 35, .14);
     --row: 32px;
+    /* Bars mix toward --shade for the completed part, so any chart colour keeps
+       "done is the stronger tone" in both themes: darker on light, lighter on dark. */
+    --shade: #000; --shade-pct: 42%;
     color-scheme: light; /* native scrollbars, date picker and form controls follow the theme */
   }
   @media (prefers-color-scheme: dark) {
@@ -33,6 +36,7 @@
       --danger: #ff9a91;  --danger-soft: #3a1d1a; --warn: #e6c860; --warn-soft: #322c12;
       --ok: #63d69b;
       --focus: #86b4ff;   --shadow: 0 6px 20px rgba(0, 0, 0, .5);
+      --shade: #fff; --shade-pct: 38%;
       color-scheme: dark;
     }
   }
@@ -45,6 +49,7 @@
     --danger: #ff9a91;    --danger-soft: #3a1d1a; --warn: #e6c860; --warn-soft: #322c12;
     --ok: #63d69b;
     --focus: #86b4ff;     --shadow: 0 6px 20px rgba(0, 0, 0, .5);
+    --shade: #fff; --shade-pct: 38%;
     color-scheme: dark;
   }
 
@@ -165,6 +170,11 @@
      An input already carries its own 8px inset, so the cell must not add a second one. */
   td.n input { text-align: right; }
   td.n:has(input), td.ro:has(input) { padding: 0; }
+  /* date cells: the picker button stays quiet until you go near it */
+  td input[type=date]::-webkit-calendar-picker-indicator { opacity: .35; cursor: pointer; }
+  td input[type=date]:hover::-webkit-calendar-picker-indicator,
+  td input[type=date]:focus::-webkit-calendar-picker-indicator { opacity: .9; }
+  td input.pinned { color: var(--accent); font-weight: 600; } /* a start date the user fixed */
   /* The name header clears the fold-chevron gutter so it lines up with top-level tasks. */
   th.tname { padding-left: 32px; }
   td input:hover { border-color: var(--line); }
@@ -199,15 +209,24 @@
   .gantt-row.sel { background: var(--accent-soft); }
   .off-col { position: absolute; top: 0; bottom: 0; background: var(--line-soft); opacity: .7; }
   .today { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--danger); opacity: .55; }
-  .bar { position: absolute; top: 6px; height: 18px; border-radius: 4px; background: var(--bar); overflow: hidden; }
-  .bar .done { height: 100%; background: var(--bar-done); }
-  .lbl { position: absolute; top: 6px; height: 18px; color: var(--muted); font-size: 12px; line-height: 18px; }
-  .sumbar { position: absolute; top: 11px; height: 7px; background: var(--bar-summary); border-radius: 2px; }
+  /* --c is set per bar from the task's colour; everything else is derived from it. */
+  .bar { position: absolute; top: 6px; height: 18px; border-radius: 4px; background: var(--c, var(--bar)); overflow: hidden; }
+  .bar .done { height: 100%; background: color-mix(in srgb, var(--c, var(--bar)), var(--shade) var(--shade-pct)); }
+  .sumbar { position: absolute; top: 11px; height: 7px; border-radius: 2px;
+            background: color-mix(in srgb, var(--c, var(--bar)), var(--bar-summary) 60%); }
   .sumbar::before, .sumbar::after { content: ''; position: absolute; top: 6px; border: 5px solid transparent;
-                                    border-top-color: var(--bar-summary); }
+                                    border-top-color: color-mix(in srgb, var(--c, var(--bar)), var(--bar-summary) 60%); }
   .sumbar::before { left: 0; } .sumbar::after { right: 0; }
-  .ms { position: absolute; top: 8px; left: 0; width: 13px; height: 13px; background: var(--bar-summary);
-        transform: rotate(45deg); border-radius: 2px; }
+  .ms { position: absolute; top: 8px; left: 0; width: 13px; height: 13px; transform: rotate(45deg); border-radius: 2px;
+        background: color-mix(in srgb, var(--c, var(--bar)), var(--shade) 25%); }
+  /* colour picker */
+  .swatches { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px; }
+  .swatches button { width: 34px; height: 34px; min-height: 34px; padding: 0; border: 2px solid transparent;
+                     border-radius: 8px; cursor: pointer; }
+  .swatches button:hover { border-color: var(--line); }
+  .swatches button[aria-pressed="true"] { border-color: var(--text); }
+  .swatches button.clear { background: var(--sunken); color: var(--muted); font-size: 11px;
+                           display: flex; align-items: center; justify-content: center; width: auto; padding: 0 10px; }
   .offscreen { position: absolute; top: 8px; display: flex; color: var(--faint); }
   .offscreen.left { left: 2px; }
   .offscreen.right { right: 2px; }
@@ -254,6 +273,8 @@
   <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
   <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
   <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-phase" viewBox="0 0 24 24"><path d="M4 5h16M7 10h13M7 15h9M4 5v14"/></symbol>
+  <symbol id="i-paint" viewBox="0 0 24 24"><path d="M4 20h16M6 16l6-11 6 11z"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></symbol>
   <symbol id="i-auto" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18a9 9 0 0 0 0-18z" fill="currentColor"/></symbol>
@@ -282,6 +303,8 @@
 <div class="toolbar">
   <div class="group">
     <button class="btn" onclick="addTask()"><svg class="icon"><use href="#i-plus"/></svg>Add task</button>
+    <button class="btn" onclick="addPhase()" title="Add a phase with a first subtask under it">
+      <svg class="icon"><use href="#i-phase"/></svg>Add phase</button>
     <button class="btn icon-only" onclick="delTask()" title="Delete row" aria-label="Delete row">
       <svg class="icon"><use href="#i-trash"/></svg></button>
   </div>
@@ -321,6 +344,16 @@
       <button onclick="pick(this, exportCSV)">CSV (.csv)</button>
     </div>
   </details>
+  <details class="menu" id="m-colour">
+    <summary><svg class="icon"><use href="#i-paint"/></svg>Colour<svg class="icon"><use href="#i-chev"/></svg></summary>
+    <div class="sheet">
+      <label id="rowColourLabel">Selected row</label>
+      <div class="swatches" id="rowSwatches"></div>
+      <label>Whole project</label>
+      <div class="swatches" id="projSwatches"></div>
+      <p class="hint">A phase colour carries down to its subtasks unless they set their own.</p>
+    </div>
+  </details>
   <details class="menu" id="m-file">
     <summary><svg class="icon"><use href="#i-file"/></svg>File<svg class="icon"><use href="#i-chev"/></svg></summary>
     <div class="sheet">
@@ -354,6 +387,35 @@
 <script src="schedule.js"></script>
 <script>
 const DAY_W = 24, HOURS_PER_DAY = 8;
+
+/* ---- chart colours. A task inherits its nearest coloured ancestor (so colouring a
+   phase colours its subtasks), falling back to the project's colour. ---- */
+// Mid-tones on purpose: each must clear 3:1 against the white surface AND the dark one,
+// so a chart stays readable whichever theme the viewer is in.
+const PALETTE = {
+  blue: '#4275d6', teal: '#0e8a80', green: '#2f8a4a', amber: '#b57a0d',
+  rose: '#c2447b', violet: '#7a5cf0', slate: '#5f7191', gray: '#7b8494',
+};
+function resolvedColor(i) {
+  const tasks = proj().tasks;
+  let lvl = (Number(tasks[i].level) || 1) + 1;
+  for (let j = i; j >= 0; j--) {
+    const l = Number(tasks[j].level) || 1;
+    if (l >= lvl) continue;                    // not an ancestor of i
+    lvl = l;
+    if (tasks[j].color && PALETTE[tasks[j].color]) return PALETTE[tasks[j].color];
+    if (l === 1) break;
+  }
+  return PALETTE[proj().color] || PALETTE.blue;
+}
+function setRowColor(key) {
+  const t = proj().tasks[sel];
+  if (!t) return;
+  snapshot();
+  if (key) t.color = key; else delete t.color;
+  render();
+}
+function setProjectColor(key) { snapshot(); proj().color = key; render(); }
 
 /* ---- theme: System follows the OS, or pick Light/Dark explicitly. Per browser, like
    the timeline view — it is a preference, not part of the plan. ---- */
@@ -519,6 +581,17 @@ function addTask() {
   const row = document.getElementById('r' + sel);
   if (row) row.querySelector('.name input').select(); // land the cursor where typing continues
 }
+// A phase is just a task with children — this makes the pair in one step, after the
+// current row's subtree so it never lands in the middle of someone else's phase.
+function addPhase() {
+  snapshot();
+  const at = proj().tasks.length ? sel + 1 + descendants(sel).length : 0;
+  proj().tasks.splice(at, 0,
+    { id: proj().nextId++, name: 'New phase', duration: 1, level: 1, preds: [], pct: 0 },
+    { id: proj().nextId++, name: 'First task', duration: 3, level: 2, preds: [], pct: 0 });
+  sel = at; render();
+  document.getElementById('r' + sel)?.querySelector('.name input')?.select();
+}
 function delTask() {
   const t = proj().tasks[sel];
   if (!t) return;
@@ -577,6 +650,13 @@ function edit(i, field, v) {
   else if (field === 'pct') t.pct = Math.min(100, Math.max(0, Number(v) || 0));
   else if (field === 'preds') t.preds = String(v).split(/[,;]+/).map(s => s.trim()).filter(Boolean);
   else if (field === 'start') t.start = v || undefined;
+  else if (field === 'finish') {
+    // Picking a finish date sets the duration that lands on it, counting working days.
+    if (v && t.startDate instanceof Date) {
+      const days = workdaysBetween(t.startDate, addWorkdays(parseDate(v), 1, cal()), cal());
+      t.duration = Math.max(Number(t.duration) === 0 ? 0 : 1, days);
+    }
+  }
   else t[field] = v;
   render();
 }
@@ -729,12 +809,30 @@ function render() {
       `<td><div class="name" style="padding-left:${pad}px">${twist}` +
       `<input value="${esc(t.name)}" aria-label="Task name" onchange="edit(${i},'name',this.value)" onfocus="sel=${i};hl()"></div></td>` +
       (sum ? `<td class="ro n">${t.rollDuration ?? ''}</td>` : cell(i, 'duration', t.duration, 'n')) +
-      (sum ? `<td class="ro">${fd(t.startDate)}</td>` : cell(i, 'start', t.start || '', '', fd(t.startDate))) +
-      `<td class="ro">${fd(t.finishDate)}</td>` +
+      // Start is a real date field: filled in with the scheduled date, and editing it pins
+      // the task to "no earlier than". Finish is pickable too and sets the duration.
+      (sum ? `<td class="ro">${fd(t.startDate)}</td>`
+        : `<td><input type="date" class="${t.start ? 'pinned' : ''}" value="${fd(t.startDate)}"
+             aria-label="Start date" title="${t.start ? 'Pinned: starts no earlier than this' : 'Scheduled automatically — pick a date to pin it'}"
+             onchange="edit(${i},'start',this.value)" onfocus="sel=${i};hl()"></td>`) +
+      (sum || Number(t.duration) === 0 ? `<td class="ro">${fd(t.finishDate)}</td>`
+        : `<td><input type="date" value="${fd(t.finishDate)}" aria-label="Finish date"
+             title="Pick a finish date to set the duration" min="${fd(t.startDate)}"
+             onchange="edit(${i},'finish',this.value)" onfocus="sel=${i};hl()"></td>`) +
       (sum ? `<td class="ro"></td>` : cell(i, 'preds', (t.preds || []).map(fmtPred).join(','))) +
       (sum ? `<td class="ro n">${t.rollPct ?? ''}</td>` : cell(i, 'pct', t.pct, 'n')) + `</tr>`;
   });
   document.getElementById('tbl').innerHTML = h + '</tbody>';
+  const swatches = (current, fn, withClear) => Object.entries(PALETTE).map(([k, hex]) =>
+    `<button style="background:${hex}" aria-pressed="${current === k}" title="${k}"
+       aria-label="${k}" onclick="${fn}('${k}')"></button>`).join('') +
+    (withClear ? `<button class="clear" onclick="setRowColor('')" title="Follow the phase or project colour">Inherit</button>` : '');
+  const selTask = p.tasks[sel];
+  document.getElementById('rowColourLabel').textContent =
+    selTask ? (kids[sel]?.length ? 'Phase: ' : 'Task: ') + selTask.name : 'No row selected';
+  document.getElementById('rowSwatches').innerHTML = swatches(selTask && selTask.color, 'setRowColor', true);
+  document.getElementById('projSwatches').innerHTML = swatches(p.color || 'blue', 'setProjectColor', false);
+
   document.getElementById('emptyState').innerHTML = p.tasks.length ? '' :
     `<div class="empty">No tasks yet. <button class="btn" onclick="addTask()">
       <svg class="icon"><use href="#i-plus"/></svg>Add the first task</button></div>`;
@@ -816,12 +914,14 @@ function drawGantt(hidden) {
       else {
         const x = s * dw, w = Math.max(2, (e - s) * dw - 3);
         const pct = (kids[i].length ? t.rollPct : t.pct) || 0;
-        if (kids[i].length) inner = `<div class="sumbar" style="left:${x}px;width:${w}px"></div>` +
-          `<span class="lbl" style="left:${x + w + 8}px">${esc(t.name)}</span>`;
-        else if (Number(t.duration) === 0) inner = `<div class="ms" style="left:${x}px"></div>` +
-          `<span class="lbl" style="left:${x + 20}px">${esc(t.name)}</span>`;
-        else inner = `<div class="bar" style="left:${x}px;width:${w}px"><div class="done" style="width:${pct}%"></div></div>` +
-          `<span class="lbl" style="left:${x + w + 8}px">${esc(t.name)}${pct ? ' · ' + pct + '%' : ''}</span>`;
+        // The name is already in the row beside it, so the bar carries no text —
+        // everything is in the tooltip instead.
+        const tip = esc(t.name) + ' — ' + fd(t.startDate) + ' to ' + fd(t.finishDate) + (pct ? ' · ' + pct + '%' : '');
+        const c = `--c:${resolvedColor(i)}`;
+        if (kids[i].length) inner = `<div class="sumbar" style="left:${x}px;width:${w}px;${c}" title="${tip}"></div>`;
+        else if (Number(t.duration) === 0) inner = `<div class="ms" style="left:${x}px;${c}" title="${tip}"></div>`;
+        else inner = `<div class="bar" style="left:${x}px;width:${w}px;${c}" title="${tip}">` +
+          `<div class="done" style="width:${pct}%"></div></div>`;
       }
     }
     rows += `<div class="gantt-row ${i === sel ? 'sel' : ''}" id="g${i}" style="width:${W}px" onclick="sel=${i};hl()">${inner}</div>`;
@@ -884,6 +984,7 @@ ${(sum ? [] : (t.preds || [])).map(parsePred).filter(Boolean).map(l =>
 
   const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Project xmlns="http://schemas.microsoft.com/project">
+  <SaveVersion>14</SaveVersion>
   <Name>${esc(p.name)}.xml</Name>
   <Title>${esc(p.name)}</Title>
   <ScheduleFromStart>1</ScheduleFromStart>
@@ -937,6 +1038,10 @@ async function exportXLSX() {
   const [from, to] = autoBounds(); // a spreadsheet holds the whole plan, not just the focused window
   const days = Math.max(20, dayIdx(from, to));
   const fill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
+  // Excel has no color-mix(), so the same blend the CSS does is computed here.
+  const mixHex = (a, b, amount) => 'FF' + [0, 2, 4].map(i => Math.round(
+    parseInt(a.slice(1 + i, 3 + i), 16) * (1 - amount) + parseInt(b.slice(1 + i, 3 + i), 16) * amount
+  ).toString(16).padStart(2, '0')).join('').toUpperCase();
 
   const wb = new ExcelJS.Workbook();
   const ws2 = wb.addWorksheet('Gantt', { views: [{ state: 'frozen', xSplit: FIELDS, ySplit: 1 }] });
@@ -954,6 +1059,7 @@ async function exportXLSX() {
   proj().tasks.forEach((t, r) => {
     const row = ws2.addRow(rows[r + 1]);
     const sum = kids[r].length > 0;
+    const colour = resolvedColor(r);
     if (sum) row.font = { bold: true };
     if (!(t.startDate instanceof Date)) return;
     const s = dayIdx(from, t.startDate), n = Math.max(1, dayIdx(t.startDate, t.endExclusive));
@@ -962,7 +1068,8 @@ async function exportXLSX() {
       const d = new Date(from); d.setDate(d.getDate() + i);
       const c = row.getCell(FIELDS + 1 + i);
       if (!sum && Number(t.duration) === 0) { if (i === s) { c.value = '◆'; c.alignment = { horizontal: 'center' }; } }
-      else if (i >= s && i < s + n) c.fill = fill(sum ? 'FF333333' : i < s + donePortion ? 'FF17325E' : 'FF2B579A');
+      else if (i >= s && i < s + n) c.fill = fill(sum ? mixHex(colour, '#3a4150', .6) // same colours as on screen
+        : i < s + donePortion ? mixHex(colour, '#000000', .42) : 'FF' + colour.slice(1).toUpperCase());
       else if (!isWorkday(d, cal())) c.fill = fill('FFF2F2F2');
     }
   });
