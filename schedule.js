@@ -1,38 +1,47 @@
-// Scheduling engine: forward-pass, finish-to-start, Mon-Fri working days.
-// Shared by index.html (script tag) and test.js (require).
+// Scheduling engine: forward pass, FS/SS/FF/SF links, WBS summary rollup,
+// configurable working calendar. Shared by index.html (script tag) and test.js (require).
 
-function isWorkday(d) { const k = d.getDay(); return k !== 0 && k !== 6; }
+const MAX_STEPS = 3650; // ~10 years of calendar days: stops a broken calendar from hanging
 
-function nextWorkday(d) {
-  const x = new Date(d);
-  while (!isWorkday(x)) x.setDate(x.getDate() + 1);
-  return x;
+function makeCal(c) {
+  const days = (c && c.workdays && c.workdays.length) ? c.workdays : [1, 2, 3, 4, 5];
+  return { days: new Set(days), holidays: new Set((c && c.holidays) || []) };
+}
+const asCal = c => (c && c.days instanceof Set) ? c : makeCal(c);
+
+function isWorkday(d, cal) {
+  const c = asCal(cal);
+  return c.days.has(d.getDay()) && !c.holidays.has(fmtDate(d));
 }
 
-function addWorkdays(d, n) {
-  const step = n < 0 ? -1 : 1;
+function roll(d, step, cal) { // move to the nearest working day in one direction
   const x = new Date(d);
-  while (!isWorkday(x)) x.setDate(x.getDate() + step); // land on a working day first
-  for (let i = 0; i < Math.abs(n); i++) {
-    do { x.setDate(x.getDate() + step); } while (!isWorkday(x));
+  for (let i = 0; !isWorkday(x, cal); i++) {
+    if (i > MAX_STEPS) throw new Error('The calendar has no working days - tick at least one weekday.');
+    x.setDate(x.getDate() + step);
   }
   return x;
 }
 
-function prevWorkday(d) {
-  const x = new Date(d);
-  x.setDate(x.getDate() - 1);
-  while (!isWorkday(x)) x.setDate(x.getDate() - 1);
+const nextWorkday = (d, cal) => roll(d, 1, cal);
+const prevWorkday = (d, cal) => roll(new Date(+d - 864e5), -1, cal);
+
+function addWorkdays(d, n, cal) {
+  const step = n < 0 ? -1 : 1;
+  const x = roll(d, step, cal);
+  for (let i = 0; i < Math.abs(n); i++) {
+    do { x.setDate(x.getDate() + step); } while (!isWorkday(x, cal));
+  }
   return x;
 }
 
-function workdaysBetween(a, b) { // whole workdays in [a, b)
-  let n = 0; const x = nextWorkday(a);
-  while (x < b) { n++; x.setDate(x.getDate() + 1); while (!isWorkday(x)) x.setDate(x.getDate() + 1); }
+function workdaysBetween(a, b, cal) { // whole working days in [a, b)
+  let n = 0; const x = nextWorkday(a, cal);
+  while (x < b) { n++; x.setDate(x.getDate() + 1); while (!isWorkday(x, cal)) x.setDate(x.getDate() + 1); }
   return n;
 }
 
-function parseDate(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+function parseDate(s) { const [y, m, d] = String(s).split('-').map(Number); return new Date(y, m - 1, d); }
 function fmtDate(d) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
@@ -52,19 +61,55 @@ function fmtPred(p) {
   return x.id + (x.type === 'FS' && !x.lag ? '' : x.type) + (x.lag ? (x.lag > 0 ? '+' : '') + x.lag : '');
 }
 
-// tasks: [{id, name, duration, preds:['3SS+1'|3|{id,type,lag}], start?:'YYYY-MM-DD'
-// (manual, treated as "no earlier than"), ...}].
-// Mutates each task with .startDate/.endExclusive/.finishDate.
-// Throws on dependency cycles or unknown predecessor ids.
-function schedule(tasks, projectStart) {
+// Outline: a task's children are the following tasks with a deeper level, until the
+// level comes back. Returns child index lists, parallel to `tasks`.
+function childrenOf(tasks) {
+  const kids = tasks.map(() => []);
+  const open = []; // indices of tasks that could still take children
+  tasks.forEach((t, i) => {
+    const lvl = Math.max(1, Number(t.level) || 1);
+    while (open.length && (Math.max(1, Number(tasks[open[open.length - 1]].level) || 1)) >= lvl) open.pop();
+    if (open.length) kids[open[open.length - 1]].push(i);
+    open.push(i);
+  });
+  return kids;
+}
+
+// tasks: [{id, name, duration, level?, preds:['3SS+1'|3|{id,type,lag}],
+//          start?:'YYYY-MM-DD' (manual, "no earlier than"), pct?}]
+// Mutates each task with .startDate/.endExclusive/.finishDate, and for summary tasks
+// also .rollDuration/.rollPct. Returns non-fatal warnings.
+// Throws on dependency cycles, unknown predecessors or an unusable calendar.
+function schedule(tasks, projectStart, calRaw) {
+  const cal = asCal(calRaw);
   const byId = new Map(tasks.map(t => [t.id, t]));
-  const state = new Map(); // id -> 'busy' | 'done'
-  const base = nextWorkday(projectStart instanceof Date ? projectStart : parseDate(projectStart));
+  const kids = childrenOf(tasks);
+  const idx = new Map(tasks.map((t, i) => [t.id, i]));
+  const state = new Map();
+  const warnings = [];
+  const base = nextWorkday(parseDate(projectStart) || new Date(), cal);
 
   function resolve(t) {
     if (state.get(t.id) === 'done') return;
     if (state.get(t.id) === 'busy') throw new Error('Circular dependency at task ' + t.id + ' (' + t.name + ')');
     state.set(t.id, 'busy');
+    const myKids = kids[idx.get(t.id)];
+
+    if (myKids.length) { // summary task: dates are whatever its subtasks add up to
+      if ((t.preds || []).length) warnings.push('Task ' + t.id + ' (' + t.name + ') is a summary - its links are ignored, put them on the subtasks.');
+      myKids.forEach(i => resolve(tasks[i]));
+      const cs = myKids.map(i => tasks[i]);
+      t.startDate = new Date(Math.min(...cs.map(c => +c.startDate)));
+      t.endExclusive = new Date(Math.max(...cs.map(c => +c.endExclusive)));
+      t.finishDate = +t.endExclusive === +t.startDate ? new Date(t.startDate) : prevWorkday(t.endExclusive, cal);
+      t.rollDuration = workdaysBetween(t.startDate, t.endExclusive, cal);
+      const w = cs.reduce((a, c) => a + (c.rollDuration != null ? c.rollDuration : Math.max(0, Number(c.duration) || 0)), 0);
+      t.rollPct = w ? Math.round(cs.reduce((a, c) =>
+        a + (c.rollDuration != null ? c.rollDuration : Math.max(0, Number(c.duration) || 0)) * (c.rollPct != null ? c.rollPct : Number(c.pct) || 0), 0) / w) : 0;
+      state.set(t.id, 'done');
+      return;
+    }
+
     let start = new Date(base); // earliest start, from FS/SS links
     let end = null;             // earliest finish, from FF/SF links
     const dur = Math.max(0, Number(t.duration) || 0);
@@ -80,23 +125,38 @@ function schedule(tasks, projectStart) {
       // Dates are half-open (endExclusive = day after the last working day), so an
       // SF link needs the day after the predecessor's start to mean "finishes on it".
       const anchor = link.type[0] === 'F' ? p.endExclusive
-        : link.type[1] === 'F' ? addWorkdays(p.startDate, 1) : p.startDate;
-      const at = addWorkdays(anchor, link.lag);
+        : link.type[1] === 'F' ? addWorkdays(p.startDate, 1, cal) : p.startDate;
+      const at = addWorkdays(anchor, link.lag, cal);
       if (link.type[1] === 'S') { if (at > start) start = at; }        // FS, SS -> our start
       else if (!end || at > end) end = at;                             // FF, SF -> our finish
     }
-    if (end) { const s = dur === 0 ? end : addWorkdays(end, -dur); if (s > start) start = s; }
+    if (end) { const s = dur === 0 ? end : addWorkdays(end, -dur, cal); if (s > start) start = s; }
     if (t.start) { const m = parseDate(t.start); if (m > start) start = m; }
-    t.startDate = nextWorkday(start);
-    t.endExclusive = dur === 0 ? new Date(t.startDate) : addWorkdays(t.startDate, dur);
-    t.finishDate = dur === 0 ? new Date(t.startDate) : prevWorkday(t.endExclusive);
+    t.startDate = nextWorkday(start, cal);
+    t.endExclusive = dur === 0 ? new Date(t.startDate) : addWorkdays(t.startDate, dur, cal);
+    t.finishDate = dur === 0 ? new Date(t.startDate) : prevWorkday(t.endExclusive, cal);
+    t.rollDuration = null; t.rollPct = null;
     state.set(t.id, 'done');
   }
 
   for (const t of tasks) resolve(t);
-  return tasks;
+  return warnings;
+}
+
+// WBS numbers (1, 1.1, 1.2, 2 ...) from the outline levels.
+function wbsCodes(tasks) {
+  const counters = [];
+  return tasks.map(t => {
+    const lvl = Math.max(1, Number(t.level) || 1);
+    counters.length = lvl;
+    counters[lvl - 1] = (counters[lvl - 1] || 0) + 1;
+    return counters.map(n => n || 1).join('.');
+  });
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { schedule, parsePred, fmtPred, addWorkdays, nextWorkday, prevWorkday, workdaysBetween, isWorkday, parseDate, fmtDate };
+  module.exports = {
+    schedule, parsePred, fmtPred, childrenOf, wbsCodes, makeCal,
+    addWorkdays, nextWorkday, prevWorkday, workdaysBetween, isWorkday, parseDate, fmtDate,
+  };
 }

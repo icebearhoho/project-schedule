@@ -6,13 +6,17 @@
 <style>
   * { box-sizing: border-box; }
   body { font: 13px/1.4 "Segoe UI", Arial, sans-serif; margin: 0; color: #222; background: #fff; color-scheme: light; }
-  #bar { display: flex; gap: 6px; align-items: center; padding: 6px; background: #f3f3f3; border-bottom: 1px solid #ccc; flex-wrap: wrap; }
+  #bar { padding: 6px; background: #f3f3f3; border-bottom: 1px solid #ccc; }
+  #bar > div { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; }
+  #bar > div:last-child { margin-bottom: 0; }
   #bar input[type=text] { padding: 3px; }
   button { padding: 4px 8px; }
   button.hot { background: #c5361c; color: #fff; border-color: #a32c16; font-weight: 600; animation: pulse 1.6s ease-in-out infinite; }
   @keyframes pulse { 50% { box-shadow: 0 0 0 4px rgba(197, 54, 28, .25); } }
   #sync { font-weight: 600; }
-  #panes { display: flex; height: calc(100vh - 45px); }
+  #cal { display: none; gap: 14px; background: #fffbe6; border: 1px solid #e0d48a; padding: 8px; margin-top: 4px; }
+  #cal textarea { font: inherit; height: 60px; width: 180px; }
+  #panes { display: flex; height: calc(100vh - 120px); }
   #left { overflow: auto; border-right: 2px solid #999; flex: 0 0 auto; }
   #right { overflow: auto; flex: 1; }
   table { border-collapse: collapse; }
@@ -20,54 +24,78 @@
   th { background: #eaeaea; padding: 0 6px; font-weight: 600; position: sticky; top: 0; z-index: 2; }
   td input { border: 0; padding: 0 5px; height: 24px; width: 100%; font: inherit; background: transparent; }
   td input:focus { outline: 2px solid #2b579a; }
-  td.num { text-align: center; padding: 0 6px; color: #666; }
-  td.ro { padding: 0 6px; color: #444; }
+  td.num, td.ro { padding: 0 6px; color: #555; }
+  td.num { text-align: right; }
   tr.sel td { background: #dce6f5; }
+  tr.sum td { background: #f0f0f0; font-weight: 600; }
+  tr.sum.sel td { background: #d6e0ef; }
+  .tw { display: flex; align-items: center; }
+  .tw b { cursor: pointer; width: 14px; flex: 0 0 14px; text-align: center; color: #555; user-select: none; }
   #gantt { position: relative; }
   .gridhead { display: flex; position: sticky; top: 0; background: #eaeaea; z-index: 2; height: 26px; }
   .gridhead div { flex: 0 0 auto; border-right: 1px solid #ddd; text-align: center; font-size: 10px; line-height: 26px; color: #666; }
   .row { position: relative; height: 26px; border-bottom: 1px solid #eee; }
-  .row.we { background: transparent; }
   .bar { position: absolute; top: 5px; height: 16px; background: #2b579a; border-radius: 2px; }
   .bar .done { height: 100%; background: #17325e; border-radius: 2px 0 0 2px; }
-  .bar .lbl { position: absolute; left: 100%; padding-left: 6px; font-size: 11px; color: #555; line-height: 16px; }
+  .bar .lbl { position: absolute; left: 100%; padding-left: 6px; font-size: 11px; color: #555; line-height: 16px; white-space: nowrap; }
+  .sumbar { position: absolute; top: 9px; height: 8px; background: #333; }
+  .sumbar::before, .sumbar::after { content: ''; position: absolute; top: 8px; border: 5px solid transparent; border-top-color: #333; }
+  .sumbar::before { left: 0; } .sumbar::after { right: 0; }
   .ms { position: absolute; top: 5px; width: 14px; height: 14px; background: #222; transform: rotate(45deg); }
   .weekend { position: absolute; top: 0; bottom: 0; background: #f6f6f6; }
   #err { color: #b00; padding: 4px 8px; }
+  #warn { color: #8a6d00; padding: 0 8px; }
   #ptitle { display: none; }
   @media print {
     @page { size: A3 landscape; margin: 8mm; }
     body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-    #bar, #err { display: none; }
+    #bar, #err, #warn { display: none; }
     #ptitle { display: block; font-size: 16px; font-weight: 600; margin-bottom: 6px; }
     #panes { display: flex; height: auto; transform: scale(var(--ps, 1)); transform-origin: top left; width: max-content; }
     #left, #right { overflow: visible; }
-    th { position: static; }
-    .gridhead { position: static; }
+    th, .gridhead { position: static; }
   }
 </style>
 </head>
 <body>
 <div id="bar">
-  <input type="text" id="pname" size="24" placeholder="Project name">
-  Start <input type="date" id="pstart">
-  <button onclick="addTask()">Add task</button>
-  <button onclick="delTask()">Delete row</button>
-  <button onclick="move(-1)">Up</button>
-  <button onclick="move(1)">Down</button>
-  <span style="width:12px"></span>
-  <button onclick="exportXML()">Export .xml (MS Project)</button>
-  <button onclick="exportXLSX()">Export .xlsx</button>
-  <button onclick="exportPDF()">Export .pdf</button>
-  <button onclick="exportCSV()">Export .csv</button>
-  <button onclick="save()">Save .json</button>
-  <button onclick="document.getElementById('file').click()">Open .json</button>
-  <input type="file" id="file" accept=".json" style="display:none" onchange="open_(this)">
-  <button id="pub" onclick="publish()" style="display:none">Publish changes</button>
-  <button id="discard" onclick="discard()" style="display:none">Discard draft</button>
-  <span id="sync">local only</span>
+  <div>
+    Project <select id="plist" onchange="switchProject(this.value)"></select>
+    <button onclick="newProject()">New</button>
+    <button onclick="delProject()">Delete project</button>
+    <input type="text" id="pname" size="22" placeholder="Project name">
+    Start <input type="date" id="pstart">
+    <button onclick="toggleCal()">Working calendar</button>
+  </div>
+  <div>
+    <button onclick="addTask()">Add task</button>
+    <button onclick="delTask()">Delete row</button>
+    <button onclick="indent(1)" title="Make this a subtask of the row above">&#8594; Indent</button>
+    <button onclick="indent(-1)">&#8592; Outdent</button>
+    <button onclick="move(-1)">Up</button>
+    <button onclick="move(1)">Down</button>
+    <button id="undo" onclick="undo()" title="Ctrl+Z">Undo</button>
+  </div>
+  <div>
+    <button onclick="exportXML()">Export .xml (MS Project)</button>
+    <button onclick="exportXLSX()">Export .xlsx</button>
+    <button onclick="exportPDF()">Export .pdf</button>
+    <button onclick="exportCSV()">Export .csv</button>
+    <button onclick="save()">Save .json</button>
+    <button onclick="document.getElementById('file').click()">Open .json</button>
+    <input type="file" id="file" accept=".json" style="display:none" onchange="open_(this)">
+    <button id="pub" onclick="publish()" style="display:none">Publish changes</button>
+    <button id="discard" onclick="discard()" style="display:none">Discard draft</button>
+    <span id="sync">local only</span>
+  </div>
+  <div id="cal">
+    <div>Working days<br><span id="wdays"></span></div>
+    <div>Holidays / days off, one date per line (YYYY-MM-DD)<br>
+      <textarea id="holidays" onchange="setHolidays(this.value)"></textarea></div>
+  </div>
 </div>
 <div id="err"></div>
+<div id="warn"></div>
 <div id="ptitle"></div>
 <div id="panes">
   <div id="left"><table id="tbl"></table></div>
@@ -77,24 +105,190 @@
 <script src="schedule.js"></script>
 <script>
 const DAY_W = 22, HOURS_PER_DAY = 8;
-let proj = load() || {
-  name: 'New Project',
-  start: fmtDate(new Date()),
-  tasks: [{ id: 1, name: 'Task 1', duration: 5, preds: [], pct: 0, res: '' }],
-  nextId: 2,
-};
-let sel = 0;
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// Dates are missing whenever scheduling failed (the red bar says why), so never assume one.
+const fd = d => d instanceof Date ? fmtDate(d) : '';
 
-function load() { try { return JSON.parse(localStorage.getItem('proj')); } catch (e) { return null; } }
+const blank = name => ({
+  name: name || 'New Project', start: fmtDate(new Date()),
+  calendar: { workdays: [1, 2, 3, 4, 5], holidays: [] },
+  tasks: [{ id: 1, name: 'Task 1', duration: 5, level: 1, preds: [], pct: 0 }],
+  nextId: 2,
+});
+
+let ws = load() || { projects: [blank('Project 1')], nextPid: 2 };
+let cur = 0, sel = 0, kids = [], codes = [];
+const proj = () => ws.projects[cur];
+const cal = () => proj().calendar;
+
+// Fills in anything an older saved file predates, so old plans keep opening.
+function normalize(w) {
+  w.projects.forEach(p => {
+    (p.tasks || []).forEach(t => { delete t.startDate; delete t.endExclusive; delete t.finishDate; }); // stale strings from older saves
+    p.calendar = p.calendar || {};
+    if (!Array.isArray(p.calendar.workdays)) p.calendar.workdays = [1, 2, 3, 4, 5];
+    if (!Array.isArray(p.calendar.holidays)) p.calendar.holidays = [];
+    p.tasks = p.tasks || [];
+    p.tasks.forEach(t => { t.level = Math.max(1, Number(t.level) || 1); delete t.res; });
+    p.nextId = p.nextId || Math.max(0, ...p.tasks.map(t => t.id)) + 1;
+  });
+  w.nextPid = w.nextPid || w.projects.length + 1;
+  return w;
+}
+
+function load() {
+  try {
+    const w = JSON.parse(localStorage.getItem('ws'));
+    if (w && Array.isArray(w.projects) && w.projects.length) return normalize(w);
+    const old = JSON.parse(localStorage.getItem('proj')); // single-project version of this app
+    if (old && old.tasks) return normalize({ projects: [old], nextPid: 2 });
+  } catch (e) { /* fall through to a blank project */ }
+  return null;
+}
+
 function store() {
-  localStorage.setItem('proj', JSON.stringify(proj));
-  if (shared && !applying) { dirty = true; localStorage.setItem('dirty', '1'); paint(); }
+  const clean = JSON.stringify(strip(ws)); // computed dates must never be persisted: JSON turns them into strings
+  localStorage.setItem('ws', clean);
+  if (shared && !applying) {
+    dirty = clean !== baseline; // only real edits count, not just switching project
+    localStorage.setItem('dirty', dirty ? '1' : '');
+    paint();
+  }
+}
+
+/* ---- undo: snapshot before every change, Ctrl+Z walks back ---- */
+const undoStack = [];
+function snapshot() {
+  // strip() drops the computed dates: they are Date objects that JSON would turn into
+  // strings, and a restored snapshot must be recomputed, not half-formatted.
+  undoStack.push(JSON.stringify({ ws: strip(ws), cur, sel }));
+  if (undoStack.length > 100) undoStack.shift();
+}
+function undo() {
+  const s = undoStack.pop();
+  if (!s) return;
+  const p = JSON.parse(s);
+  ws = p.ws; cur = Math.min(p.cur, ws.projects.length - 1); sel = p.sel;
+  render();
+}
+addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
+});
+
+/* ---- projects ---- */
+function switchProject(i) { cur = Number(i); sel = 0; render(); }
+function newProject() {
+  snapshot();
+  ws.projects.push(blank('Project ' + (ws.nextPid++)));
+  cur = ws.projects.length - 1; sel = 0; render();
+}
+function delProject() {
+  if (ws.projects.length < 2) return alert('Keep at least one project.');
+  if (!confirm('Delete project "' + proj().name + '"?')) return;
+  snapshot();
+  ws.projects.splice(cur, 1);
+  cur = Math.max(0, cur - 1); sel = 0; render();
+}
+
+/* ---- calendar ---- */
+function toggleCal() {
+  const c = document.getElementById('cal');
+  c.style.display = c.style.display === 'flex' ? 'none' : 'flex';
+}
+function setWorkday(d, on) {
+  snapshot();
+  const w = new Set(cal().workdays);
+  on ? w.add(d) : w.delete(d);
+  cal().workdays = [...w].sort();
+  render();
+}
+function setHolidays(v) {
+  snapshot();
+  cal().holidays = v.split(/\s+/).map(s => s.trim()).filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s));
+  render();
+}
+
+/* ---- tasks ---- */
+function addTask() {
+  snapshot();
+  const at = proj().tasks.length ? sel + 1 : 0;
+  proj().tasks.splice(at, 0, {
+    id: proj().nextId++, name: 'New task', duration: 1,
+    level: proj().tasks.length ? (Number(proj().tasks[sel].level) || 1) : 1, preds: [], pct: 0,
+  });
+  sel = at; render();
+}
+function delTask() {
+  const t = proj().tasks[sel];
+  if (!t) return;
+  const doomed = [sel, ...descendants(sel)];
+  if (doomed.length > 1 && !confirm('Delete "' + t.name + '" and its ' + (doomed.length - 1) + ' subtask(s)?')) return;
+  snapshot();
+  const gone = new Set(doomed.map(i => proj().tasks[i].id));
+  proj().tasks = proj().tasks.filter((_, i) => !doomed.includes(i));
+  proj().tasks.forEach(x => x.preds = (x.preds || []).filter(p => !gone.has((parsePred(p) || {}).id)));
+  sel = Math.min(sel, proj().tasks.length - 1); render();
+}
+function descendants(i) {
+  const out = [];
+  const lvl = Number(proj().tasks[i].level) || 1;
+  for (let j = i + 1; j < proj().tasks.length && (Number(proj().tasks[j].level) || 1) > lvl; j++) out.push(j);
+  return out;
+}
+function indent(d) {
+  const t = proj().tasks[sel];
+  if (!t) return;
+  const lvl = Number(t.level) || 1;
+  // Can only become a subtask of the row above, so never jump more than one level past it.
+  const above = sel > 0 ? (Number(proj().tasks[sel - 1].level) || 1) : 0;
+  if (d > 0 && (sel === 0 || lvl > above)) return;
+  if (d < 0 && lvl === 1) return;
+  snapshot();
+  const block = [sel, ...descendants(sel)];
+  block.forEach(i => proj().tasks[i].level = Math.max(1, (Number(proj().tasks[i].level) || 1) + d));
+  render();
+}
+// Moves the selected row with its whole subtree, swapping with the sibling above/below.
+function move(d) {
+  const tasks = proj().tasks, lvlOf = i => Number(tasks[i].level) || 1;
+  const len = 1 + descendants(sel).length, lvl = lvlOf(sel);
+  let to;
+  if (d > 0) {
+    const j = sel + len;                                  // next sibling starts here
+    if (j >= tasks.length || lvlOf(j) !== lvl) return;    // no sibling below: leave the tree alone
+    to = sel + 1 + descendants(j).length;
+  } else {
+    let j = sel - 1;
+    while (j > 0 && lvlOf(j) > lvl) j--;                  // skip back over the previous sibling's children
+    if (j < 0 || lvlOf(j) !== lvl) return;
+    to = j;
+  }
+  snapshot();
+  tasks.splice(to, 0, ...tasks.splice(sel, len));
+  sel = to; render();
+}
+function toggleFold(i) { snapshot(); const t = proj().tasks[i]; t.collapsed = !t.collapsed; render(); }
+
+function edit(i, field, v) {
+  snapshot();
+  const t = proj().tasks[i];
+  if (field === 'duration') t.duration = Math.max(0, Number(v) || 0);
+  else if (field === 'pct') t.pct = Math.min(100, Math.max(0, Number(v) || 0));
+  else if (field === 'preds') t.preds = String(v).split(/[,;]+/).map(s => s.trim()).filter(Boolean);
+  else if (field === 'start') t.start = v || undefined;
+  else t[field] = v;
+  render();
 }
 
 /* ---- shared storage (serve.js). Edits stay a local draft until Publish. ---- */
 let shared = false, rev = 0, dirty = false, serverAhead = false, publishing = false, applying = false;
+let baseline = ''; // JSON of the last version we know the server has
 const key = () => localStorage.getItem('key') || new URLSearchParams(location.search).get('key') || '';
-const strip = p => ({ ...p, tasks: p.tasks.map(({ startDate, endExclusive, finishDate, ...t }) => t) });
+const strip = w => ({
+  ...w, projects: w.projects.map(p => ({
+    ...p, tasks: p.tasks.map(({ startDate, endExclusive, finishDate, rollDuration, rollPct, ...t }) => t),
+  })),
+});
 let note = 'local only (this browser)', noteBad = false;
 const status = (s, bad) => { note = s; noteBad = !!bad; paint(); };
 
@@ -106,10 +300,11 @@ function paint() {
   b.disabled = !dirty || publishing;
   b.className = dirty ? 'hot' : '';
   b.textContent = serverAhead ? 'Publish (overwrites theirs)' : 'Publish changes';
+  document.getElementById('undo').disabled = !undoStack.length;
 }
 
 async function api(method, body) {
-  const r = await fetch('/api/project', {
+  const r = await fetch('/api/data', {
     method, headers: { 'Content-Type': 'application/json', 'X-Key': key() },
     body: body && JSON.stringify(body),
   });
@@ -125,25 +320,32 @@ async function connect() {
     status('locked - key required', true); return;
   }
   shared = true; rev = r.body.rev;
-  if (localStorage.getItem('dirty') === '1' && r.body.project) {
+  if (localStorage.getItem('dirty') === '1' && r.body.data) {
     dirty = true; // an unpublished draft survives a page reload
+    baseline = JSON.stringify(strip(normalize(r.body.data)));
     status('your unpublished draft was restored - Publish when ready');
-  } else if (r.body.project) {
-    adopt(r.body.project); status('published version');
+  } else if (r.body.data) {
+    adopt(r.body.data); status('published version');
   } else { dirty = true; status('nothing on the server yet - press Publish'); }
   paint();
   setInterval(poll, 5000);
 }
 
-function adopt(p) { applying = true; proj = p; sel = 0; render(); applying = false; }
+function adopt(w) {
+  applying = true;
+  ws = normalize(w); cur = Math.min(cur, ws.projects.length - 1); sel = 0;
+  baseline = JSON.stringify(strip(ws));
+  render(); applying = false; dirty = false;
+}
 
 async function publish() {
   if (!shared || publishing || !dirty) return;
   publishing = true; status('publishing...');
   try {
-    const r = await api('PUT', { rev, project: strip(proj) });
+    const r = await api('PUT', { rev, data: strip(ws) });
     if (r.code === 200) {
       rev = r.body.rev; dirty = false; serverAhead = false;
+      baseline = JSON.stringify(strip(ws));
       localStorage.removeItem('dirty');
       status('published ' + new Date().toLocaleTimeString());
     } else if (r.code === 409) {
@@ -162,7 +364,7 @@ async function discard() {
   if (r.code !== 200) return status('could not reach the server', true);
   rev = r.body.rev; dirty = false; serverAhead = false;
   localStorage.removeItem('dirty');
-  if (r.body.project) adopt(r.body.project);
+  if (r.body.data) adopt(r.body.data);
   status('published version');
 }
 
@@ -170,67 +372,69 @@ async function poll() {
   if (publishing) return;
   try {
     const r = await api('GET');
-    if (r.code !== 200 || r.body.rev === rev || !r.body.project) return;
+    if (r.code !== 200 || r.body.rev === rev || !r.body.data) return;
     if (dirty) { serverAhead = true; status('a teammate published a newer version - your draft is untouched', true); }
-    else { rev = r.body.rev; adopt(r.body.project); status('updated by a teammate'); }
+    else { rev = r.body.rev; adopt(r.body.data); status('updated by a teammate'); }
   } catch (e) { /* offline; poll again later */ }
 }
 
 addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 
-function addTask() {
-  proj.tasks.splice(sel + 1, 0, { id: proj.nextId++, name: 'New task', duration: 1, preds: [], pct: 0, res: '' });
-  sel++; render();
-}
-function delTask() {
-  if (!proj.tasks.length) return;
-  const gone = proj.tasks[sel].id;
-  proj.tasks.splice(sel, 1);
-  proj.tasks.forEach(t => t.preds = (t.preds || []).filter(p => (parsePred(p) || {}).id !== gone));
-  sel = Math.min(sel, proj.tasks.length - 1); render();
-}
-function move(d) {
-  const j = sel + d;
-  if (j < 0 || j >= proj.tasks.length) return;
-  [proj.tasks[sel], proj.tasks[j]] = [proj.tasks[j], proj.tasks[sel]];
-  sel = j; render();
-}
-
-function edit(i, field, v) {
-  const t = proj.tasks[i];
-  if (field === 'duration') t.duration = Math.max(0, Number(v) || 0);
-  else if (field === 'pct') t.pct = Math.min(100, Math.max(0, Number(v) || 0));
-  else if (field === 'preds') t.preds = String(v).split(/[,;]+/).map(s => s.trim()).filter(Boolean);
-  else if (field === 'start') t.start = v || undefined;
-  else t[field] = v;
-  render();
-}
-
+/* ---- render ---- */
 function render() {
-  const err = document.getElementById('err');
-  err.textContent = '';
-  try { schedule(proj.tasks, proj.start); }
-  catch (e) { err.textContent = e.message; }
+  const err = document.getElementById('err'), wrn = document.getElementById('warn');
+  err.textContent = ''; wrn.textContent = '';
+  const p = proj();
+  sel = Math.max(0, Math.min(sel, p.tasks.length - 1));
+  kids = childrenOf(p.tasks);
+  codes = wbsCodes(p.tasks);
+  try {
+    const warns = schedule(p.tasks, p.start, cal());
+    if (warns.length) wrn.textContent = warns.join(' ');
+  } catch (e) { err.textContent = e.message; }
   store();
-  document.getElementById('pname').value = proj.name;
-  document.getElementById('pstart').value = proj.start;
 
-  const cell = (i, f, v, w, ph) => `<td><input value="${String(v ?? '').replace(/"/g, '&quot;')}" style="width:${w}px"
+  document.getElementById('plist').innerHTML = ws.projects
+    .map((x, i) => `<option value="${i}" ${i === cur ? 'selected' : ''}>${esc(x.name)}</option>`).join('');
+  document.getElementById('pname').value = p.name;
+  document.getElementById('pstart').value = p.start;
+  document.getElementById('wdays').innerHTML = DAY_NAMES.map((n, d) =>
+    `<label><input type="checkbox" ${cal().workdays.includes(d) ? 'checked' : ''} onchange="setWorkday(${d},this.checked)"> ${n}</label>`).join(' ');
+  document.getElementById('holidays').value = (cal().holidays || []).join('\n');
+
+  const hidden = hiddenRows();
+  const cell = (i, f, v, w, ph) => `<td><input value="${esc(v ?? '')}" style="width:${w}px"
       placeholder="${ph || ''}" onchange="edit(${i},'${f}',this.value)" onfocus="sel=${i};hl()"></td>`;
-  let h = `<tr><th>ID</th><th>Task name</th><th>Days</th><th>Start</th><th>Finish</th>` +
+  let h = `<tr><th>WBS</th><th>ID</th><th>Task name</th><th>Days</th><th>Start</th><th>Finish</th>` +
     `<th title="Predecessor. 3 = finish-to-start. Also 3FS, 3SS, 3FF, 3SF, with lag in working days: 3SS+2, 3FF-1. Separate several with commas.">Pred *</th>` +
-    `<th>%</th><th>Resource</th></tr>`;
-  proj.tasks.forEach((t, i) => {
-    h += `<tr id="r${i}" class="${i === sel ? 'sel' : ''}" onclick="sel=${i};hl()">` +
-      `<td class="num">${t.id}</td>` +
-      cell(i, 'name', t.name, 220) + cell(i, 'duration', t.duration, 45) +
-      cell(i, 'start', t.start || '', 90, t.startDate ? fmtDate(t.startDate) : '') +
-      `<td class="ro">${t.finishDate ? fmtDate(t.finishDate) : ''}</td>` +
-      cell(i, 'preds', (t.preds || []).map(fmtPred).join(','), 72) + cell(i, 'pct', t.pct, 40) +
-      cell(i, 'res', t.res, 110) + `</tr>`;
+    `<th>%</th></tr>`;
+  p.tasks.forEach((t, i) => {
+    if (hidden.has(i)) return;
+    const sum = kids[i].length > 0;
+    const pad = ((Number(t.level) || 1) - 1) * 14;
+    const nameCell = sum
+      ? `<td><div class="tw" style="padding-left:${pad}px"><b onclick="toggleFold(${i})">${t.collapsed ? '+' : '−'}</b>` +
+      `<input value="${esc(t.name)}" style="width:${Math.max(90, 206 - pad)}px" onchange="edit(${i},'name',this.value)" onfocus="sel=${i};hl()"></div></td>`
+      : `<td><div class="tw" style="padding-left:${pad + 14}px">` +
+      `<input value="${esc(t.name)}" style="width:${Math.max(90, 206 - pad)}px" onchange="edit(${i},'name',this.value)" onfocus="sel=${i};hl()"></div></td>`;
+    h += `<tr id="r${i}" class="${i === sel ? 'sel ' : ''}${sum ? 'sum' : ''}" onclick="sel=${i};hl()">` +
+      `<td class="ro">${codes[i]}</td><td class="num">${t.id}</td>` + nameCell +
+      (sum ? `<td class="ro">${t.rollDuration ?? ''}</td>` : cell(i, 'duration', t.duration, 45)) +
+      (sum ? `<td class="ro">${fd(t.startDate)}</td>`
+        : cell(i, 'start', t.start || '', 90, fd(t.startDate))) +
+      `<td class="ro">${fd(t.finishDate)}</td>` +
+      (sum ? `<td class="ro"></td>` : cell(i, 'preds', (t.preds || []).map(fmtPred).join(','), 72)) +
+      (sum ? `<td class="ro">${t.rollPct ?? ''}</td>` : cell(i, 'pct', t.pct, 40)) + `</tr>`;
   });
   document.getElementById('tbl').innerHTML = h;
-  drawGantt();
+  drawGantt(hidden);
+  paint();
+}
+
+function hiddenRows() {
+  const out = new Set();
+  proj().tasks.forEach((t, i) => { if (t.collapsed && kids[i].length) descendants(i).forEach(j => out.add(j)); });
+  return out;
 }
 function hl() {
   document.querySelectorAll('#tbl tr').forEach(r => r.classList.remove('sel'));
@@ -238,32 +442,35 @@ function hl() {
 }
 
 function bounds() {
-  const dates = proj.tasks.flatMap(t => t.startDate ? [t.startDate, t.endExclusive] : []);
-  const min = nextWorkday(parseDate(proj.start));
-  const max = dates.length ? new Date(Math.max(...dates.map(d => +d))) : new Date(+min + 10 * 864e5);
+  const ds = proj().tasks.flatMap(t => t.startDate instanceof Date ? [t.startDate, t.endExclusive] : []);
+  const min = nextWorkday(parseDate(proj().start), cal());
+  const max = ds.length ? new Date(Math.max(...ds.map(d => +d))) : new Date(+min + 10 * 864e5);
   return [min, new Date(+max + 5 * 864e5)];
 }
-const dayIdx = (from, d) => Math.round((+new Date(d.getFullYear(), d.getMonth(), d.getDate()) - +new Date(from.getFullYear(), from.getMonth(), from.getDate())) / 864e5);
+const dayIdx = (from, d) => Math.round((+new Date(d.getFullYear(), d.getMonth(), d.getDate()) -
+  +new Date(from.getFullYear(), from.getMonth(), from.getDate())) / 864e5);
 
-function drawGantt() {
+function drawGantt(hidden) {
   const [from, to] = bounds();
   const n = Math.max(20, dayIdx(from, to));
   let head = '', shade = '';
   for (let i = 0; i < n; i++) {
     const d = new Date(from); d.setDate(d.getDate() + i);
     head += `<div style="width:${DAY_W}px" title="${fmtDate(d)}">${d.getDate() === 1 || i === 0 ? d.toLocaleString('en', { month: 'short' }) : d.getDate()}</div>`;
-    if (!isWorkday(d)) shade += `<div class="weekend" style="left:${i * DAY_W}px;width:${DAY_W}px"></div>`;
+    if (!isWorkday(d, cal())) shade += `<div class="weekend" style="left:${i * DAY_W}px;width:${DAY_W}px"></div>`;
   }
   let rows = '';
-  proj.tasks.forEach((t, i) => {
+  proj().tasks.forEach((t, i) => {
+    if (hidden.has(i)) return;
     let inner = '';
-    if (t.startDate) {
+    if (t.startDate instanceof Date) {
       const x = dayIdx(from, t.startDate) * DAY_W;
-      if (Number(t.duration) === 0) inner = `<div class="ms" style="left:${x}px"></div><div class="bar" style="left:${x + 18}px;width:0"><span class="lbl">${t.name}</span></div>`;
-      else {
-        const w = Math.max(1, dayIdx(t.startDate, t.endExclusive)) * DAY_W - 2;
-        inner = `<div class="bar" style="left:${x}px;width:${w}px"><div class="done" style="width:${t.pct || 0}%"></div><span class="lbl">${t.res || ''}</span></div>`;
-      }
+      const w = Math.max(1, dayIdx(t.startDate, t.endExclusive)) * DAY_W - 2;
+      if (kids[i].length) inner = `<div class="sumbar" style="left:${x}px;width:${w}px"></div>`;
+      else if (Number(t.duration) === 0) inner = `<div class="ms" style="left:${x}px"></div>` +
+        `<div class="bar" style="left:${x + 18}px;width:0"><span class="lbl">${esc(t.name)}</span></div>`;
+      else inner = `<div class="bar" style="left:${x}px;width:${w}px"><div class="done" style="width:${t.pct || 0}%"></div>` +
+        `<span class="lbl">${esc(t.name)}</span></div>`;
     }
     rows += `<div class="row" style="width:${n * DAY_W}px" onclick="sel=${i};hl()">${inner}</div>`;
   });
@@ -275,6 +482,7 @@ function drawGantt() {
 /* ---- export ---- */
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const dt = (d, h) => fmtDate(d) + 'T' + (h || '08:00:00');
+const fileName = ext => proj().name.replace(/[\\/:*?"<>|]/g, '_') + ext;
 
 function download(name, text, mime) {
   const a = document.createElement('a');
@@ -282,44 +490,46 @@ function download(name, text, mime) {
   a.download = name; a.click(); URL.revokeObjectURL(a.href);
 }
 
-// MSPDI (Microsoft Project XML) — File > Open in MS Project, or import in ProjectLibre.
+// MSPDI (Microsoft Project XML) - File > Open in MS Project, or import in ProjectLibre.
 function exportXML() {
-  const res = [...new Set(proj.tasks.map(t => (t.res || '').trim()).filter(Boolean))];
-  const tasks = proj.tasks.map((t, i) => {
-    const dur = Number(t.duration) || 0;
+  const p = proj();
+  const tasks = p.tasks.map((t, i) => {
+    const sum = kids[i].length > 0;
+    const dur = sum ? (t.rollDuration || 0) : Math.max(0, Number(t.duration) || 0);
     return `    <Task>
       <UID>${t.id}</UID><ID>${i + 1}</ID><Name>${esc(t.name)}</Name>
-      <Active>1</Active><Manual>0</Manual><Type>1</Type><OutlineLevel>1</OutlineLevel>
+      <Active>1</Active><Manual>0</Manual><Type>1</Type><OutlineLevel>${Math.max(1, Number(t.level) || 1)}</OutlineLevel>
+      <WBS>${codes[i]}</WBS>
       <Start>${dt(t.startDate)}</Start><Finish>${dt(t.finishDate, dur ? '17:00:00' : '08:00:00')}</Finish>
       <Duration>PT${dur * HOURS_PER_DAY}H0M0S</Duration><DurationFormat>7</DurationFormat>
-      <Milestone>${dur === 0 ? 1 : 0}</Milestone><Summary>0</Summary>
-      <PercentComplete>${t.pct || 0}</PercentComplete><ConstraintType>0</ConstraintType>
-${(t.preds || []).map(parsePred).filter(Boolean).map(p =>
+      <Milestone>${!sum && dur === 0 ? 1 : 0}</Milestone><Summary>${sum ? 1 : 0}</Summary>
+      <PercentComplete>${(sum ? t.rollPct : t.pct) || 0}</PercentComplete><ConstraintType>0</ConstraintType>
+${(sum ? [] : (t.preds || [])).map(parsePred).filter(Boolean).map(l =>
       // MSPDI link types: 0=FF 1=FS 2=SF 3=SS. LinkLag is in tenths of a minute.
-      `      <PredecessorLink><PredecessorUID>${p.id}</PredecessorUID><Type>${{ FF: 0, FS: 1, SF: 2, SS: 3 }[p.type]}</Type><LinkLag>${p.lag * HOURS_PER_DAY * 600}</LinkLag><LagFormat>7</LagFormat></PredecessorLink>`).join('\n')}
+      `      <PredecessorLink><PredecessorUID>${l.id}</PredecessorUID><Type>${{ FF: 0, FS: 1, SF: 2, SS: 3 }[l.type]}</Type><LinkLag>${l.lag * HOURS_PER_DAY * 600}</LinkLag><LagFormat>7</LagFormat></PredecessorLink>`).join('\n')}
     </Task>`;
   }).join('\n');
 
-  const assigns = proj.tasks.flatMap((t, i) => {
-    const r = res.indexOf((t.res || '').trim());
-    return r < 0 ? [] : [`    <Assignment><UID>${i + 1}</UID><TaskUID>${t.id}</TaskUID><ResourceUID>${r + 1}</ResourceUID><Units>1</Units></Assignment>`];
-  }).join('\n');
-
-  const day = k => `        <WeekDay><DayType>${k}</DayType><DayWorking>${k >= 2 && k <= 6 ? 1 : 0}</DayWorking>${k >= 2 && k <= 6 ? `
+  const wd = new Set(cal().workdays);
+  const day = k => `        <WeekDay><DayType>${k}</DayType><DayWorking>${wd.has(k - 1) ? 1 : 0}</DayWorking>${wd.has(k - 1) ? `
           <WorkingTimes><WorkingTime><FromTime>08:00:00</FromTime><ToTime>12:00:00</ToTime></WorkingTime><WorkingTime><FromTime>13:00:00</FromTime><ToTime>17:00:00</ToTime></WorkingTime></WorkingTimes>` : ''}
         </WeekDay>`;
+  const off = (cal().holidays || []).map((h, i) => `        <Exception>
+          <TimePeriod><FromDate>${h}T00:00:00</FromDate><ToDate>${h}T23:59:00</ToDate></TimePeriod>
+          <Occurrences>1</Occurrences><Name>Day off ${i + 1}</Name><Type>1</Type><DayWorking>0</DayWorking>
+        </Exception>`).join('\n');
 
   const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Project xmlns="http://schemas.microsoft.com/project">
-  <Name>${esc(proj.name)}.xml</Name>
-  <Title>${esc(proj.name)}</Title>
+  <Name>${esc(p.name)}.xml</Name>
+  <Title>${esc(p.name)}</Title>
   <ScheduleFromStart>1</ScheduleFromStart>
-  <StartDate>${dt(nextWorkday(parseDate(proj.start)))}</StartDate>
+  <StartDate>${dt(nextWorkday(parseDate(p.start), cal()))}</StartDate>
   <CalendarUID>1</CalendarUID>
   <DefaultStartTime>08:00:00</DefaultStartTime>
   <DefaultFinishTime>17:00:00</DefaultFinishTime>
   <MinutesPerDay>480</MinutesPerDay>
-  <MinutesPerWeek>2400</MinutesPerWeek>
+  <MinutesPerWeek>${wd.size * 480}</MinutesPerWeek>
   <DaysPerMonth>20</DaysPerMonth>
   <Calendars>
     <Calendar>
@@ -327,26 +537,28 @@ ${(t.preds || []).map(parsePred).filter(Boolean).map(p =>
       <WeekDays>
 ${[1, 2, 3, 4, 5, 6, 7].map(day).join('\n')}
       </WeekDays>
+      <Exceptions>
+${off}
+      </Exceptions>
     </Calendar>
   </Calendars>
   <Tasks>
 ${tasks}
   </Tasks>
-  <Resources>
-${res.map((r, i) => `    <Resource><UID>${i + 1}</UID><ID>${i + 1}</ID><Name>${esc(r)}</Name><Type>1</Type><MaxUnits>1</MaxUnits></Resource>`).join('\n')}
-  </Resources>
-  <Assignments>
-${assigns}
-  </Assignments>
 </Project>`;
-  download(proj.name.replace(/[\\/:*?"<>|]/g, '_') + '.xml', xml, 'application/xml');
+  download(fileName('.xml'), xml, 'application/xml');
 }
 
 function tableRows() {
-  return [['ID', 'Task name', 'Duration (days)', 'Start', 'Finish', 'Predecessors', '% Complete', 'Resource'],
-  ...proj.tasks.map(t => [t.id, t.name, Number(t.duration) || 0,
-    t.startDate ? fmtDate(t.startDate) : '', t.finishDate ? fmtDate(t.finishDate) : '',
-    (t.preds || []).map(fmtPred).join(','), Number(t.pct) || 0, t.res || ''])];
+  return [['WBS', 'ID', 'Task name', 'Duration (days)', 'Start', 'Finish', 'Predecessors', '% Complete'],
+  ...proj().tasks.map((t, i) => {
+    const sum = kids[i].length > 0;
+    return [codes[i], t.id, '  '.repeat((Number(t.level) || 1) - 1) + t.name,
+      sum ? (t.rollDuration || 0) : Number(t.duration) || 0,
+      fd(t.startDate), fd(t.finishDate),
+      sum ? '' : (t.preds || []).map(fmtPred).join(','),
+      (sum ? t.rollPct : Number(t.pct)) || 0];
+  })];
 }
 
 // Excel: task columns + a real Gantt drawn as coloured day cells to the right.
@@ -364,41 +576,43 @@ async function exportXLSX() {
   const fill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
 
   const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet('Gantt', { views: [{ state: 'frozen', xSplit: FIELDS, ySplit: 1 }] });
-  ws.columns = [{ width: 5 }, { width: 30 }, { width: 8 }, { width: 12 }, { width: 12 }, { width: 10 }, { width: 5 }, { width: 16 },
+  const ws2 = wb.addWorksheet('Gantt', { views: [{ state: 'frozen', xSplit: FIELDS, ySplit: 1 }] });
+  ws2.columns = [{ width: 8 }, { width: 5 }, { width: 32 }, { width: 14 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 11 },
   ...Array.from({ length: days }, () => ({ width: 3 }))];
 
   const rows = tableRows();
-  const head = ws.addRow([...rows[0], ...Array.from({ length: days }, (_, i) => {
+  const head = ws2.addRow([...rows[0], ...Array.from({ length: days }, (_, i) => {
     const d = new Date(from); d.setDate(d.getDate() + i);
     return d.getDate() === 1 || i === 0 ? d.toLocaleString('en', { month: 'short' }) + ' ' + d.getDate() : d.getDate();
   })]);
   head.font = { bold: true };
   head.alignment = { horizontal: 'center' };
 
-  proj.tasks.forEach((t, r) => {
-    const row = ws.addRow(rows[r + 1]);
-    if (!t.startDate) return;
+  proj().tasks.forEach((t, r) => {
+    const row = ws2.addRow(rows[r + 1]);
+    const sum = kids[r].length > 0;
+    if (sum) row.font = { bold: true };
+    if (!(t.startDate instanceof Date)) return;
     const s = dayIdx(from, t.startDate), n = Math.max(1, dayIdx(t.startDate, t.endExclusive));
-    const donePortion = Math.round(n * (Number(t.pct) || 0) / 100);
+    const donePortion = Math.round(n * ((sum ? t.rollPct : Number(t.pct)) || 0) / 100);
     for (let i = 0; i < days; i++) {
       const d = new Date(from); d.setDate(d.getDate() + i);
       const c = row.getCell(FIELDS + 1 + i);
-      if (Number(t.duration) === 0) { if (i === s) { c.value = '◆'; c.alignment = { horizontal: 'center' }; } }
-      else if (i >= s && i < s + n) c.fill = fill(i < s + donePortion ? 'FF17325E' : 'FF2B579A');
-      else if (!isWorkday(d)) c.fill = fill('FFF2F2F2');
+      if (!sum && Number(t.duration) === 0) { if (i === s) { c.value = '◆'; c.alignment = { horizontal: 'center' }; } }
+      else if (i >= s && i < s + n) c.fill = fill(sum ? 'FF333333' : i < s + donePortion ? 'FF17325E' : 'FF2B579A');
+      else if (!isWorkday(d, cal())) c.fill = fill('FFF2F2F2');
     }
   });
-  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: proj.tasks.length + 1, column: FIELDS } };
+  ws2.autoFilter = { from: { row: 1, column: 1 }, to: { row: proj().tasks.length + 1, column: FIELDS } };
 
   const buf = await wb.xlsx.writeBuffer();
-  download(proj.name.replace(/[\\/:*?"<>|]/g, '_') + '.xlsx', buf, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  download(fileName('.xlsx'), buf, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
 // PDF via the browser's own print dialog: pick "Save as PDF". Prints the grid and the
 // Gantt exactly as drawn, scaled to fit A3 landscape.
 function exportPDF() {
-  document.getElementById('ptitle').textContent = proj.name + ' - ' + fmtDate(new Date());
+  document.getElementById('ptitle').textContent = proj().name + ' - ' + fmtDate(new Date());
   const w = document.getElementById('tbl').offsetWidth + (document.querySelector('.gridhead')?.offsetWidth || 0);
   document.documentElement.style.setProperty('--ps', Math.min(1, 1400 / w));
   window.print();
@@ -406,26 +620,28 @@ function exportPDF() {
 
 function exportCSV() {
   const q = s => '"' + String(s ?? '').replace(/"/g, '""') + '"';
-  const rows = [['ID', 'Name', 'Duration', 'Start', 'Finish', 'Predecessors', 'Percent Complete', 'Resource Names']];
-  proj.tasks.forEach(t => rows.push([t.id, t.name, (t.duration || 0) + ' days',
-    t.startDate ? fmtDate(t.startDate) : '', t.finishDate ? fmtDate(t.finishDate) : '',
-    (t.preds || []).map(fmtPred).join(','), t.pct || 0, t.res || '']));
-  download(proj.name.replace(/[\\/:*?"<>|]/g, '_') + '.csv', '﻿' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
+  download(fileName('.csv'), '﻿' + tableRows().map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
 }
 
-function save() {
-  const clean = { ...proj, tasks: proj.tasks.map(({ startDate, endExclusive, finishDate, ...t }) => t) };
-  download(proj.name.replace(/[\\/:*?"<>|]/g, '_') + '.json', JSON.stringify(clean, null, 2), 'application/json');
-}
+function save() { download(fileName('.json'), JSON.stringify(strip(ws).projects[cur], null, 2), 'application/json'); }
+
 function open_(input) {
   const f = input.files[0]; if (!f) return;
   const r = new FileReader();
-  r.onload = () => { proj = JSON.parse(r.result); sel = 0; render(); };
+  r.onload = () => {
+    try {
+      const p = JSON.parse(r.result);
+      const list = Array.isArray(p.projects) ? p.projects : [p];      // a workspace or a single project
+      snapshot();
+      list.forEach(x => ws.projects.push({ ...blank(x.name), ...x }));
+      cur = ws.projects.length - 1; sel = 0; render();
+    } catch (e) { document.getElementById('err').textContent = 'Could not read that file: ' + e.message; }
+  };
   r.readAsText(f); input.value = '';
 }
 
-document.getElementById('pname').onchange = e => { proj.name = e.target.value; render(); };
-document.getElementById('pstart').onchange = e => { proj.start = e.target.value; render(); };
+document.getElementById('pname').onchange = e => { snapshot(); proj().name = e.target.value; render(); };
+document.getElementById('pstart').onchange = e => { snapshot(); proj().start = e.target.value; render(); };
 render();
 connect();
 </script>

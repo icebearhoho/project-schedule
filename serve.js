@@ -8,8 +8,12 @@ const PORT = process.env.PORT || 5173;
 const DATA = process.env.DATA_FILE || path.join(__dirname, 'project.json');
 const TOKEN = process.env.PLANNER_TOKEN || '';
 
-let state = { rev: 0, project: null };
-try { state = JSON.parse(fs.readFileSync(DATA, 'utf8')); } catch (e) { /* first run */ }
+let state = { rev: 0, data: null }; // data = { projects: [...], nextPid }
+try {
+  state = JSON.parse(fs.readFileSync(DATA, 'utf8'));
+  if (state.project && !state.data) state.data = { projects: [state.project], nextPid: 2 }; // pre-multi-project file
+  delete state.project;
+} catch (e) { /* first run */ }
 
 function persist() { // atomic: survives a crash mid-write
   fs.writeFileSync(DATA + '.tmp', JSON.stringify(state));
@@ -22,7 +26,7 @@ const json = (res, code, body) => res.writeHead(code, { 'Content-Type': 'applica
 http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
 
-  if (url.pathname === '/api/project') {
+  if (url.pathname === '/api/data' || url.pathname === '/api/project') {
     if (TOKEN && (req.headers['x-key'] || url.searchParams.get('key')) !== TOKEN) return json(res, 401, { error: 'bad key' });
     if (req.method === 'GET') return json(res, 200, state);
     if (req.method === 'PUT') {
@@ -30,10 +34,10 @@ http.createServer((req, res) => {
       req.on('data', c => { body += c; if (body.length > 5e6) req.destroy(); });
       req.on('end', () => {
         let b; try { b = JSON.parse(body); } catch (e) { return json(res, 400, { error: 'bad json' }); }
-        if (!b || typeof b.project !== 'object' || !b.project) return json(res, 400, { error: 'no project' });
+        if (!b || typeof b.data !== 'object' || !b.data || !Array.isArray(b.data.projects)) return json(res, 400, { error: 'no projects' });
         // Stale write: someone else saved since this client loaded. Hand back the current copy.
         if (state.rev !== 0 && b.rev !== state.rev) return json(res, 409, state);
-        state = { rev: state.rev + 1, project: b.project, at: new Date().toISOString() };
+        state = { rev: state.rev + 1, data: b.data, at: new Date().toISOString() };
         persist();
         json(res, 200, { rev: state.rev });
       });
