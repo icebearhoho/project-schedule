@@ -34,7 +34,7 @@ watching each keystroke — and without hammering the server.
   work warns you first.
 - If a teammate publishes while you're drafting, you're told, and your draft is left
   alone. Publishing then needs a second, deliberate click labelled
-  **Publish (overwrites theirs)** — or press **Discard draft** to take their version.
+  **Publish (merges with theirs)** — or press **Discard draft** to take their version.
 - **local only (this browser)** in the status pill means no server was reachable (e.g. you
   opened `index.html` by double-clicking it); edits stay in that browser.
 
@@ -133,6 +133,12 @@ first, then link across the phases.
 
 ## Working calendar
 
+**Schedule** in the toolbar opens a panel per project: tick which weekdays are working days
+(any combination — a 6-day week is fine) and list holidays or shutdown days, one
+`YYYY-MM-DD` per line. Durations, links and lag all count in working days, so a holiday
+pushes everything after it. Non-working days are shaded in the Gantt and exported into
+the MS Project XML as calendar exceptions.
+
 ### Public holidays
 
 Two one-click presets live in the **Schedule** panel: **Singapore 2026** and
@@ -154,14 +160,6 @@ Some countries work a normally-free day to bridge a long holiday — China's 调
 Saturdays. List those under **Extra working days** and they count as working days even
 though the weekday is unticked or the date is also in the holiday list. They export to
 MS Project as working exceptions, so it schedules them the same way.
-
-## Working calendar
-
-**Schedule** in the toolbar opens a panel per project: tick which weekdays are working days
-(any combination — a 6-day week is fine) and list holidays or shutdown days, one
-`YYYY-MM-DD` per line. Durations, links and lag all count in working days, so a holiday
-pushes everything after it. Non-working days are shaded in the Gantt and exported into
-the MS Project XML as calendar exceptions.
 
 ## Phases and colours
 
