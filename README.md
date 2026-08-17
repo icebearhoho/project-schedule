@@ -152,8 +152,15 @@ both the light and the dark background, and the completed part of each bar is de
 from the bar's own colour — darker on light, lighter on dark. The Excel export uses the
 same colours.
 
-Bars carry no text: the task name is already on the same row in the grid. Hover a bar for
-its name, dates and percentage.
+Each bar is labelled with its task name and, once you set one, its percentage. The label
+never lives inside the bar, so a one-day bar can still show a long name:
+
+- normally the name sits **after** the bar,
+- if the bar runs to the right edge, the name moves **before** it,
+- if the bar fills the pane (usually in `Day` view) the name rides **on** it in a chip,
+  so it stays on a readable background rather than on the bar colour,
+- when there is genuinely no room, the text is cut with an ellipsis and the tooltip
+  carries the full name, dates and percentage.
 
 A bar is drawn only on the days the task actually occupies: it breaks over weekends,
 holidays and any day you untick in **Schedule**, so its painted length matches the day

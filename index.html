@@ -237,6 +237,15 @@
   .swatches button[aria-pressed="true"] { border-color: var(--text); }
   .swatches button.clear { background: var(--sunken); color: var(--muted); font-size: 11px;
                            display: flex; align-items: center; justify-content: center; width: auto; padding: 0 10px; }
+  /* Labels sit beside the bar, never inside it, so a one-day bar can still carry a long
+     name and the text always has the row background behind it. */
+  .lbl { position: absolute; top: 6px; height: 18px; line-height: 18px; font-size: 12px;
+         color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lbl.before { text-align: right; }
+  /* last resort: the bar fills the pane, so the name rides on top of it in a chip that
+     keeps the text on a surface-coloured background rather than on the bar colour */
+  .lbl.over { color: var(--text); background: color-mix(in srgb, var(--surface), transparent 10%);
+              padding: 0 6px; border-radius: 4px; }
   .offscreen { position: absolute; top: 8px; display: flex; color: var(--faint); }
   .offscreen.left { left: 2px; }
   .offscreen.right { right: 2px; }
@@ -988,12 +997,21 @@ function drawGantt(hidden) {
       else {
         const pct = (kids[i].length ? t.rollPct : t.pct) || 0;
         const x = s * dw, w = Math.max(2, (e - s) * dw - 3);
-        // The name is already in the row beside it, so the bar carries no text —
-        // everything is in the tooltip instead.
         const tip = esc(t.name) + ' — ' + fd(t.startDate) + ' to ' + fd(t.finishDate) + (pct ? ' · ' + pct + '%' : '');
         const c = `--c:${resolvedColor(i)}`;
-        if (kids[i].length) inner = `<div class="sumbar" style="left:${x}px;width:${w}px;${c}" title="${tip}"></div>`;
-        else if (Number(t.duration) === 0) inner = `<div class="ms" style="left:${x}px;${c}" title="${tip}"></div>`;
+        // Put the name after the bar when there's room, before it when the bar runs to
+        // the right edge, and let CSS clip with an ellipsis when neither side is roomy.
+        // The bar's own width never limits the label, which is the point.
+        const barEnd = (Number(t.duration) === 0 ? s * dw + 18 : e * dw);
+        const after = W - barEnd - 10, before = s * dw - 10;
+        const text = esc(t.name) + (pct ? ' · ' + pct + '%' : '');
+        const label = (after >= 70)
+          ? `<span class="lbl" style="left:${barEnd + 8}px;max-width:${after}px" title="${tip}">${text}</span>`
+          : before >= 70
+            ? `<span class="lbl before" style="left:0;width:${before}px" title="${tip}">${text}</span>`
+            : `<span class="lbl over" style="left:${s * dw + 6}px;max-width:${Math.max(40, (e - s) * dw - 12)}px" title="${tip}">${text}</span>`;
+        if (kids[i].length) inner = `<div class="sumbar" style="left:${x}px;width:${w}px;${c}" title="${tip}"></div>` + label;
+        else if (Number(t.duration) === 0) inner = `<div class="ms" style="left:${x}px;${c}" title="${tip}"></div>` + label;
         else {
           // One segment per run of working days, so a bar covers exactly the days it is
           // scheduled for and leaves weekends and holidays empty. Below ~8px a day the
@@ -1006,7 +1024,7 @@ function drawGantt(hidden) {
             left -= filled;
             return `<div class="bar" style="left:${r.a * dw}px;width:${Math.max(2, len * dw - 3)}px;${c}" title="${tip}">` +
               `<div class="done" style="width:${(filled / len * 100).toFixed(2)}%"></div></div>`;
-          }).join('');
+          }).join('') + label;
         }
       }
     }
