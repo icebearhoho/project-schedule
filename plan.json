@@ -1,5 +1,5 @@
 {
-  "rev": 7,
+  "rev": 8,
   "data": {
     "projects": [
       {
@@ -25,6 +25,52 @@
             "pct": 0,
             "start": "2026-8-14",
             "color": "rose"
+          },
+          {
+            "id": 21,
+            "name": "New phase",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "color": "amber",
+            "collapsed": true
+          },
+          {
+            "id": 22,
+            "name": "First task",
+            "duration": 3,
+            "level": 2,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 23,
+            "name": "New task",
+            "duration": 3,
+            "level": 2,
+            "preds": [
+              "22"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 24,
+            "name": "New task",
+            "duration": 9,
+            "level": 2,
+            "preds": [
+              "23"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 25,
+            "name": "New task",
+            "duration": 1,
+            "level": 2,
+            "preds": [],
+            "pct": 0
           },
           {
             "id": 2,
@@ -176,55 +222,11 @@
               "5"
             ],
             "pct": 0
-          },
-          {
-            "id": 21,
-            "name": "New phase",
-            "duration": 1,
-            "level": 1,
-            "preds": [],
-            "pct": 0,
-            "color": "amber"
-          },
-          {
-            "id": 22,
-            "name": "First task",
-            "duration": 3,
-            "level": 2,
-            "preds": [],
-            "pct": 0
-          },
-          {
-            "id": 23,
-            "name": "New task",
-            "duration": 3,
-            "level": 2,
-            "preds": [
-              "22"
-            ],
-            "pct": 0
-          },
-          {
-            "id": 24,
-            "name": "New task",
-            "duration": 9,
-            "level": 2,
-            "preds": [
-              "23"
-            ],
-            "pct": 0
-          },
-          {
-            "id": 25,
-            "name": "New task",
-            "duration": 1,
-            "level": 2,
-            "preds": [],
-            "pct": 0
           }
         ],
         "nextId": 26,
-        "color": "rose"
+        "color": "rose",
+        "pid": "p0"
       },
       {
         "name": "test",
@@ -298,10 +300,229 @@
             "pct": 0
           }
         ],
-        "nextId": 8
+        "nextId": 8,
+        "pid": "p1"
+      },
+      {
+        "pid": "pmswp60utl7ef",
+        "name": "Project 3",
+        "start": "2026-08-17",
+        "calendar": {
+          "workdays": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "holidays": []
+        },
+        "tasks": [
+          {
+            "id": 1,
+            "name": "Task 1",
+            "duration": 5,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 2,
+            "name": "New task",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 3,
+            "name": "New task",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 4,
+            "name": "New task",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 5,
+            "name": "New task",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 6,
+            "name": "New task",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          }
+        ],
+        "nextId": 7
+      },
+      {
+        "pid": "pmswp66lj0ciu",
+        "name": "Project 4",
+        "start": "2026-08-17",
+        "calendar": {
+          "workdays": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "holidays": []
+        },
+        "tasks": [
+          {
+            "id": 1,
+            "name": "Task 1",
+            "duration": 5,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 2,
+            "name": "New task",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "start": "2026-08-12"
+          },
+          {
+            "id": 3,
+            "name": "New task",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "start": "2026-08-28"
+          },
+          {
+            "id": 4,
+            "name": "New task",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 5,
+            "name": "New task",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 6,
+            "name": "New phase",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 8,
+            "name": "New task",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "start": "2026-08-28"
+          },
+          {
+            "id": 9,
+            "name": "New task",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "collapsed": true
+          },
+          {
+            "id": 7,
+            "name": "First task",
+            "duration": 3,
+            "level": 2,
+            "preds": [],
+            "pct": 0,
+            "start": "2026-08-31"
+          },
+          {
+            "id": 10,
+            "name": "Project 3",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "collapsed": true
+          },
+          {
+            "id": 11,
+            "name": "Task 1",
+            "duration": 5,
+            "level": 2,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 12,
+            "name": "New task",
+            "duration": 1,
+            "level": 2,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 13,
+            "name": "New task",
+            "duration": 1,
+            "level": 2,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 14,
+            "name": "New task",
+            "duration": 1,
+            "level": 2,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 15,
+            "name": "New task",
+            "duration": 1,
+            "level": 2,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 16,
+            "name": "New task",
+            "duration": 1,
+            "level": 2,
+            "preds": [],
+            "pct": 0
+          }
+        ],
+        "nextId": 17
       }
     ],
-    "nextPid": 3
+    "nextPid": 5
   },
-  "at": "2026-08-14T09:52:52.729Z"
+  "at": "2026-08-17T03:53:26.327Z"
 }
