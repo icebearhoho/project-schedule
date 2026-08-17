@@ -22,6 +22,12 @@ const readBody = req => new Promise(ok => {
   let b = ''; req.on('data', c => { b += c; if (b.length > 5e6) req.destroy(); }); req.on('end', () => ok(b));
 });
 
+// Publishes run one at a time. Between checking the revision and finishing the write
+// there is an await (a GitHub round trip, in the deployed setup), and without this a
+// second publish could pass the same check and both users would be told they succeeded.
+let chain = Promise.resolve();
+const exclusive = fn => { const p = chain.then(fn, fn); chain = p.catch(() => { }); return p; };
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
 
@@ -32,18 +38,20 @@ const server = http.createServer(async (req, res) => {
 
     let b; try { b = JSON.parse(await readBody(req)); } catch (e) { return json(res, 400, { error: 'bad json' }); }
     if (!b || typeof b.data !== 'object' || !b.data || !Array.isArray(b.data.projects)) return json(res, 400, { error: 'no projects' });
-    // Stale write: someone else saved since this client loaded. Hand back the current copy.
-    if (state.rev !== 0 && b.rev !== state.rev) return json(res, 409, publicPart(state));
+    return exclusive(async () => {
+      // Stale write: someone else saved since this client loaded. Hand back the current copy.
+      if (state.rev !== 0 && b.rev !== state.rev) return json(res, 409, publicPart(state));
 
-    const next = { rev: state.rev + 1, data: b.data, at: new Date().toISOString() };
-    try {
-      next.sha = await storage.save(next, state.sha);
-    } catch (e) {
-      if (e.conflict) { state = await storage.load(); return json(res, 409, publicPart(state)); }
-      return json(res, 503, { error: String(e.message || e) }); // never report a save that didn't happen
-    }
-    state = next;
-    return json(res, 200, { rev: state.rev });
+      const next = { rev: state.rev + 1, data: b.data, at: new Date().toISOString() };
+      try {
+        next.sha = await storage.save(next, state.sha);
+      } catch (e) {
+        if (e.conflict) { state = await storage.load(); return json(res, 409, publicPart(state)); }
+        return json(res, 503, { error: String(e.message || e) }); // never report a save that didn't happen
+      }
+      state = next;
+      return json(res, 200, { rev: state.rev });
+    });
   }
 
   const file = path.join(__dirname, url.pathname === '/' ? 'index.html' : path.basename(url.pathname));

@@ -37,6 +37,27 @@ watching each keystroke — and without hammering the server.
 - **local only (this browser)** in the status pill means no server was reachable (e.g. you
   opened `index.html` by double-clicking it); edits stay in that browser.
 
+### Two people publishing at once
+
+Drafts never collide: they live in each person's browser and touch nothing shared.
+
+At publish time the server accepts exactly one of them. Every publish carries the
+revision it was based on; if that isn't the current revision the server answers 409 and
+returns the newer plan instead of overwriting it. Publishes are also serialized, so two
+that arrive in the same millisecond cannot both pass the check.
+
+The one who loses the race is not blocked and loses nothing:
+
+- their draft stays exactly as it was on screen,
+- the pill explains a teammate published first,
+- the button becomes **Publish (overwrites theirs)** — a second, deliberate click
+  replaces the teammate's version, or **Discard draft** takes the teammate's version.
+
+What this does *not* do is merge. The plan is saved as one document, so a publish
+replaces the whole thing rather than combining two people's edits row by row. For a
+small team taking turns that's fine; if two people routinely edit different phases at
+the same minute, they will keep meeting this prompt.
+
 Teammates on the same office network can use `http://<your-ip>:5173` while it runs.
 
 ## Outline (WBS)

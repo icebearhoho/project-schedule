@@ -131,6 +131,18 @@ assert.equal(fmtDate(t[0].startDate), '2026-08-17');
     assert.equal((await call('PUT', { rev: b.body.rev, data: { x: 1 } })).code, 400); // no projects array
     assert.equal(JSON.parse(fs.readFileSync(data, 'utf8')).data.projects[0].name, 'P2'); // survives restart
 
+    // Two people publish drafts built from the same revision at the same moment:
+    // exactly one may win, and the stored plan must be that winner's.
+    for (let round = 0; round < 20; round++) {
+      const rev = (await call('GET')).body.rev;
+      const names = ['Alice' + round, 'Bob' + round, 'Carol' + round];
+      const res = await Promise.all(names.map(n => call('PUT', { rev, data: wsOf(n) })));
+      const winners = names.filter((_, i) => res[i].code === 200);
+      assert.equal(winners.length, 1, 'round ' + round + ' accepted ' + winners.length + ' publishes');
+      res.filter(r => r.code !== 200).forEach(r => assert.equal(r.code, 409));
+      assert.equal((await call('GET')).body.data.projects[0].name, winners[0]);
+    }
+
     // a file written by the single-project version still loads
     srv.kill();
     fs.writeFileSync(data, JSON.stringify({ rev: 7, project: { name: 'Old', tasks: [] } }));
