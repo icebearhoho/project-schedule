@@ -133,6 +133,30 @@ first, then link across the phases.
 
 ## Working calendar
 
+### Public holidays
+
+Two one-click presets live in the **Schedule** panel: **Singapore 2026** and
+**China (mainland) 2026**. Clicking one adds its dates to this project's holiday list —
+they stack (add both if your team spans both countries) and clicking twice adds nothing
+new. The dates then sit in the text box as ordinary lines you can edit.
+
+> Treat the presets as a starting point, not an authority. Lunar and Islamic holidays
+> move, days in lieu are gazetted per year, and **China's make-up working weekends
+> (调休) are announced annually and are deliberately not included** — I won't invent
+> them. Check against
+> [gov.cn](https://www.gov.cn/) and
+> [mom.gov.sg](https://www.mom.gov.sg/employment-practices/public-holidays),
+> then edit the list.
+
+### Extra working days
+
+Some countries work a normally-free day to bridge a long holiday — China's 调休
+Saturdays. List those under **Extra working days** and they count as working days even
+though the weekday is unticked or the date is also in the holiday list. They export to
+MS Project as working exceptions, so it schedules them the same way.
+
+## Working calendar
+
 **Schedule** in the toolbar opens a panel per project: tick which weekdays are working days
 (any combination — a 6-day week is fine) and list holidays or shutdown days, one
 `YYYY-MM-DD` per line. Durations, links and lag all count in working days, so a holiday

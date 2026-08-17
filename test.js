@@ -102,6 +102,41 @@ t = [{ id: 1, name: 'A', duration: 1, preds: [] }];   // no days ticked falls ba
 schedule(t, '2026-08-15', { workdays: [], holidays: [] });
 assert.equal(fmtDate(t[0].startDate), '2026-08-17');
 
+// --- make-up working days (China's 调休): a normally-off day that is worked ---
+t = [{ id: 1, name: 'A', duration: 3, preds: [] }];
+schedule(t, '2026-08-14', { workdays: [1, 2, 3, 4, 5], holidays: [], extra: ['2026-08-15'] });
+assert.equal(fmtDate(t[0].finishDate), '2026-08-17'); // Fri 14, Sat 15 (worked), Mon 17
+t = [{ id: 1, name: 'A', duration: 1, preds: [] }];
+schedule(t, '2026-08-15', { workdays: [1, 2, 3, 4, 5], holidays: ['2026-08-15'], extra: ['2026-08-15'] });
+assert.equal(fmtDate(t[0].startDate), '2026-08-15', 'an extra working day outranks a holiday');
+
+// --- national holiday presets ---
+{
+  const { NATIONAL_CALENDARS, applyNationalCalendar, parseDate } = require('./schedule');
+  assert.ok(NATIONAL_CALENDARS['SG-2026'] && NATIONAL_CALENDARS['CN-2026']);
+  const cal = { workdays: [1, 2, 3, 4, 5], holidays: ['2026-12-25'], extra: [] };
+  const sg = applyNationalCalendar(cal, 'SG-2026');
+  assert.ok(sg.holidays.includes('2026-08-10'), 'National Day in lieu is there');
+  assert.equal(sg.holidays.filter(d => d === '2026-12-25').length, 1, 'a date already present is not duplicated');
+  assert.equal(sg.added, NATIONAL_CALENDARS['SG-2026'].holidays.length - 1);
+  assert.deepEqual(sg.holidays, [...sg.holidays].sort(), 'kept in date order');
+  // stacking two countries keeps both sets
+  const both = applyNationalCalendar({ ...cal, holidays: sg.holidays }, 'CN-2026');
+  assert.ok(both.holidays.includes('2026-10-01') && both.holidays.includes('2026-04-03'));
+  // every preset date must be a real, parseable calendar date
+  for (const [key, p] of Object.entries(NATIONAL_CALENDARS)) {
+    for (const d of [...p.holidays, ...(p.extra || [])]) {
+      assert.match(d, /^\d{4}-\d{2}-\d{2}$/, key + ' ' + d);
+      assert.equal(fmtDate(parseDate(d)), d, key + ' ' + d + ' is not a real date');
+    }
+    assert.equal(new Set(p.holidays).size, p.holidays.length, key + ' has a duplicate');
+  }
+  // and they actually push work later: a task over Chinese New Year 2026
+  const t2 = [{ id: 1, name: 'A', duration: 5, preds: [] }];
+  schedule(t2, '2026-02-16', { workdays: [1, 2, 3, 4, 5], holidays: NATIONAL_CALENDARS['CN-2026'].holidays, extra: [] });
+  assert.equal(fmtDate(t2[0].startDate), '2026-02-23', 'starts after the Spring Festival week');
+}
+
 // --- combining a per-person project into a master plan ---
 {
   const { combineProjects } = require('./schedule');

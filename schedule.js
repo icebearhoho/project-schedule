@@ -5,13 +5,16 @@ const MAX_STEPS = 3650; // ~10 years of calendar days: stops a broken calendar f
 
 function makeCal(c) {
   const days = (c && c.workdays && c.workdays.length) ? c.workdays : [1, 2, 3, 4, 5];
-  return { days: new Set(days), holidays: new Set((c && c.holidays) || []) };
+  return { days: new Set(days), holidays: new Set((c && c.holidays) || []), extra: new Set((c && c.extra) || []) };
 }
 const asCal = c => (c && c.days instanceof Set) ? c : makeCal(c);
 
+// `extra` wins over everything: it exists for make-up working days, like the Saturdays
+// China works to bridge a long holiday.
 function isWorkday(d, cal) {
-  const c = asCal(cal);
-  return c.days.has(d.getDay()) && !c.holidays.has(fmtDate(d));
+  const c = asCal(cal), key = fmtDate(d);
+  if (c.extra.has(key)) return true;
+  return c.days.has(d.getDay()) && !c.holidays.has(key);
 }
 
 function roll(d, step, cal) { // move to the nearest working day in one direction
@@ -197,6 +200,66 @@ function combineProjects(target, source) {
   };
 }
 
+// Public-holiday presets, for clicking into a project's calendar.
+//
+// IMPORTANT: these are a convenience, not an authority. Lunar and Islamic dates move,
+// governments gazette days in lieu, and China sets its make-up working weekends
+// (调休) year by year — so check them against the official notice before you commit to
+// a plan. Every date lands in the Schedule panel as normal text you can edit.
+//   China:     www.gov.cn holiday notices
+//   Singapore: www.mom.gov.sg/employment-practices/public-holidays
+const NATIONAL_CALENDARS = {
+  'SG-2026': {
+    label: 'Singapore 2026',
+    // Dates in lieu are used where the holiday falls on a Sunday.
+    holidays: [
+      '2026-01-01', // New Year's Day
+      '2026-02-17', '2026-02-18', // Chinese New Year
+      '2026-03-20', // Hari Raya Puasa
+      '2026-04-03', // Good Friday
+      '2026-05-01', // Labour Day
+      '2026-05-27', // Hari Raya Haji
+      '2026-06-01', // Vesak Day (in lieu of Sun 31 May)
+      '2026-08-10', // National Day (in lieu of Sun 9 Aug)
+      '2026-11-09', // Deepavali (in lieu of Sun 8 Nov)
+      '2026-12-25', // Christmas Day
+    ],
+    extra: [],
+  },
+  'CN-2026': {
+    label: 'China (mainland) 2026',
+    holidays: [
+      '2026-01-01', // 元旦
+      '2026-02-16', '2026-02-17', '2026-02-18', '2026-02-19', '2026-02-20',
+      '2026-02-21', '2026-02-22', // 春节
+      '2026-04-04', '2026-04-05', '2026-04-06', // 清明节
+      '2026-05-01', '2026-05-02', '2026-05-03', '2026-05-04', '2026-05-05', // 劳动节
+      '2026-06-19', '2026-06-20', '2026-06-21', // 端午节
+      '2026-09-25', '2026-09-26', '2026-09-27', // 中秋节
+      '2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04',
+      '2026-10-05', '2026-10-06', '2026-10-07', // 国庆节
+    ],
+    // Left empty on purpose: the make-up working weekends are announced annually and I
+    // will not invent them. Add them under "Extra working days" once published.
+    extra: [],
+  },
+};
+
+// Folds a preset into a calendar without losing what's already there.
+function applyNationalCalendar(cal, key) {
+  const preset = NATIONAL_CALENDARS[key];
+  if (!preset) return { holidays: (cal && cal.holidays) || [], extra: (cal && cal.extra) || [], added: 0, addedExtra: 0 };
+  const holidays = new Set((cal && cal.holidays) || []);
+  const extra = new Set((cal && cal.extra) || []);
+  const before = holidays.size, beforeExtra = extra.size;
+  preset.holidays.forEach(d => holidays.add(d));
+  (preset.extra || []).forEach(d => extra.add(d));
+  return {
+    holidays: [...holidays].sort(), extra: [...extra].sort(),
+    added: holidays.size - before, addedExtra: extra.size - beforeExtra,
+  };
+}
+
 // WBS numbers (1, 1.1, 1.2, 2 ...) from the outline levels.
 function wbsCodes(tasks) {
   const counters = [];
@@ -211,6 +274,7 @@ function wbsCodes(tasks) {
 if (typeof module !== 'undefined') {
   module.exports = {
     schedule, parsePred, fmtPred, childrenOf, wbsCodes, makeCal, combineProjects,
+    NATIONAL_CALENDARS, applyNationalCalendar,
     addWorkdays, nextWorkday, prevWorkday, workdaysBetween, isWorkday, parseDate, fmtDate,
   };
 }

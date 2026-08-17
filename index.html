@@ -125,6 +125,9 @@
   .sheet input[type=date], .sheet textarea { width: 100%; padding: 6px 8px; background: var(--bg);
            border: 1px solid var(--line); border-radius: 6px; }
   .sheet textarea { height: 74px; resize: vertical; font: 13px/1.5 ui-monospace, Consolas, monospace; }
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+  .presets button { width: auto; min-height: 32px; padding: 4px 10px; border: 1px solid var(--line);
+                    border-radius: 999px; background: var(--surface); }
   .hint { margin: 6px 2px 0; color: var(--faint); font-size: 12px; }
   .days { display: flex; flex-wrap: wrap; gap: 4px; }
   .days label { display: inline-flex; align-items: center; justify-content: center; margin: 0;
@@ -354,8 +357,15 @@
       <input type="date" id="pstart">
       <label>Working days</label>
       <div class="days" id="wdays"></div>
+      <label>Public holidays</label>
+      <div id="presets" class="presets"></div>
+      <p class="hint" id="presetNote">Adds a country's dates to the list below. Check them against
+        the official notice — lunar and Islamic dates move, and China's make-up weekends are
+        announced yearly.</p>
       <label for="holidays">Holidays / days off</label>
       <textarea id="holidays" onchange="setHolidays(this.value)" placeholder="2026-12-25"></textarea>
+      <label for="extraDays">Extra working days (worked though normally off)</label>
+      <textarea id="extraDays" onchange="setExtra(this.value)" placeholder="2026-02-14"></textarea>
       <p class="hint">One date per line, YYYY-MM-DD. Durations and lag count working days only.</p>
     </div>
   </details>
@@ -535,6 +545,7 @@ function normalize(w) {
     p.calendar = p.calendar || {};
     if (!Array.isArray(p.calendar.workdays)) p.calendar.workdays = [1, 2, 3, 4, 5];
     if (!Array.isArray(p.calendar.holidays)) p.calendar.holidays = [];
+    if (!Array.isArray(p.calendar.extra)) p.calendar.extra = [];      // make-up working days
     p.tasks = p.tasks || [];
     p.tasks.forEach(t => { t.level = Math.max(1, Number(t.level) || 1); delete t.res; });
     p.nextId = p.nextId || Math.max(0, ...p.tasks.map(t => t.id)) + 1;
@@ -615,10 +626,19 @@ function setWorkday(d, on) {
   cal().workdays = [...w].sort();
   render();
 }
-function setHolidays(v) {
+const dateLines = v => v.split(/\s+/).map(s => s.trim()).filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s));
+function setHolidays(v) { snapshot(); cal().holidays = dateLines(v); render(); }
+function setExtra(v) { snapshot(); cal().extra = dateLines(v); render(); }
+
+// One click adds a country's public holidays to this project's calendar.
+function addNational(key) {
   snapshot();
-  cal().holidays = v.split(/\s+/).map(s => s.trim()).filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s));
+  const r = applyNationalCalendar(cal(), key);
+  cal().holidays = r.holidays;
+  cal().extra = r.extra;
   render();
+  banner('warn', 'Added ' + r.added + ' holiday(s) from ' + NATIONAL_CALENDARS[key].label +
+    '. Please check them against the official notice before relying on the dates.');
 }
 
 /* ---- tasks ---- */
@@ -850,6 +870,9 @@ function render() {
     `<label><input type="checkbox" ${cal().workdays.includes(d) ? 'checked' : ''}
       onchange="setWorkday(${d},this.checked)" aria-label="${n} is a working day">${n}</label>`).join('');
   document.getElementById('holidays').value = (cal().holidays || []).join('\n');
+  document.getElementById('extraDays').value = (cal().extra || []).join('\n');
+  document.getElementById('presets').innerHTML = Object.entries(NATIONAL_CALENDARS).map(([k, v]) =>
+    `<button onclick="addNational('${k}')">${esc(v.label)}</button>`).join('');
 
   const hidden = hiddenRows();
   const cell = (i, f, v, cls, ph) => `<td class="${cls || ''}"><input value="${esc(v ?? '')}"
@@ -1128,9 +1151,16 @@ ${(sum ? [] : (t.preds || [])).map(parsePred).filter(Boolean).map(l =>
   const day = k => `        <WeekDay><DayType>${k}</DayType><DayWorking>${wd.has(k - 1) ? 1 : 0}</DayWorking>${wd.has(k - 1) ? `
           <WorkingTimes><WorkingTime><FromTime>08:00:00</FromTime><ToTime>12:00:00</ToTime></WorkingTime><WorkingTime><FromTime>13:00:00</FromTime><ToTime>17:00:00</ToTime></WorkingTime></WorkingTimes>` : ''}
         </WeekDay>`;
-  const off = (cal().holidays || []).map((h, i) => `        <Exception>
+  const extraSet = new Set(cal().extra || []);
+  const off = (cal().holidays || []).filter(h => !extraSet.has(h)).map((h, i) => `        <Exception>
           <TimePeriod><FromDate>${h}T00:00:00</FromDate><ToDate>${h}T23:59:00</ToDate></TimePeriod>
           <Occurrences>1</Occurrences><Name>Day off ${i + 1}</Name><Type>1</Type><DayWorking>0</DayWorking>
+        </Exception>`).join('\n');
+  // Make-up working days go out as working exceptions, so MS Project schedules them too.
+  const on = [...extraSet].map((h, i) => `        <Exception>
+          <TimePeriod><FromDate>${h}T00:00:00</FromDate><ToDate>${h}T23:59:00</ToDate></TimePeriod>
+          <Occurrences>1</Occurrences><Name>Working day ${i + 1}</Name><Type>1</Type><DayWorking>1</DayWorking>
+          <WorkingTimes><WorkingTime><FromTime>08:00:00</FromTime><ToTime>12:00:00</ToTime></WorkingTime><WorkingTime><FromTime>13:00:00</FromTime><ToTime>17:00:00</ToTime></WorkingTime></WorkingTimes>
         </Exception>`).join('\n');
 
   const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -1153,7 +1183,7 @@ ${(sum ? [] : (t.preds || [])).map(parsePred).filter(Boolean).map(l =>
 ${[1, 2, 3, 4, 5, 6, 7].map(day).join('\n')}
       </WeekDays>
       <Exceptions>
-${off}
+${[off, on].filter(Boolean).join('\n')}
       </Exceptions>
     </Calendar>
   </Calendars>
