@@ -102,6 +102,82 @@ t = [{ id: 1, name: 'A', duration: 1, preds: [] }];   // no days ticked falls ba
 schedule(t, '2026-08-15', { workdays: [], holidays: [] });
 assert.equal(fmtDate(t[0].startDate), '2026-08-17');
 
+// --- three-way merge: two people publishing at once keep both sets of edits ---
+{
+  const { mergeWorkspaces } = require('./merge');
+  const base = () => ({
+    nextPid: 3, projects: [{
+      pid: 'p0', name: 'Site', start: '2026-08-17', nextId: 4,
+      tasks: [
+        { id: 1, name: 'Design', duration: 3, level: 1, preds: [], pct: 0 },
+        { id: 2, name: 'Build', duration: 5, level: 1, preds: ['1'], pct: 0 },
+        { id: 3, name: 'Test', duration: 2, level: 1, preds: ['2'], pct: 0 },
+      ],
+    }],
+  });
+  const edit = (ws, id, fn) => { fn(ws.projects[0].tasks.find(t => t.id === id)); return ws; };
+
+  // different tasks -> both edits survive
+  let mine = edit(base(), 1, t => t.pct = 100);
+  let theirs = edit(base(), 3, t => t.duration = 9);
+  let r = mergeWorkspaces(base(), mine, theirs);
+  assert.equal(r.data.projects[0].tasks[0].pct, 100);
+  assert.equal(r.data.projects[0].tasks[2].duration, 9);
+  assert.deepEqual(r.conflicts, []);
+
+  // different fields of the SAME task -> both survive
+  mine = edit(base(), 2, t => t.pct = 50);
+  theirs = edit(base(), 2, t => t.name = 'Build it');
+  r = mergeWorkspaces(base(), mine, theirs);
+  assert.equal(r.data.projects[0].tasks[1].pct, 50);
+  assert.equal(r.data.projects[0].tasks[1].name, 'Build it');
+  assert.deepEqual(r.conflicts, []);
+
+  // same field, different values -> publisher wins and it is reported
+  mine = edit(base(), 2, t => t.duration = 6);
+  theirs = edit(base(), 2, t => t.duration = 8);
+  r = mergeWorkspaces(base(), mine, theirs);
+  assert.equal(r.data.projects[0].tasks[1].duration, 6);
+  assert.equal(r.conflicts.length, 1);
+  assert.match(r.conflicts[0], /Build.*duration/);
+
+  // both add a task -> both are kept, theirs lands after its neighbour
+  mine = base(); mine.projects[0].tasks.push({ id: 4, name: 'Mine', duration: 1, level: 1, preds: [] });
+  theirs = base(); theirs.projects[0].tasks.splice(1, 0, { id: 9, name: 'Theirs', duration: 1, level: 1, preds: [] });
+  r = mergeWorkspaces(base(), mine, theirs);
+  const names = r.data.projects[0].tasks.map(t => t.name);
+  assert.deepEqual(names, ['Design', 'Theirs', 'Build', 'Test', 'Mine']);
+  assert.ok(r.data.projects[0].nextId > 9); // ids never reused after a merge
+
+  // a deletion on either side sticks
+  mine = base(); mine.projects[0].tasks = mine.projects[0].tasks.filter(t => t.id !== 2);
+  theirs = edit(base(), 2, t => t.pct = 10);
+  r = mergeWorkspaces(base(), mine, theirs);
+  assert.deepEqual(r.data.projects[0].tasks.map(t => t.id), [1, 3]);
+  mine = edit(base(), 3, t => t.pct = 20);
+  theirs = base(); theirs.projects[0].tasks = theirs.projects[0].tasks.filter(t => t.id !== 3);
+  assert.deepEqual(mergeWorkspaces(base(), mine, theirs).data.projects[0].tasks.map(t => t.id), [1, 2]);
+
+  // my reorder + their edit: order is mine, their edit still applied
+  mine = base(); mine.projects[0].tasks.reverse();
+  theirs = edit(base(), 1, t => t.name = 'Design v2');
+  r = mergeWorkspaces(base(), mine, theirs);
+  assert.deepEqual(r.data.projects[0].tasks.map(t => t.id), [3, 2, 1]);
+  assert.equal(r.data.projects[0].tasks[2].name, 'Design v2');
+
+  // project-level: their rename + my calendar change, plus a project only they added
+  mine = base(); mine.projects[0].start = '2026-09-01';
+  theirs = base(); theirs.projects[0].name = 'Site v2';
+  theirs.projects.push({ pid: 'pX', name: 'Their project', start: '2026-08-17', nextId: 1, tasks: [] });
+  r = mergeWorkspaces(base(), mine, theirs);
+  assert.equal(r.data.projects[0].start, '2026-09-01');
+  assert.equal(r.data.projects[0].name, 'Site v2');
+  assert.deepEqual(r.data.projects.map(p => p.pid), ['p0', 'pX']);
+
+  // no base (first ever publish) -> mine, untouched
+  assert.deepEqual(mergeWorkspaces(null, base(), base()).data.projects[0].tasks.length, 3);
+}
+
 // --- shared storage API: last-writer-with-stale-rev must be rejected, not silently applied ---
 (async () => {
   const os = require('os'), fs = require('fs'), path = require('path'), cp = require('child_process');
@@ -131,8 +207,38 @@ assert.equal(fmtDate(t[0].startDate), '2026-08-17');
     assert.equal((await call('PUT', { rev: b.body.rev, data: { x: 1 } })).code, 400); // no projects array
     assert.equal(JSON.parse(fs.readFileSync(data, 'utf8')).data.projects[0].name, 'P2'); // survives restart
 
-    // Two people publish drafts built from the same revision at the same moment:
-    // exactly one may win, and the stored plan must be that winner's.
+    // End to end: Alice and Bob both draft from the same published plan and publish at
+    // the same moment, each having edited a different task. Both edits must survive.
+    {
+      const plan = tasks => ({ projects: [{ pid: 'p0', name: 'Site', start: '2026-08-17', nextId: 4, tasks }], nextPid: 2 });
+      const start = [
+        { id: 1, name: 'Design', duration: 3, level: 1, preds: [], pct: 0 },
+        { id: 2, name: 'Build', duration: 5, level: 1, preds: ['1'], pct: 0 },
+        { id: 3, name: 'Test', duration: 2, level: 1, preds: ['2'], pct: 0 },
+      ];
+      await call('PUT', { rev: (await call('GET')).body.rev, data: plan(start) });
+      const base = (await call('GET')).body;
+
+      const aliceTasks = JSON.parse(JSON.stringify(start)); aliceTasks[0].pct = 100;
+      const bobTasks = JSON.parse(JSON.stringify(start)); bobTasks[2].duration = 9;
+      bobTasks.push({ id: 4, name: 'Launch', duration: 0, level: 1, preds: ['3'], pct: 0 });
+
+      const [a, bres] = await Promise.all([
+        call('PUT', { rev: base.rev, data: plan(aliceTasks), base: base.data }),
+        call('PUT', { rev: base.rev, data: plan(bobTasks), base: base.data }),
+      ]);
+      assert.equal(a.code, 200); assert.equal(bres.code, 200); // nobody is turned away now
+      const merged = (await call('GET')).body.data.projects[0].tasks;
+      assert.equal(merged.find(t => t.id === 1).pct, 100, "Alice's edit survived");
+      assert.equal(merged.find(t => t.id === 3).duration, 9, "Bob's edit survived");
+      assert.ok(merged.find(t => t.id === 4), "Bob's new task survived");
+      const second = [a, bres].find(r => r.body.merged);
+      assert.ok(second && Array.isArray(second.body.conflicts), 'the later publish reports what it merged');
+      assert.deepEqual(second.body.conflicts, [], 'edits to different tasks are not conflicts');
+    }
+
+    // Without a base (an old client), the server must still refuse a stale write rather
+    // than overwrite: exactly one of a simultaneous pair may win.
     for (let round = 0; round < 20; round++) {
       const rev = (await call('GET')).body.rev;
       const names = ['Alice' + round, 'Bob' + round, 'Carol' + round];

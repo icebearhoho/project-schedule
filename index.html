@@ -490,8 +490,9 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 // Dates are missing whenever scheduling failed (the red banner says why), so never assume one.
 const fd = d => d instanceof Date ? fmtDate(d) : '';
 
+const newPid = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const blank = name => ({
-  name: name || 'New Project', start: fmtDate(new Date()),
+  pid: newPid(), name: name || 'New Project', start: fmtDate(new Date()),
   calendar: { workdays: [1, 2, 3, 4, 5], holidays: [] },
   tasks: [{ id: 1, name: 'Task 1', duration: 5, level: 1, preds: [], pct: 0 }],
   nextId: 2,
@@ -513,7 +514,10 @@ addEventListener('keydown', e => {
 
 // Fills in anything an older saved file predates, so old plans keep opening.
 function normalize(w) {
-  w.projects.forEach(p => {
+  w.projects.forEach((p, i) => {
+    // Stable id per project, so a merge pairs projects by identity rather than position.
+    // Older files get index-derived ids, which any client derives identically.
+    if (!p.pid) p.pid = 'p' + i;
     (p.tasks || []).forEach(t => { delete t.startDate; delete t.endExclusive; delete t.finishDate; }); // stale strings from older saves
     p.calendar = p.calendar || {};
     if (!Array.isArray(p.calendar.workdays)) p.calendar.workdays = [1, 2, 3, 4, 5];
@@ -702,7 +706,7 @@ function paint() {
   pub.hidden = document.getElementById('discard').hidden = !shared;
   pub.disabled = !dirty || publishing;
   pub.classList.toggle('pending', dirty && !publishing);
-  document.getElementById('pubText').textContent = serverAhead ? 'Publish (overwrites theirs)' : 'Publish changes';
+  document.getElementById('pubText').textContent = serverAhead ? 'Publish (merges with theirs)' : 'Publish changes';
   document.getElementById('undoBtn').disabled = !undoStack.length;
 }
 
@@ -745,17 +749,27 @@ async function publish() {
   if (!shared || publishing || !dirty) return;
   publishing = true; status('publishing…');
   try {
-    const r = await api('PUT', { rev, data: strip(ws) });
+    // `base` is the published version this draft was built on. With it the server can
+    // combine our edits with anyone else's instead of one of us losing theirs.
+    const r = await api('PUT', { rev, data: strip(ws), base: baseline ? JSON.parse(baseline) : null });
     if (r.code === 200) {
-      rev = r.body.rev; dirty = false; serverAhead = false;
-      baseline = JSON.stringify(strip(ws));
+      rev = r.body.rev; serverAhead = false;
       localStorage.removeItem('dirty');
-      status('published ' + new Date().toLocaleTimeString());
+      if (r.body.merged) {
+        adopt(r.body.data); // the stored plan now holds both sides; show what was really saved
+        const n = (r.body.conflicts || []).length;
+        status('published and merged with a teammate' +
+          (n ? ' — ' + n + ' field' + (n > 1 ? 's' : '') + ' kept yours: ' + r.body.conflicts.join(', ') : ''), !!n);
+      } else {
+        dirty = false;
+        baseline = JSON.stringify(strip(ws));
+        status('published ' + new Date().toLocaleTimeString());
+      }
     } else if (r.code === 409) {
       // Someone published while you were drafting. Your draft stays on screen; taking their
       // rev means a second, deliberate Publish click is what overwrites them.
       rev = r.body.rev; serverAhead = true;
-      status('a teammate published first — Publish again to overwrite, or Discard draft', true);
+      status('a teammate published first — press Publish again to combine both sets of changes', true);
     } else status('publish failed: ' + (r.body.error || r.code), true);
   } catch (e) { status('offline — draft kept in this browser', true); }
   publishing = false; paint();
@@ -776,7 +790,7 @@ async function poll() {
   try {
     const r = await api('GET');
     if (r.code !== 200 || r.body.rev === rev || !r.body.data) return;
-    if (dirty) { serverAhead = true; status('a teammate published a newer version — your draft is untouched', true); }
+    if (dirty) { serverAhead = true; status('a teammate published — Publish will merge your draft with theirs'); }
     else { rev = r.body.rev; adopt(r.body.data); status('updated by a teammate'); }
   } catch (e) { /* offline; poll again later */ }
 }

@@ -2,6 +2,7 @@
 // Same contract as serve.js: GET returns { rev, data }, PUT { rev, data } saves and
 // answers 409 with the current copy if someone published first.
 const { load, save } = require('../storage');
+const { mergeWorkspaces } = require('../merge');
 
 let cache = null; // warm instances reuse this so 3s polling doesn't hammer the GitHub API
 const TTL = 4000;
@@ -36,14 +37,17 @@ module.exports = async (req, res) => {
     if (!b || typeof b.data !== 'object' || !b.data || !Array.isArray(b.data.projects)) return send(res, 400, { error: 'no projects' });
 
     const cur = await load(); // writes always read fresh, never from cache
+    let data = b.data, conflicts = null;
     if (cur.rev !== 0 && b.rev !== cur.rev) {
-      cache = { at: Date.now(), state: cur };
-      return send(res, 409, publicPart(cur));
+      // Someone published while this client was drafting: combine both sets of edits.
+      if (!b.base) { cache = { at: Date.now(), state: cur }; return send(res, 409, publicPart(cur)); }
+      const m = mergeWorkspaces(b.base, b.data, cur.data);
+      data = m.data; conflicts = m.conflicts;
     }
-    const next = { rev: cur.rev + 1, data: b.data, at: new Date().toISOString() };
+    const next = { rev: cur.rev + 1, data, at: new Date().toISOString() };
     const sha = await save(next, cur.sha);
     cache = { at: Date.now(), state: { ...next, sha } };
-    return send(res, 200, { rev: next.rev });
+    return send(res, 200, conflicts ? { rev: next.rev, data: next.data, merged: true, conflicts } : { rev: next.rev });
   } catch (e) {
     cache = null;
     if (e.conflict) { // lost a race between the read and the write

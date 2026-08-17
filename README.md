@@ -10,7 +10,8 @@ to MS Project XML, Excel, PDF and CSV. No build step, no npm install. Node 18+ o
 | `storage.js` | where the shared plan lives: local file, or a GitHub repo |
 | `serve.js` | static files + API, for running as a normal server |
 | `api/data.js` | the same API as a serverless function (Vercel) |
-| `test.js` | `node test.js` — scheduler, storage and API checks |
+| `merge.js` | combines two people’s edits when they publish at once |
+| `test.js` | `node test.js` — scheduler, merge, storage and API checks |
 
 ## Run
 
@@ -41,22 +42,22 @@ watching each keystroke — and without hammering the server.
 
 Drafts never collide: they live in each person's browser and touch nothing shared.
 
-At publish time the server accepts exactly one of them. Every publish carries the
-revision it was based on; if that isn't the current revision the server answers 409 and
-returns the newer plan instead of overwriting it. Publishes are also serialized, so two
-that arrive in the same millisecond cannot both pass the check.
+Publishes are **merged, not overwritten**. Each publish carries the version it was built
+on, so the server can tell your changes apart from anyone else's and combine them:
 
-The one who loses the race is not blocked and loses nothing:
+- edits to **different tasks** both survive
+- edits to **different fields of the same task** both survive (your % and their rename)
+- a task **either of you added** is kept, landing next to the row it followed
+- a task **either of you deleted** stays deleted
+- your **row order** wins, and their edits still apply to the rows you moved
 
-- their draft stays exactly as it was on screen,
-- the pill explains a teammate published first,
-- the button becomes **Publish (overwrites theirs)** — a second, deliberate click
-  replaces the teammate's version, or **Discard draft** takes the teammate's version.
+Only when you both change the *same field of the same task* to different values is there
+a real conflict. The one publishing keeps their value, and the toolbar names exactly what
+was kept, e.g. `1 field kept yours: "Site" task 2 "Build": duration`. Nothing is lost
+silently — the other person's version is still in the plan's history on the `plan-data`
+branch.
 
-What this does *not* do is merge. The plan is saved as one document, so a publish
-replaces the whole thing rather than combining two people's edits row by row. For a
-small team taking turns that's fine; if two people routinely edit different phases at
-the same minute, they will keep meeting this prompt.
+Publishes are also serialized, so two arriving in the same millisecond cannot interleave.
 
 Teammates on the same office network can use `http://<your-ip>:5173` while it runs.
 

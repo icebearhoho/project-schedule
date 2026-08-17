@@ -9,6 +9,7 @@
 //   DATA_FILE / GITHUB_* see storage.js
 const http = require('http'), fs = require('fs'), path = require('path');
 const storage = require('./storage');
+const { mergeWorkspaces } = require('./merge');
 
 const PORT = process.env.PORT || 5173;
 const TOKEN = process.env.PLANNER_TOKEN || '';
@@ -39,10 +40,16 @@ const server = http.createServer(async (req, res) => {
     let b; try { b = JSON.parse(await readBody(req)); } catch (e) { return json(res, 400, { error: 'bad json' }); }
     if (!b || typeof b.data !== 'object' || !b.data || !Array.isArray(b.data.projects)) return json(res, 400, { error: 'no projects' });
     return exclusive(async () => {
-      // Stale write: someone else saved since this client loaded. Hand back the current copy.
-      if (state.rev !== 0 && b.rev !== state.rev) return json(res, 409, publicPart(state));
+      let data = b.data, conflicts = null;
+      if (state.rev !== 0 && b.rev !== state.rev) {
+        // Someone published while this client was drafting. Combine the two instead of
+        // making one of them lose, as long as we know what they started from.
+        if (!b.base) return json(res, 409, publicPart(state));
+        const m = mergeWorkspaces(b.base, b.data, state.data);
+        data = m.data; conflicts = m.conflicts;
+      }
 
-      const next = { rev: state.rev + 1, data: b.data, at: new Date().toISOString() };
+      const next = { rev: state.rev + 1, data, at: new Date().toISOString() };
       try {
         next.sha = await storage.save(next, state.sha);
       } catch (e) {
@@ -50,7 +57,8 @@ const server = http.createServer(async (req, res) => {
         return json(res, 503, { error: String(e.message || e) }); // never report a save that didn't happen
       }
       state = next;
-      return json(res, 200, { rev: state.rev });
+      // After a merge the client's copy is out of date, so hand back what was actually stored.
+      return json(res, 200, conflicts ? { rev: state.rev, data: state.data, merged: true, conflicts } : { rev: state.rev });
     });
   }
 
