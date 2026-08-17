@@ -10,6 +10,8 @@
 // Tasks and projects are matched by stable id, never by position, so reordering on one
 // side doesn't scramble the other's edits.
 
+const { parsePred } = require('./schedule');
+
 const same = (a, b) => JSON.stringify(a === undefined ? null : a) === JSON.stringify(b === undefined ? null : b);
 
 // Legacy workspaces have no project ids. Index-derived ids are deterministic, so two
@@ -36,12 +38,24 @@ function mergeFields(base, mine, theirs, skip, conflicts, where) {
 }
 
 function mergeTasks(base, mine, theirs, conflicts, where) {
-  const b = byId(base, 'id'), t = byId(theirs, 'id');
+  const b = byId(base, 'id'), t = byId(theirs, 'id'), m = byId(mine, 'id');
   const mineIds = new Set((mine || []).map(x => x.id));
-  const deleted = new Set([
-    ...(base || []).filter(x => !mineIds.has(x.id)).map(x => x.id),          // I deleted it
-    ...(base || []).filter(x => !t.has(x.id)).map(x => x.id),                // they deleted it
-  ]);
+  const deleted = new Set();
+  for (const was of base || []) {
+    const label = where + ' task ' + was.id + ' "' + (was.name || '') + '":';
+    const iHaveIt = m.has(was.id), theyHaveIt = t.has(was.id);
+    if (iHaveIt && theyHaveIt) continue;
+    if (!iHaveIt && !theyHaveIt) { deleted.add(was.id); continue; }          // both deleted it
+    if (!theyHaveIt) {
+      // They deleted a task I still have. Dropping it would throw away my edits without
+      // a word, so an edited task survives the delete and the clash is reported.
+      if (same(m.get(was.id), was)) deleted.add(was.id);
+      else conflicts.push(label + ' deleted by a teammate, your edits kept it');
+    } else {
+      deleted.add(was.id);                                                   // I deleted it
+      if (!same(t.get(was.id), was)) conflicts.push(label + " you deleted it, a teammate's edits went with it");
+    }
+  }
 
   // Start from my order — the publisher's view of the plan is the one on their screen.
   const out = [];
@@ -101,10 +115,22 @@ function mergeWorkspaces(baseRaw, mineRaw, theirsRaw) {
   const conflicts = [];
   const projects = mergeProjects(base.projects, mine.projects, theirs.projects, conflicts);
   const nextPid = Math.max(Number(mine.nextPid) || 1, Number(theirs.nextPid) || 1);
-  // Ids must never be reused after a merge, or two tasks could collide later.
   projects.forEach(p => {
+    // Ids must never be reused after a merge, or two tasks could collide later.
     const maxId = Math.max(0, ...(p.tasks || []).map(x => Number(x.id) || 0));
     p.nextId = Math.max(Number(p.nextId) || 1, maxId + 1);
+    // A link whose target one side deleted would leave the plan unschedulable for
+    // everyone, so it is dropped here and named rather than left to break the app.
+    const alive = new Set((p.tasks || []).map(x => x.id));
+    (p.tasks || []).forEach(task => {
+      const links = task.preds || [];
+      const kept = links.filter(l => alive.has((parsePred(l) || {}).id));
+      if (kept.length !== links.length) {
+        task.preds = kept;
+        conflicts.push('"' + (p.name || 'project') + '" task ' + task.id + ' "' + (task.name || '') +
+          '": link to a deleted task removed');
+      }
+    });
   });
   return { data: { ...mine, projects, nextPid }, conflicts };
 }

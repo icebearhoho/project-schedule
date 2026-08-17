@@ -59,6 +59,25 @@ branch.
 
 Publishes are also serialized, so two arriving in the same millisecond cannot interleave.
 
+**Long drafts.** None of this depends on publishing quickly. A draft left open for hours
+still merges against whatever the plan has become in the meantime, however many times
+other people published. While you draft, the toolbar tells you a teammate has published;
+your draft is never touched until you press the button.
+
+Two cases are worth knowing about, because a merge is textual and cannot read intent:
+
+- **They deleted a task you had been editing.** Your edits win — the task stays, and the
+  toolbar names it. Losing an afternoon's work to someone else's delete would be the
+  worse outcome, and a task that shouldn't be there is easy to delete again.
+- **A link pointed at a task that got deleted.** The link is removed and named, so the
+  plan still schedules. Without that, one person's delete would leave everyone staring
+  at "unknown predecessor" until someone fixed it by hand.
+
+What a merge cannot do is judge meaning: if you shortened a task because a teammate's
+phase moved, and they then moved it back, both edits are kept and the result may be a
+plan neither of you intended. The safeguard is the message naming what was combined —
+read it, and glance at the affected rows.
+
 Teammates on the same office network can use `http://<your-ip>:5173` while it runs.
 
 ## Outline (WBS)

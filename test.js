@@ -154,7 +154,7 @@ assert.equal(fmtDate(t[0].startDate), '2026-08-17');
   theirs = edit(base(), 2, t => t.pct = 10);
   r = mergeWorkspaces(base(), mine, theirs);
   assert.deepEqual(r.data.projects[0].tasks.map(t => t.id), [1, 3]);
-  mine = edit(base(), 3, t => t.pct = 20);
+  mine = base(); // I left it alone, so their delete stands
   theirs = base(); theirs.projects[0].tasks = theirs.projects[0].tasks.filter(t => t.id !== 3);
   assert.deepEqual(mergeWorkspaces(base(), mine, theirs).data.projects[0].tasks.map(t => t.id), [1, 2]);
 
@@ -173,6 +173,34 @@ assert.equal(fmtDate(t[0].startDate), '2026-08-17');
   assert.equal(r.data.projects[0].start, '2026-09-01');
   assert.equal(r.data.projects[0].name, 'Site v2');
   assert.deepEqual(r.data.projects.map(p => p.pid), ['p0', 'pX']);
+
+  // a long draft: they deleted a task the publisher spent the morning editing.
+  // The edits win over the delete, and the clash is named rather than swallowed.
+  mine = edit(base(), 2, t => { t.pct = 80; t.name = 'Build (revised)'; });
+  theirs = base(); theirs.projects[0].tasks = theirs.projects[0].tasks.filter(t => t.id !== 2);
+  r = mergeWorkspaces(base(), mine, theirs);
+  assert.ok(r.data.projects[0].tasks.find(t => t.id === 2), 'edited task survives the delete');
+  assert.equal(r.data.projects[0].tasks.find(t => t.id === 2).pct, 80);
+  assert.match(r.conflicts.join(' '), /deleted by a teammate, your edits kept it/);
+
+  // the mirror image: I deleted a task they had edited — reported too
+  mine = base(); mine.projects[0].tasks = mine.projects[0].tasks.filter(t => t.id !== 2);
+  theirs = edit(base(), 2, t => t.pct = 40);
+  r = mergeWorkspaces(base(), mine, theirs);
+  assert.equal(r.data.projects[0].tasks.find(t => t.id === 2), undefined);
+  assert.match(r.conflicts.join(' '), /you deleted it, a teammate's edits went with it/);
+
+  // an untouched task they deleted just goes, quietly, and links to it are cleaned up
+  // so the plan still schedules instead of erroring for everyone
+  mine = base(); mine.projects[0].tasks.push({ id: 9, name: 'Handover', duration: 1, level: 1, preds: ['2'], pct: 0 });
+  theirs = base(); theirs.projects[0].tasks = theirs.projects[0].tasks.filter(t => t.id !== 2);
+  r = mergeWorkspaces(base(), mine, theirs);
+  assert.equal(r.data.projects[0].tasks.find(t => t.id === 2), undefined);
+  assert.deepEqual(r.data.projects[0].tasks.find(t => t.id === 9).preds, []);
+  assert.deepEqual(r.data.projects[0].tasks.find(t => t.id === 3).preds, []);
+  assert.equal(r.conflicts.filter(c => /link to a deleted task removed/.test(c)).length, 2);
+  // and the merged plan actually schedules — no dangling reference left behind
+  assert.doesNotThrow(() => schedule(r.data.projects[0].tasks, '2026-08-17'));
 
   // no base (first ever publish) -> mine, untouched
   assert.deepEqual(mergeWorkspaces(null, base(), base()).data.projects[0].tasks.length, 3);
