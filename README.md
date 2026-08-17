@@ -104,6 +104,33 @@ Exports always cover the project you're looking at. **File > Save project** save
 current one; **File > Open project** adds a saved project (or a whole workspace) — which
 is how you reuse one as a template.
 
+## Combining projects into one
+
+**File > Combine into this project** folds another project in as a single phase: its
+tasks become subtasks of a summary row named after it. Use it when someone planned their
+part separately, or to drop in a saved standard phase as a template.
+
+What it takes care of:
+
+- **Task ids are renumbered** so they cannot clash with the ones already here, and the
+  links inside the imported project are rewritten to the new ids, keeping their type and
+  lag (`2SS+2` still means the same pair afterwards).
+- **Outline shape is preserved** — everything moves down one level, so an imported phase
+  with its own subtasks keeps its structure. WBS renumbers automatically.
+- **Its colour comes with it**: the new phase takes the imported project's colour, so
+  its tasks stay visually grouped.
+- **Dates don't slide.** If the imported project started later than this one, its opening
+  tasks are pinned to that date rather than quietly moving earlier. Clear the Start cell
+  to release them.
+- Anything worth knowing — a different working calendar, a link pointing at a task that
+  didn't come along — is reported in the yellow bar rather than applied silently.
+
+The original project stays in the list; delete it once you're happy with the master plan.
+
+**This is what makes cross-phase dependencies possible.** Predecessors resolve inside one
+project, so `Services` can only wait for `Frame` once both live in the same plan. Combine
+first, then link across the phases.
+
 ## Working calendar
 
 **Schedule** in the toolbar opens a panel per project: tick which weekdays are working days

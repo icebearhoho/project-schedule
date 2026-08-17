@@ -143,6 +143,60 @@ function schedule(tasks, projectStart, calRaw) {
   return warnings;
 }
 
+// Folds `source` into `target` as one phase: the source's tasks become subtasks of a
+// summary row named after it. Task ids are renumbered so they can't collide with the
+// target's, and the links between them are rewritten to the new ids. Returns the new
+// target project plus notes about anything the caller should tell the user.
+function combineProjects(target, source) {
+  const notes = [];
+  const targetTasks = target.tasks || [], srcTasks = source.tasks || [];
+  let nextId = Math.max(Number(target.nextId) || 1, ...targetTasks.map(t => (Number(t.id) || 0) + 1), 1);
+
+  const phase = {
+    id: nextId++, name: source.name || 'Imported', duration: 1, level: 1, preds: [], pct: 0,
+    ...(source.color ? { color: source.color } : {}),
+  };
+
+  const idMap = new Map();
+  const moved = srcTasks.map(t => {
+    const id = nextId++;
+    idMap.set(t.id, id);
+    return { ...t, id, level: Math.max(1, Number(t.level) || 1) + 1 };
+  });
+
+  moved.forEach(t => {
+    t.preds = (t.preds || []).map(p => {
+      const link = parsePred(p);
+      if (!link) return null;
+      if (!idMap.has(link.id)) { // pointed at something that isn't coming along
+        notes.push('"' + t.name + '" lost a link to task ' + link.id + ', which is not in ' + (source.name || 'that project') + '.');
+        return null;
+      }
+      return fmtPred({ ...link, id: idMap.get(link.id) });
+    }).filter(Boolean);
+  });
+
+  // A project that starts later than its new home would silently slide earlier, so the
+  // tasks that decided its start date keep it as a "no earlier than" constraint.
+  if (source.start && target.start && parseDate(source.start) > parseDate(target.start)) {
+    let pinned = 0;
+    const kids = childrenOf(moved); // summary dates come from their children, so pinning them means nothing
+    moved.forEach((t, i) => {
+      if (!t.start && !(t.preds || []).length && !kids[i].length) { t.start = source.start; pinned++; }
+    });
+    if (pinned) notes.push((source.name || 'That project') + ' started later than this one, so its opening ' +
+      pinned + ' task(s) are pinned to ' + source.start + '. Clear the Start cell to let them run earlier.');
+  }
+  if (JSON.stringify(source.calendar || {}) !== JSON.stringify(target.calendar || {})) {
+    notes.push('Working calendars differ — the combined plan uses this project\'s calendar, so imported dates may shift.');
+  }
+
+  return {
+    project: { ...target, tasks: [...targetTasks, phase, ...moved], nextId },
+    notes,
+  };
+}
+
 // WBS numbers (1, 1.1, 1.2, 2 ...) from the outline levels.
 function wbsCodes(tasks) {
   const counters = [];
@@ -156,7 +210,7 @@ function wbsCodes(tasks) {
 
 if (typeof module !== 'undefined') {
   module.exports = {
-    schedule, parsePred, fmtPred, childrenOf, wbsCodes, makeCal,
+    schedule, parsePred, fmtPred, childrenOf, wbsCodes, makeCal, combineProjects,
     addWorkdays, nextWorkday, prevWorkday, workdaysBetween, isWorkday, parseDate, fmtDate,
   };
 }

@@ -374,6 +374,10 @@
     <div class="sheet">
       <button onclick="pick(this, save)">Save project (.json)</button>
       <button onclick="pick(this, () => document.getElementById('file').click())">Open project (.json)</button>
+      <label>Combine into this project</label>
+      <div id="combineList"></div>
+      <p class="hint">Adds another project's tasks here as one phase, so you can link across
+        phases. The original stays in the list.</p>
     </div>
   </details>
   <input type="file" id="file" accept=".json" hidden onchange="open_(this)">
@@ -573,6 +577,19 @@ function newProject() {
   ws.projects.push(blank('Project ' + (ws.nextPid++)));
   cur = ws.projects.length - 1; sel = 0; render();
 }
+// Fold another project in as a phase of this one. Everything then lives in a single
+// plan, which is what makes cross-phase links possible.
+function combineFrom(pid) {
+  const source = ws.projects.find(p => p.pid === pid);
+  if (!source || source === proj()) return;
+  snapshot();
+  const { project, notes } = combineProjects(proj(), source);
+  ws.projects[cur] = project;
+  sel = proj().tasks.length - (source.tasks || []).length - 1; // land on the new phase row
+  render();
+  banner('warn', ['Combined "' + source.name + '" into this project.', ...notes].join(' '));
+}
+
 function delProject() {
   if (ws.projects.length < 2) return alert('Keep at least one project.');
   if (!confirm('Delete project "' + proj().name + '"?')) return;
@@ -863,6 +880,12 @@ function render() {
     `<button style="background:${hex}" aria-pressed="${current === k}" title="${k}"
        aria-label="${k}" onclick="${fn}('${k}')"></button>`).join('') +
     (withClear ? `<button class="clear" onclick="setRowColor('')" title="Follow the phase or project colour">Inherit</button>` : '');
+  const others = ws.projects.filter(x => x !== p);
+  document.getElementById('combineList').innerHTML = others.length
+    ? others.map(x => `<button onclick="pick(this, () => combineFrom('${x.pid}'))">
+        ${esc(x.name)} <span class="hint" style="margin:0">${(x.tasks || []).length} tasks</span></button>`).join('')
+    : `<p class="hint">Nothing to combine — this is your only project.</p>`;
+
   const selTask = p.tasks[sel];
   document.getElementById('rowColourLabel').textContent =
     selTask ? (kids[sel]?.length ? 'Phase: ' : 'Task: ') + selTask.name : 'No row selected';

@@ -102,6 +102,69 @@ t = [{ id: 1, name: 'A', duration: 1, preds: [] }];   // no days ticked falls ba
 schedule(t, '2026-08-15', { workdays: [], holidays: [] });
 assert.equal(fmtDate(t[0].startDate), '2026-08-17');
 
+// --- combining a per-person project into a master plan ---
+{
+  const { combineProjects } = require('./schedule');
+  const master = {
+    pid: 'p0', name: 'Programme', start: '2026-08-17', nextId: 3,
+    calendar: { workdays: [1, 2, 3, 4, 5], holidays: [] },
+    tasks: [
+      { id: 1, name: 'Kickoff', duration: 0, level: 1, preds: [], pct: 0 },
+      { id: 2, name: 'Mobilise', duration: 2, level: 1, preds: ['1'], pct: 0 },
+    ],
+  };
+  const theirs = {
+    pid: 'p1', name: 'Build phase', start: '2026-08-17', nextId: 4, color: 'teal',
+    calendar: { workdays: [1, 2, 3, 4, 5], holidays: [] },
+    tasks: [ // ids deliberately clash with the master's
+      { id: 1, name: 'Structure', duration: 0, level: 1, preds: [], pct: 0 },
+      { id: 2, name: 'Foundations', duration: 4, level: 2, preds: [], pct: 50 },
+      { id: 3, name: 'Frame', duration: 6, level: 2, preds: ['2SS+2'], pct: 0 },
+      { id: 4, name: 'Fit out', duration: 3, level: 1, preds: ['1'], pct: 0 },
+    ],
+  };
+  const { project, notes } = combineProjects(master, theirs);
+  const byName = n => project.tasks.find(t => t.name === n);
+
+  assert.deepEqual(project.tasks.map(t => t.name),
+    ['Kickoff', 'Mobilise', 'Build phase', 'Structure', 'Foundations', 'Frame', 'Fit out']);
+  assert.equal(new Set(project.tasks.map(t => t.id)).size, 7, 'every id is unique after combining');
+  assert.equal(byName('Build phase').level, 1);
+  assert.equal(byName('Structure').level, 2, 'imported top level sits under the phase');
+  assert.equal(byName('Foundations').level, 3, 'deeper levels keep their shape');
+  // links follow the renumbering, and keep their type and lag
+  assert.deepEqual(byName('Frame').preds, [byName('Foundations').id + 'SS+2']);
+  assert.deepEqual(byName('Fit out').preds, [String(byName('Structure').id)]);
+  assert.deepEqual(byName('Mobilise').preds, ['1'], 'the master plan is untouched');
+  assert.equal(byName('Build phase').color, 'teal', 'the phase keeps the imported colour');
+  assert.ok(project.nextId > Math.max(...project.tasks.map(t => t.id)));
+  assert.deepEqual(notes, []);
+  // and the combined plan schedules, with the phase rolling up its subtasks
+  const warns = schedule(project.tasks, project.start, project.calendar);
+  assert.deepEqual(warns, []);
+  assert.equal(fmtDate(byName('Build phase').startDate), fmtDate(byName('Foundations').startDate));
+
+  // a project that starts later keeps its start instead of sliding earlier
+  const later = { ...theirs, start: '2026-09-14', tasks: JSON.parse(JSON.stringify(theirs.tasks)) };
+  const r2 = combineProjects(master, later);
+  assert.equal(r2.project.tasks.find(t => t.name === 'Foundations').start, '2026-09-14');
+  assert.equal(r2.project.tasks.find(t => t.name === 'Structure').start, undefined, 'summaries are not pinned');
+  assert.match(r2.notes.join(' '), /pinned to 2026-09-14/);
+  // the pinned import really does hold its own dates in the master plan
+  schedule(r2.project.tasks, r2.project.start, r2.project.calendar);
+  assert.equal(fmtDate(r2.project.tasks.find(t => t.name === 'Foundations').startDate), '2026-09-14');
+
+  // a different calendar is flagged rather than silently applied
+  const other = { ...theirs, calendar: { workdays: [1, 2, 3, 4, 5, 6], holidays: [] } };
+  assert.match(combineProjects(master, other).notes.join(' '), /calendars differ/i);
+
+  // a link pointing outside the imported project is dropped and named
+  const dangling = { ...theirs, tasks: [{ id: 1, name: 'Orphan', duration: 1, level: 1, preds: ['99'], pct: 0 }] };
+  const r3 = combineProjects(master, dangling);
+  assert.deepEqual(r3.project.tasks.find(t => t.name === 'Orphan').preds, []);
+  assert.match(r3.notes.join(' '), /lost a link to task 99/);
+}
+
 // --- three-way merge: two people publishing at once keep both sets of edits ---
 {
   const { mergeWorkspaces } = require('./merge');
