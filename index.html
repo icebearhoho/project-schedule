@@ -128,6 +128,8 @@
   .presets { display: flex; flex-wrap: wrap; gap: 6px; }
   .presets button { width: auto; min-height: 32px; padding: 4px 10px; border: 1px solid var(--line);
                     border-radius: 999px; background: var(--surface); }
+  /* a year whose official notice isn't published yet */
+  .presets button.unconfirmed { border-style: dashed; border-color: var(--warn); color: var(--warn); }
   .hint { margin: 6px 2px 0; color: var(--faint); font-size: 12px; }
   .days { display: flex; flex-wrap: wrap; gap: 4px; }
   .days label { display: inline-flex; align-items: center; justify-content: center; margin: 0;
@@ -359,9 +361,9 @@
       <div class="days" id="wdays"></div>
       <label>Public holidays</label>
       <div id="presets" class="presets"></div>
-      <p class="hint" id="presetNote">Adds a country's dates to the list below. Check them against
-        the official notice — lunar and Islamic dates move, and China's make-up weekends are
-        announced yearly.</p>
+      <p class="hint" id="presetNote">Adds a country's dates to the list below. A dashed button
+        marked * is a year whose official notice isn't published yet — those dates are estimates.
+        Always check before committing to a plan; China's make-up weekends are announced yearly.</p>
       <label for="holidays">Holidays / days off</label>
       <textarea id="holidays" onchange="setHolidays(this.value)" placeholder="2026-12-25"></textarea>
       <label for="extraDays">Extra working days (worked though normally off)</label>
@@ -637,8 +639,9 @@ function addNational(key) {
   cal().holidays = r.holidays;
   cal().extra = r.extra;
   render();
-  banner('warn', 'Added ' + r.added + ' holiday(s) from ' + NATIONAL_CALENDARS[key].label +
-    '. Please check them against the official notice before relying on the dates.');
+  const preset = NATIONAL_CALENDARS[key];
+  banner('warn', 'Added ' + r.added + ' holiday(s) from ' + preset.label + '. ' +
+    (preset.provisional || 'Please check them against the official notice before relying on the dates.'));
 }
 
 /* ---- tasks ---- */
@@ -872,7 +875,8 @@ function render() {
   document.getElementById('holidays').value = (cal().holidays || []).join('\n');
   document.getElementById('extraDays').value = (cal().extra || []).join('\n');
   document.getElementById('presets').innerHTML = Object.entries(NATIONAL_CALENDARS).map(([k, v]) =>
-    `<button onclick="addNational('${k}')">${esc(v.label)}</button>`).join('');
+    `<button onclick="addNational('${k}')" class="${v.provisional ? 'unconfirmed' : ''}"
+       title="${v.provisional ? esc(v.provisional) : 'Published dates'}">${esc(v.label)}${v.provisional ? ' *' : ''}</button>`).join('');
 
   const hidden = hiddenRows();
   const cell = (i, f, v, cls, ph) => `<td class="${cls || ''}"><input value="${esc(v ?? '')}"

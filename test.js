@@ -123,6 +123,28 @@ assert.equal(fmtDate(t[0].startDate), '2026-08-15', 'an extra working day outran
   // stacking two countries keeps both sets
   const both = applyNationalCalendar({ ...cal, holidays: sg.holidays }, 'CN-2026');
   assert.ok(both.holidays.includes('2026-10-01') && both.holidays.includes('2026-04-03'));
+  // both countries, both years, and no "mainland" wording
+  assert.deepEqual(Object.keys(NATIONAL_CALENDARS).sort(), ['CN-2026', 'CN-2027', 'SG-2026', 'SG-2027']);
+  assert.equal(NATIONAL_CALENDARS['CN-2026'].label, 'China 2026');
+  assert.ok(!Object.values(NATIONAL_CALENDARS).some(p => /mainland/i.test(p.label)));
+  // a year whose official notice isn't out must say so, and 2026 must not claim to be provisional
+  assert.ok(NATIONAL_CALENDARS['SG-2027'].provisional && NATIONAL_CALENDARS['CN-2027'].provisional);
+  assert.ok(!NATIONAL_CALENDARS['SG-2026'].provisional && !NATIONAL_CALENDARS['CN-2026'].provisional);
+  // known-good anchors: Good Friday 2027 (Easter 28 Mar), fixed dates, National Day
+  assert.ok(NATIONAL_CALENDARS['SG-2027'].holidays.includes('2027-03-26'));
+  assert.ok(NATIONAL_CALENDARS['SG-2027'].holidays.includes('2027-08-09'));
+  assert.ok(NATIONAL_CALENDARS['CN-2027'].holidays.includes('2027-10-01'));
+  // every date must belong to the year the preset claims
+  for (const [key, p] of Object.entries(NATIONAL_CALENDARS)) {
+    const year = key.slice(-4);
+    p.holidays.forEach(d => assert.ok(d.startsWith(year), key + ' contains ' + d));
+  }
+  // 2027 presets shift work too
+  const t3 = [{ id: 1, name: 'A', duration: 3, preds: [] }];
+  schedule(t3, '2027-02-04', { workdays: [1, 2, 3, 4, 5], holidays: NATIONAL_CALENDARS['CN-2027'].holidays, extra: [] });
+  // Thu 4 Feb, then 5-8 Feb are holidays and 6-7 a weekend, so Tue 9 and Wed 10 finish it
+  assert.equal(fmtDate(t3[0].finishDate), '2027-02-10', 'works around the 2027 Spring Festival');
+
   // every preset date must be a real, parseable calendar date
   for (const [key, p] of Object.entries(NATIONAL_CALENDARS)) {
     for (const d of [...p.holidays, ...(p.extra || [])]) {

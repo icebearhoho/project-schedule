@@ -227,7 +227,7 @@ const NATIONAL_CALENDARS = {
     extra: [],
   },
   'CN-2026': {
-    label: 'China (mainland) 2026',
+    label: 'China 2026',
     holidays: [
       '2026-01-01', // 元旦
       '2026-02-16', '2026-02-17', '2026-02-18', '2026-02-19', '2026-02-20',
@@ -241,6 +241,43 @@ const NATIONAL_CALENDARS = {
     ],
     // Left empty on purpose: the make-up working weekends are announced annually and I
     // will not invent them. Add them under "Extra working days" once published.
+    extra: [],
+  },
+
+  // ---- 2027: the official notices are not out yet, so these are marked provisional.
+  // Fixed dates and Good Friday are certain (Easter 2027 falls on 28 March). Everything
+  // driven by the lunar or Islamic calendar is an estimate that must be confirmed.
+  'SG-2027': {
+    label: 'Singapore 2027',
+    provisional: 'Chinese New Year, Hari Raya Puasa, Hari Raya Haji, Vesak and Deepavali are estimates. ' +
+      'Confirm with MOM before committing to dates.',
+    holidays: [
+      '2027-01-01', // New Year's Day (Fri)
+      '2027-02-06', '2027-02-07', '2027-02-08', // Chinese New Year (Sat/Sun) + Mon in lieu — estimated
+      '2027-03-09', // Hari Raya Puasa — estimated
+      '2027-03-26', // Good Friday (Easter 28 Mar 2027)
+      '2027-05-01', // Labour Day (Sat)
+      '2027-05-17', // Hari Raya Haji — estimated
+      '2027-05-20', // Vesak Day — estimated
+      '2027-08-09', // National Day (Mon)
+      '2027-10-28', // Deepavali — estimated
+      '2027-12-25', // Christmas Day (Sat)
+    ],
+    extra: [],
+  },
+  'CN-2027': {
+    label: 'China 2027',
+    provisional: 'Statutory days only — the State Council notice normally extends these with bridge ' +
+      'weekends, and the lunar dates here are estimates. Confirm on gov.cn.',
+    holidays: [
+      '2027-01-01', // 元旦
+      '2027-02-05', '2027-02-06', '2027-02-07', '2027-02-08', // 除夕 + 春节前三天 — estimated
+      '2027-04-05', // 清明节 — estimated
+      '2027-05-01', '2027-05-02', // 劳动节
+      '2027-06-09', // 端午节 — estimated
+      '2027-09-15', // 中秋节 — estimated
+      '2027-10-01', '2027-10-02', '2027-10-03', // 国庆节
+    ],
     extra: [],
   },
 };

@@ -141,14 +141,23 @@ the MS Project XML as calendar exceptions.
 
 ### Public holidays
 
-Two one-click presets live in the **Schedule** panel: **Singapore 2026** and
-**China (mainland) 2026**. Clicking one adds its dates to this project's holiday list —
-they stack (add both if your team spans both countries) and clicking twice adds nothing
-new. The dates then sit in the text box as ordinary lines you can edit.
+One-click presets live in the **Schedule** panel: **Singapore** and **China**, for 2026
+and 2027. Clicking one adds its dates to this project's holiday list — they stack (add
+both countries, or both years) and clicking twice adds nothing new. The dates then sit in
+the text box as ordinary lines you can edit.
 
-> Treat the presets as a starting point, not an authority. Lunar and Islamic holidays
+**A dashed button marked `*` means that year's official notice isn't published yet**, so
+those dates are estimates. Hovering says which ones. Today that's both 2027 presets:
+
+| Preset | Confidence |
+|---|---|
+| Singapore 2026, China 2026 | published dates |
+| Singapore 2027 | fixed dates and Good Friday (26 Mar, Easter is 28 Mar 2027) are certain; Chinese New Year, Hari Raya Puasa/Haji, Vesak and Deepavali are estimates |
+| China 2027 | statutory days only — the State Council normally extends them with bridge weekends; the lunar dates are estimates |
+
+> Treat every preset as a starting point, not an authority. Lunar and Islamic holidays
 > move, days in lieu are gazetted per year, and **China's make-up working weekends
-> (调休) are announced annually and are deliberately not included** — I won't invent
+> (调休) are announced annually and are deliberately never included** — I won't invent
 > them. Check against
 > [gov.cn](https://www.gov.cn/) and
 > [mom.gov.sg](https://www.mom.gov.sg/employment-practices/public-holidays),
