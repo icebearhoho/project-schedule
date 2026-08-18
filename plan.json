@@ -1,5 +1,5 @@
 {
-  "rev": 13,
+  "rev": 14,
   "data": {
     "projects": [
       {
@@ -602,7 +602,9 @@
             "level": 1,
             "preds": [],
             "pct": 0,
-            "color": "rose"
+            "color": "white",
+            "collapsed": false,
+            "bg": "ice"
           },
           {
             "id": 1,
@@ -612,7 +614,7 @@
             "pct": 50,
             "preds": [],
             "start": "2026-08-14",
-            "color": "rose"
+            "color": "blue"
           },
           {
             "id": 2,
@@ -621,16 +623,8 @@
             "duration": 4,
             "pct": 0,
             "preds": [],
-            "start": "2026-08-14"
-          },
-          {
-            "id": 39,
-            "name": "Kick-off meeting",
-            "duration": 0,
-            "level": 2,
-            "preds": [],
-            "pct": 0,
-            "start": "2026-08-21"
+            "start": "2026-08-14",
+            "color": "blue"
           },
           {
             "id": 29,
@@ -640,7 +634,8 @@
             "preds": [],
             "pct": 0,
             "collapsed": false,
-            "color": "blue"
+            "color": "blue",
+            "bg": "ice"
           },
           {
             "id": 4,
@@ -649,9 +644,10 @@
             "duration": 10,
             "pct": 0,
             "preds": [
-              "39FS"
+              "42"
             ],
-            "color": "blue"
+            "color": "green",
+            "bg": "ice"
           },
           {
             "id": 5,
@@ -661,7 +657,8 @@
             "pct": 0,
             "preds": [
               "4SS"
-            ]
+            ],
+            "color": "green"
           },
           {
             "id": 6,
@@ -671,7 +668,8 @@
             "pct": 0,
             "preds": [
               "4SS"
-            ]
+            ],
+            "color": "green"
           },
           {
             "id": 7,
@@ -681,7 +679,8 @@
             "pct": 0,
             "preds": [
               "4SS"
-            ]
+            ],
+            "color": "green"
           },
           {
             "id": 8,
@@ -691,7 +690,8 @@
             "pct": 0,
             "preds": [
               "4"
-            ]
+            ],
+            "color": "green"
           },
           {
             "id": 9,
@@ -701,7 +701,8 @@
             "pct": 0,
             "preds": [
               "4SS"
-            ]
+            ],
+            "color": "green"
           },
           {
             "id": 10,
@@ -711,7 +712,8 @@
             "pct": 0,
             "preds": [
               "4SS"
-            ]
+            ],
+            "color": "green"
           },
           {
             "id": 30,
@@ -720,7 +722,9 @@
             "level": 1,
             "preds": [],
             "pct": 0,
-            "color": "amber"
+            "color": "amber",
+            "bg": "ice",
+            "collapsed": false
           },
           {
             "id": 11,
@@ -770,7 +774,9 @@
             "level": 1,
             "preds": [],
             "pct": 0,
-            "color": "green"
+            "color": "green",
+            "bg": "ice",
+            "collapsed": false
           },
           {
             "id": 15,
@@ -859,7 +865,9 @@
             "duration": 0,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 0,
+            "bg": "ice",
+            "collapsed": false
           },
           {
             "id": 23,
@@ -869,7 +877,8 @@
             "pct": 0,
             "preds": [
               "22"
-            ]
+            ],
+            "color": "blue"
           },
           {
             "id": 24,
@@ -879,7 +888,8 @@
             "pct": 0,
             "preds": [
               "22"
-            ]
+            ],
+            "color": "blue"
           },
           {
             "id": 25,
@@ -889,7 +899,8 @@
             "pct": 0,
             "preds": [
               "17"
-            ]
+            ],
+            "color": "blue"
           },
           {
             "id": 26,
@@ -900,7 +911,8 @@
             "preds": [
               "21",
               "22"
-            ]
+            ],
+            "color": "violet"
           },
           {
             "id": 27,
@@ -914,13 +926,41 @@
               "25",
               "26"
             ]
+          },
+          {
+            "id": 40,
+            "name": "New phase",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "color": "white",
+            "collapsed": false
+          },
+          {
+            "id": 41,
+            "name": "First task",
+            "duration": 3,
+            "level": 2,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 42,
+            "name": "Kick-off meeting",
+            "duration": 0,
+            "level": 2,
+            "preds": [],
+            "pct": 0,
+            "start": "2026-08-21",
+            "color": "amber"
           }
         ],
-        "nextId": 40,
-        "color": "green"
+        "nextId": 43,
+        "color": "violet"
       }
     ],
     "nextPid": 6
   },
-  "at": "2026-08-18T08:49:32.692Z"
+  "at": "2026-08-18T09:22:53.306Z"
 }
