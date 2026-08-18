@@ -213,9 +213,18 @@ one selects that task in the grid. The band disappears when a plan has no milest
 way to give a plan structure. (A phase is just a task with children; **Indent** on
 existing rows does the same thing by hand.)
 
-**Colour** sets the chart colour of the selected row, or of the whole project. A phase's
-colour carries down to its subtasks unless a subtask picks its own, so one click colours
-a whole workstream. The eight colours are mid-tones chosen to clear 3:1 contrast against
+**Colour** has three sets. **Selected row** and **Whole project** set the *bar* colour —
+ten of them, including plain **black** and **white** for when a phase's background wants a
+neutral block. **Row background** washes the row itself in one of four tints
+(`#f7fbfc`, `#d6e6f2`, `#b9d7ea`, `#769fcd`), which is how a phase gets its own band
+across the chart. A phase's colour *and* background both carry down to its
+subtasks unless a subtask picks its own, so one click dresses a whole workstream.
+
+Labels adapt to whatever background a row has: each picks the ink that contrasts with it,
+so text stays readable on the darkest tint. The completed part of a bar moves away from
+the bar colour rather than always darkening, so progress is visible on a black bar and on
+a white one alike, and every bar carries a hairline edge so a white block still reads
+against a white row. The eight colours are mid-tones chosen to clear 3:1 contrast against
 both the light and the dark background, and the completed part of each bar is derived
 from the bar's own colour — darker on light, lighter on dark. The Excel export uses the
 same colours.

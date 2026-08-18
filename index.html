@@ -236,16 +236,18 @@
   /* Each row carries its phase colour as a wash, so a phase reads as a band across the
      chart. No dividing lines: the grid beside it already gives the eye its rows. */
   .gantt-row { position: relative; height: var(--row); overflow: hidden;
-               background: color-mix(in srgb, var(--rowc, var(--surface)), var(--surface) 92%); }
-  .gantt-row:hover { background: color-mix(in srgb, var(--rowc, var(--sunken)), var(--sunken) 75%); }
+               background: var(--rowbg, color-mix(in srgb, var(--rowc, var(--surface)), var(--surface) 92%)); }
+  .gantt-row:hover { background: color-mix(in srgb, var(--rowbg, var(--rowc, var(--sunken))), var(--sunken) 35%); }
   .gantt-row.sel { background: var(--accent-soft); }
   .today { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--danger); opacity: .55; }
   /* --c is set per bar from the task's colour; everything else is derived from it. */
-  .bar { position: absolute; top: 6px; height: 18px; border-radius: 4px; background: var(--c, var(--bar)); overflow: hidden; }
-  .bar .done { height: 100%; background: color-mix(in srgb, var(--c, var(--bar)), var(--shade) var(--shade-pct)); }
+  .bar { position: absolute; top: 6px; height: 18px; border-radius: 4px; background: var(--c, var(--bar)); overflow: hidden;
+         box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c, var(--bar)), var(--text) 22%); }
+  .bar .done { height: 100%; background: var(--cd, color-mix(in srgb, var(--c, var(--bar)), var(--shade) var(--shade-pct))); }
   /* colour picker */
   .swatches { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px; }
-  .swatches button { width: 34px; height: 34px; min-height: 34px; padding: 0; border: 2px solid transparent;
+  .swatches button { width: 34px; height: 34px; min-height: 34px; padding: 0;
+                     border: 2px solid color-mix(in srgb, var(--line), transparent 20%);
                      border-radius: 8px; cursor: pointer; }
   .swatches button:hover { border-color: var(--line); }
   .swatches button[aria-pressed="true"] { border-color: var(--text); }
@@ -254,10 +256,10 @@
   /* Labels sit beside the bar, never inside it, so a one-day bar can still carry a long
      name and the text always has the row background behind it. */
   .lbl { position: absolute; top: 6px; height: 18px; line-height: 18px; font-size: 12px;
-         color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .lbl.before, .lbl.name { font-weight: 550; }
+         color: var(--rowmuted, var(--muted)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lbl.before, .lbl.name { font-weight: 550; color: var(--rowtext, var(--text)); }
   .lbl.before { text-align: right; }
-  .lbl.dates { color: var(--faint); }
+  .lbl.dates { color: var(--rowmuted, var(--faint)); }
   /* last resort: the bar fills the pane, so the name rides on top of it in a chip that
      keeps the text on a surface-coloured background rather than on the bar colour */
   .lbl.over { color: var(--text); background: color-mix(in srgb, var(--surface), transparent 10%);
@@ -401,7 +403,10 @@
       <div class="swatches" id="rowSwatches"></div>
       <label>Whole project</label>
       <div class="swatches" id="projSwatches"></div>
-      <p class="hint">A phase colour carries down to its subtasks unless they set their own.</p>
+      <label id="bgLabel">Row background</label>
+      <div class="swatches" id="bgSwatches"></div>
+      <p class="hint">A phase's colour and background both carry down to its subtasks
+        unless they set their own.</p>
     </div>
   </details>
   <details class="menu" id="m-file">
@@ -458,7 +463,43 @@ const DAY_W = 24, HOURS_PER_DAY = 8;
 const PALETTE = {
   blue: '#4275d6', teal: '#0e8a80', green: '#2f8a4a', amber: '#b57a0d',
   rose: '#c2447b', violet: '#7a5cf0', slate: '#5f7191', gray: '#7b8494',
+  black: '#101418', white: '#ffffff',
 };
+
+// Row washes are their own set: light enough to sit under text and bars.
+const BACKGROUNDS = {
+  mist: '#f7fbfc', ice: '#d6e6f2', sky: '#b9d7ea', steel: '#769fcd',
+};
+
+// The completed part of a bar has to stay visible whatever the bar colour is, so it
+// moves away from the bar rather than always darkening: dark bars lighten, light ones darken.
+// Text on a coloured row has to stay legible, so each background picks the ink that
+// contrasts with it and a slightly softened version of that ink for the dates.
+const srgbLum = hex => {
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+function inkFor(bgHex) {
+  const L = srgbLum(bgHex);
+  const dark = '#101418', light = '#ffffff';
+  const ratio = l => (Math.max(L, l) + 0.05) / (Math.min(L, l) + 0.05);
+  const ink = ratio(srgbLum(dark)) >= ratio(srgbLum(light)) ? dark : light;
+  const mix = [1, 3, 5].map(i => Math.round(
+    parseInt(ink.slice(i, i + 2), 16) * 0.8 + parseInt(bgHex.slice(i, i + 2), 16) * 0.2));
+  return { ink, soft: '#' + mix.map(v => v.toString(16).padStart(2, '0')).join('') };
+}
+
+function doneColor(hex) {
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  const mix = (a, t, amt) => Math.round(a + (t - a) * amt);
+  const parts = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  const target = lum < 0.25 ? 255 : 0;                       // lighten a dark bar, darken a light one
+  const amount = lum < 0.25 ? 0.45 : 0.42;
+  return '#' + parts.map(v => mix(v, target, amount).toString(16).padStart(2, '0')).join('');
+}
 function resolvedColor(i) {
   const tasks = proj().tasks;
   let lvl = (Number(tasks[i].level) || 1) + 1;
@@ -479,6 +520,27 @@ function setRowColor(key) {
   render();
 }
 function setProjectColor(key) { snapshot(); proj().color = key; render(); }
+
+// Phase backgrounds work like colours: set one on a phase and its subtasks inherit it.
+function resolvedBg(i) {
+  const tasks = proj().tasks;
+  let lvl = (Number(tasks[i].level) || 1) + 1;
+  for (let j = i; j >= 0; j--) {
+    const l = Number(tasks[j].level) || 1;
+    if (l >= lvl) continue;
+    lvl = l;
+    if (tasks[j].bg && BACKGROUNDS[tasks[j].bg]) return BACKGROUNDS[tasks[j].bg];
+    if (l === 1) break;
+  }
+  return BACKGROUNDS[proj().bg] || '';
+}
+function setRowBg(key) {
+  const t = proj().tasks[sel];
+  if (!t) return;
+  snapshot();
+  if (key) t.bg = key; else delete t.bg;
+  render();
+}
 
 /* ---- theme: System follows the OS, or pick Light/Dark explicitly. Per browser, like
    the timeline view — it is a preference, not part of the plan. ---- */
@@ -955,6 +1017,12 @@ function render() {
     selTask ? (kids[sel]?.length ? 'Phase: ' : 'Task: ') + selTask.name : 'No row selected';
   document.getElementById('rowSwatches').innerHTML = swatches(selTask && selTask.color, 'setRowColor', true);
   document.getElementById('projSwatches').innerHTML = swatches(p.color || 'blue', 'setProjectColor', false);
+  document.getElementById('bgLabel').textContent =
+    'Row background' + (selTask ? ' — ' + (kids[sel]?.length ? 'phase ' : '') + selTask.name : '');
+  document.getElementById('bgSwatches').innerHTML = Object.entries(BACKGROUNDS).map(([k, hex]) =>
+    `<button style="background:${hex}" aria-pressed="${selTask && selTask.bg === k}" title="${k}"
+       aria-label="${k}" onclick="setRowBg('${k}')"></button>`).join('') +
+    `<button class="clear" onclick="setRowBg('')" title="Follow the phase, or no background">None</button>`;
 
   document.getElementById('emptyState').innerHTML = p.tasks.length ? '' :
     `<div class="empty">No tasks yet. <button class="btn" onclick="addTask()">
@@ -1090,7 +1158,8 @@ function drawGantt(hidden) {
         const pct = t.pct || 0;
         const x = s * dw, w = Math.max(2, (Math.max(s + 1, e) - s) * dw - 3);
         const tip = esc(t.name) + ' — ' + fd(t.startDate) + ' to ' + fd(t.finishDate) + (pct ? ' · ' + pct + '%' : '');
-        const col = `--c:${resolvedColor(i)}`;
+        const barColor = resolvedColor(i);
+        const col = `--c:${barColor};--cd:${doneColor(barColor)}`;
         const shape = `<div class="bar" style="left:${x}px;width:${w}px;${col}" title="${tip}">` +
           `<div class="done" style="width:${pct}%"></div></div>`;
         const drawnEnd = x + w;
@@ -1112,8 +1181,12 @@ function drawGantt(hidden) {
           `<span class="lbl dates" style="left:${datesAt}px;max-width:${Math.max(30, W - datesAt - 8)}px" title="${tip}">${dates}</span>`;
       }
     }
+    const bg = resolvedBg(i);
+    const ink = bg ? inkFor(bg) : null;
     rows += `<div class="gantt-row ${i === sel ? 'sel' : ''}" id="g${i}" ` +
-      `style="width:${W}px;--rowc:${resolvedColor(i)}" onclick="sel=${i};hl()">${inner}</div>`;
+      `style="width:${W}px;--rowc:${resolvedColor(i)}` +
+      (bg ? `;--rowbg:${bg};--rowtext:${ink.ink};--rowmuted:${ink.soft}` : '') +
+      `" onclick="sel=${i};hl()">${inner}</div>`;
   });
 
   document.getElementById('gantt').innerHTML =
