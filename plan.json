@@ -1,5 +1,5 @@
 {
-  "rev": 16,
+  "rev": 17,
   "data": {
     "projects": [
       {
@@ -888,7 +888,7 @@
             "preds": [
               "22"
             ],
-            "color": "blue"
+            "color": "violet"
           },
           {
             "id": 24,
@@ -899,7 +899,7 @@
             "preds": [
               "22"
             ],
-            "color": "blue"
+            "color": "violet"
           },
           {
             "id": 25,
@@ -910,7 +910,17 @@
             "preds": [
               "17"
             ],
-            "color": "blue"
+            "color": "violet"
+          },
+          {
+            "id": 44,
+            "name": "User Training and handover",
+            "duration": 1,
+            "level": 2,
+            "preds": [
+              "25"
+            ],
+            "pct": 0
           },
           {
             "id": 26,
@@ -934,15 +944,16 @@
               "23",
               "24",
               "25",
-              "26"
+              "26",
+              "44"
             ]
           }
         ],
-        "nextId": 44,
+        "nextId": 45,
         "color": "violet"
       }
     ],
     "nextPid": 6
   },
-  "at": "2026-08-18T09:32:06.389Z"
+  "at": "2026-08-18T09:54:34.860Z"
 }
