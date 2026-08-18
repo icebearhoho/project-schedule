@@ -1,5 +1,5 @@
 {
-  "rev": 9,
+  "rev": 10,
   "data": {
     "projects": [
       {
@@ -567,7 +567,7 @@
       },
       {
         "pid": "p-task-overview",
-        "name": "Task overview (imported)",
+        "name": "SSS timeline",
         "start": "2026-08-14",
         "calendar": {
           "workdays": [
@@ -901,5 +901,5 @@
     ],
     "nextPid": 6
   },
-  "at": "2026-08-18T07:51:20.946Z"
+  "at": "2026-08-18T07:51:40.140Z"
 }
