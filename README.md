@@ -168,8 +168,8 @@ first, then link across the phases.
 **Schedule** in the toolbar opens a panel per project: tick which weekdays are working days
 (any combination — a 6-day week is fine) and list holidays or shutdown days, one
 `YYYY-MM-DD` per line. Durations, links and lag all count in working days, so a holiday
-pushes everything after it. Non-working days show up as gaps in the bars and are
-exported into the MS Project XML as calendar exceptions.
+pushes everything after it. Non-working days are left out of the chart
+entirely and exported into the MS Project XML as calendar exceptions.
 
 ### Public holidays
 
@@ -238,10 +238,10 @@ across the chart — and milestones appear only as flags on the timeline. Rows c
 dividing lines; the grid beside them already marks the rows out. The two panes scroll
 together vertically, so row 5 in the table is always beside bar 5 in the chart.
 
-A bar is drawn only on the days the task actually occupies: it breaks over weekends,
-holidays and any day you untick in **Schedule**, so its painted length matches the day
-count in the grid. The chart background stays one flat colour — non-working days are shown by the
-gaps in the bars, not by shading whole columns, which turns a long plan into stripes. (Below about 8px per day the gaps would read as noise, so at `3 months`
+**The chart's axis is working days only.** Weekends, holidays and any day you untick in
+**Schedule** are not drawn at all, so a bar is one solid block whose length is exactly its
+duration in days, and a month occupies the width of the days actually worked in it. The
+range label says how many working days the window holds. (Below about 8px per day the gaps would read as noise, so at `3 months`
 and wider zooms the bar is drawn solid.)
 
 ## Room for the chart

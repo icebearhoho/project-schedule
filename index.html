@@ -219,11 +219,12 @@
   /* milestone band: flags standing on the timeline, the way a summary slide shows them */
   .mband { position: relative; border-bottom: 1px solid var(--line-soft); }
   .mstem { position: absolute; width: 1px; background: var(--line); }
-  .mflag { position: absolute; width: 2px; height: 13px; border-radius: 1px; background: var(--c, var(--bar)); }
-  .mflag::after { content: ''; position: absolute; left: 2px; top: 0;
-                  border-top: 4px solid transparent; border-bottom: 4px solid transparent;
-                  border-left: 9px solid var(--c, var(--bar)); }
-  .mtext { position: absolute; white-space: nowrap; font-size: 11px; line-height: 13px; color: var(--text);
+  .mband { border-bottom: 1px solid var(--line-soft); }
+  .mflag { position: absolute; width: 3px; height: 18px; border-radius: 1px; background: var(--c, var(--bar)); }
+  .mflag::after { content: ''; position: absolute; left: 3px; top: 0;
+                  border-top: 6px solid transparent; border-bottom: 6px solid transparent;
+                  border-left: 14px solid var(--c, var(--bar)); }
+  .mtext { position: absolute; white-space: nowrap; font-size: 12px; line-height: 15px; color: var(--text);
            cursor: pointer; }
   .mtext b { font-weight: 600; }
   .mtext span { color: var(--muted); }
@@ -991,21 +992,6 @@ function bounds() {
 const dayIdx = (from, d) => Math.round((+new Date(d.getFullYear(), d.getMonth(), d.getDate()) -
   +new Date(from.getFullYear(), from.getMonth(), from.getDate())) / 864e5);
 
-// Splits a task's calendar span into the runs of working days inside it, clipped to
-// the visible window. `split` off returns the whole span as one run.
-function workRuns(from, s, e, n, split) {
-  const lo = Math.max(0, s), hi = Math.min(n, e);
-  if (!split) return lo < hi ? [{ a: lo, b: hi }] : [];
-  const out = [];
-  let run = null;
-  for (let k = lo; k < hi; k++) {
-    const d = new Date(from); d.setDate(d.getDate() + k);
-    if (isWorkday(d, cal())) { if (run) run.b = k + 1; else out.push(run = { a: k, b: k + 1 }); }
-    else run = null;
-  }
-  return out;
-}
-
 // Milestones drawn on the timeline itself: a flag at the date with the name beside it,
 // on a stem down to the axis. Labels are packed into lanes so they never overlap.
 const textWidth = (() => {
@@ -1013,33 +999,33 @@ const textWidth = (() => {
   return (text, font) => { c.font = font; return c.measureText(text).width; };
 })();
 
-function milestoneBand(from, n, dw, W) {
+function milestoneBand(colAt, dw, W) {
   const marks = proj().tasks
     .map((t, i) => ({ t, i }))
     .filter(({ t, i }) => !kids[i].length && Number(t.duration) === 0 && t.startDate instanceof Date)
-    .map(({ t, i }) => ({ t, i, x: dayIdx(from, t.startDate) * dw }))
+    .map(({ t, i }) => ({ t, i, x: colAt(t.startDate) * dw + dw / 2 }))   // centred on its own day
     .filter(m => m.x >= 0 && m.x <= W)
     .sort((a, b) => a.x - b.x);
   if (!marks.length) return '';
 
-  const LANE = 17, PAD = 14;
+  const LANE = 20, PAD = 22;
   const laneEnds = [];                       // right-hand edge of the last label in each lane
   const placed = marks.map(m => {
     const date = m.t.startDate.toLocaleString('en', { day: 'numeric', month: 'short' });
-    const w = PAD + textWidth(m.t.name + '  ' + date, '600 11px system-ui') + 12;
+    const w = PAD + textWidth(m.t.name + '  ' + date, '600 12px system-ui') + 14;
     let lane = laneEnds.findIndex(end => m.x > end);
     if (lane < 0) { lane = laneEnds.length; laneEnds.push(0); }
     laneEnds[lane] = m.x + w;
     return { ...m, lane, date };
   });
   const lanes = laneEnds.length;
-  const height = lanes * LANE + 8;
+  const height = lanes * LANE + 12;
 
   const body = placed.map(m => {
     const top = (lanes - 1 - m.lane) * LANE + 2;   // later lanes sit higher, like a stepped callout
-    return `<div class="mstem" style="left:${m.x}px;top:${top + 6}px;height:${height - top - 6}px"></div>` +
-      `<div class="mflag" style="left:${m.x}px;top:${top}px;--c:${resolvedColor(m.i)}"></div>` +
-      `<div class="mtext" style="left:${m.x + PAD}px;top:${top}px" onclick="sel=${m.i};hl()"` +
+    return `<div class="mstem" style="left:${m.x}px;top:${top + 10}px;height:${height - top - 10}px"></div>` +
+      `<div class="mflag" style="left:${m.x - 1.5}px;top:${top}px;--c:${resolvedColor(m.i)}"></div>` +
+      `<div class="mtext" style="left:${m.x + PAD}px;top:${top + 2}px" onclick="sel=${m.i};hl()"` +
       ` title="${esc(m.t.name)} — ${fd(m.t.startDate)}"><b>${esc(m.t.name)}</b> <span>${m.date}</span></div>`;
   }).join('');
   return `<div class="mband" style="height:${height}px">${body}</div>`;
@@ -1047,33 +1033,45 @@ function milestoneBand(from, n, dw, W) {
 
 function drawGantt(hidden) {
   const [from, to] = bounds();
-  const n = view.span === 'all' ? Math.max(20, dayIdx(from, to)) : Math.max(1, dayIdx(from, to));
-  // A chosen range is fitted to the pane so it needs no scrolling — that's the point of it.
+  const c = cal();
+
+  // The axis is working days only: weekends and holidays are not drawn at all, so a bar
+  // is one solid block and a month is as wide as the days actually worked in it.
+  const cols = [];
+  for (const d = new Date(from); d < to; d.setDate(d.getDate() + 1)) {
+    if (isWorkday(d, c)) cols.push(new Date(d));
+  }
+  if (!cols.length) { document.getElementById('gantt').innerHTML = ''; return; }
+  const n = cols.length;
+  // How many working columns fall before a date — the x of any date, working or not.
+  const colAt = date => {
+    let lo = 0, hi = n;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (cols[mid] < date) lo = mid + 1; else hi = mid; }
+    return lo;
+  };
+
   const pane = document.querySelector('.pane-gantt');
   const avail = (pane ? pane.clientWidth : 900) - 2;
   const dw = view.span === 'all' ? DAY_W : Math.max(4, Math.min(avail, Math.floor(avail / n)));
   const W = n * dw;
 
   let days = '', months = '';
-  let runStart = 0, runLabel = '';
-  for (let i = 0; i < n; i++) {
-    const d = new Date(from); d.setDate(d.getDate() + i);
-    // Day numbers only when they fit; below that, a tick on Mondays; below that, nothing.
+  let runStart = 0, runLabel = cols[0].toLocaleString('en', { month: 'short', year: 'numeric' });
+  cols.forEach((d, i) => {
     const label = dw >= 64 ? d.toLocaleString('en', { weekday: 'short' }) + ' ' + d.getDate()
       : dw >= 16 ? d.getDate() : (dw >= 7 && d.getDay() === 1 ? d.getDate() : '');
-    days += `<div style="width:${dw}px" title="${fmtDate(d)}${isWorkday(d, cal()) ? '' : ' — non-working'}">${label}</div>`;
+    days += `<div style="width:${dw}px" title="${fmtDate(d)}">${label}</div>`;
     const m = d.toLocaleString('en', { month: 'short', year: 'numeric' });
-    if (i === 0) runLabel = m;
-    else if (m !== runLabel) {
+    if (m !== runLabel) {
       months += `<div style="width:${(i - runStart) * dw}px">${runLabel}</div>`;
       runStart = i; runLabel = m;
     }
-  }
+  });
   months += `<div style="width:${(n - runStart) * dw}px">${runLabel}</div>`;
 
-  const todayIdx = dayIdx(from, new Date());
-  const today = todayIdx >= 0 && todayIdx < n
-    ? `<div class="today" style="left:${todayIdx * dw}px" title="Today"></div>` : '';
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const todayLine = today >= from && today < to
+    ? `<div class="today" style="left:${colAt(today) * dw}px" title="Today"></div>` : '';
 
   let rows = '';
   proj().tasks.forEach((t, i) => {
@@ -1083,29 +1081,19 @@ function drawGantt(hidden) {
     // Phases are shown by the row wash and milestones by the flags on the timeline, so
     // neither draws anything of its own down here.
     if (t.startDate instanceof Date && !isSummary && !isMilestone) {
-      const s = dayIdx(from, t.startDate), e = s + Math.max(1, dayIdx(t.startDate, t.endExclusive));
+      const s = colAt(t.startDate), e = colAt(t.endExclusive);
       if (e <= 0) inner = `<span class="offscreen left" title="${esc(t.name)} ended ${fd(t.finishDate)}">` +
         `<svg class="icon"><use href="#i-left"/></svg></span>`;
       else if (s >= n) inner = `<span class="offscreen right" title="${esc(t.name)} starts ${fd(t.startDate)}">` +
         `<svg class="icon"><use href="#i-right"/></svg></span>`;
       else {
-        const pct = (kids[i].length ? t.rollPct : t.pct) || 0;
-        const x = s * dw, w = Math.max(2, (e - s) * dw - 3);
+        const pct = t.pct || 0;
+        const x = s * dw, w = Math.max(2, (Math.max(s + 1, e) - s) * dw - 3);
         const tip = esc(t.name) + ' — ' + fd(t.startDate) + ' to ' + fd(t.finishDate) + (pct ? ' · ' + pct + '%' : '');
-        const c = `--c:${resolvedColor(i)}`;
-        // One segment per run of working days, so a bar covers exactly the days it is
-        // scheduled for and leaves weekends and holidays empty. Below ~8px a day the
-        // gaps would just look like noise, so the bar is drawn solid instead.
-        const runs = workRuns(from, s, e, n, dw >= 8);
-        const total = runs.reduce((a, r) => a + (r.b - r.a), 0) || 1;
-        let left = Math.round(total * pct / 100);
-        const shape = runs.map(r => {
-          const len = r.b - r.a, filled = Math.max(0, Math.min(len, left));
-          left -= filled;
-          return `<div class="bar" style="left:${r.a * dw}px;width:${Math.max(2, len * dw - 3)}px;${c}" title="${tip}">` +
-            `<div class="done" style="width:${(filled / len * 100).toFixed(2)}%"></div></div>`;
-        }).join('');
-        const drawnEnd = runs.length ? runs[runs.length - 1].b * dw : x + w;
+        const col = `--c:${resolvedColor(i)}`;
+        const shape = `<div class="bar" style="left:${x}px;width:${w}px;${col}" title="${tip}">` +
+          `<div class="done" style="width:${pct}%"></div></div>`;
+        const drawnEnd = x + w;
 
         // Name to the left of the bar, dates to the right of it. If the bar starts too
         // near the edge for a name, both go to the right, name first, so every row still
@@ -1127,10 +1115,11 @@ function drawGantt(hidden) {
     rows += `<div class="gantt-row ${i === sel ? 'sel' : ''}" id="g${i}" ` +
       `style="width:${W}px;--rowc:${resolvedColor(i)}" onclick="sel=${i};hl()">${inner}</div>`;
   });
+
   document.getElementById('gantt').innerHTML =
-    `<div class="ghead" style="width:${W}px">${milestoneBand(from, n, dw, W)}` +
+    `<div class="ghead" style="width:${W}px">${milestoneBand(colAt, dw, W)}` +
     `<div class="gmonths">${months}</div><div class="gdays">${days}</div></div>` +
-    `<div style="position:relative;width:${W}px">${today}${rows}</div>`;
+    `<div style="position:relative;width:${W}px">${todayLine}${rows}</div>`;
 
   const band = document.querySelector('.mband');
   document.getElementById('panes').style.setProperty('--bandh', (band ? band.offsetHeight : 0) + 'px');
@@ -1140,7 +1129,8 @@ function drawGantt(hidden) {
   const last = new Date(+to - 864e5);
   const fmtNice = d => d.toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' });
   document.getElementById('rangeLabel').textContent = view.span === 'all'
-    ? proj().tasks.length + ' tasks' : fmtNice(from) + (n > 1 ? ' – ' + fmtNice(last) : '');
+    ? proj().tasks.length + ' tasks · ' + n + ' working days'
+    : fmtNice(from) + ' – ' + fmtNice(last) + ' · ' + n + ' working days';
 }
 
 // The fitted view depends on the pane width, so redraw when the window changes size.
