@@ -1,5 +1,5 @@
 {
-  "rev": 12,
+  "rev": 13,
   "data": {
     "projects": [
       {
@@ -238,7 +238,7 @@
             "pct": 0
           }
         ],
-        "nextId": 26,
+        "nextId": 27,
         "color": "rose",
         "pid": "p0"
       },
@@ -601,7 +601,8 @@
             "duration": 0,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 0,
+            "color": "rose"
           },
           {
             "id": 1,
@@ -610,7 +611,8 @@
             "duration": 5,
             "pct": 50,
             "preds": [],
-            "start": "2026-08-14"
+            "start": "2026-08-14",
+            "color": "rose"
           },
           {
             "id": 2,
@@ -622,15 +624,13 @@
             "start": "2026-08-14"
           },
           {
-            "id": 3,
+            "id": 39,
             "name": "Kick-off meeting",
+            "duration": 0,
             "level": 2,
-            "duration": 1,
+            "preds": [],
             "pct": 0,
-            "preds": [
-              "1",
-              "2"
-            ]
+            "start": "2026-08-21"
           },
           {
             "id": 29,
@@ -638,7 +638,9 @@
             "duration": 0,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 0,
+            "collapsed": false,
+            "color": "blue"
           },
           {
             "id": 4,
@@ -647,8 +649,9 @@
             "duration": 10,
             "pct": 0,
             "preds": [
-              "3"
-            ]
+              "39FS"
+            ],
+            "color": "blue"
           },
           {
             "id": 5,
@@ -716,7 +719,8 @@
             "duration": 0,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 0,
+            "color": "amber"
           },
           {
             "id": 11,
@@ -736,7 +740,8 @@
             "pct": 0,
             "preds": [
               "11"
-            ]
+            ],
+            "color": "amber"
           },
           {
             "id": 13,
@@ -764,7 +769,8 @@
             "duration": 0,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 0,
+            "color": "green"
           },
           {
             "id": 15,
@@ -910,10 +916,11 @@
             ]
           }
         ],
-        "nextId": 33
+        "nextId": 40,
+        "color": "green"
       }
     ],
     "nextPid": 6
   },
-  "at": "2026-08-18T07:53:51.306Z"
+  "at": "2026-08-18T08:49:32.692Z"
 }
