@@ -264,13 +264,21 @@ per browser.
 The expand button next to the range buttons puts the plan **full screen**; Esc or the
 button in the corner comes back.
 
+**Grid columns** (WBS, ID, Task name, Days, Start, Finish, Pred, %) have fixed widths
+tuned so Task name gets the room and Days/ID/% don't sit on wasted space — an `<input>`'s
+column width doesn't grow to fit its own value, so this is set explicitly rather than
+left to the browser's default. A task name too long for its column still shows in full
+on hover (title tooltip).
+
 ## Timeline focus
 
 The **Day / Week / Month / 3 months / 12 months / All** buttons set how much calendar the
 Gantt shows at once. `12 months` fits a year into the pane, which turns the header into a
 month-by-month view of a long plan. A chosen range is scaled to fit the pane exactly, so there's nothing to scroll —
 pick `Week` and you get one wide week, pick `3 months` and the quarter is squeezed in.
-`All` goes back to the whole plan at a fixed day width, scrolling sideways.
+`All` goes back to the whole plan at a fixed day width, scrolling sideways — with the
+per-day numbers left off (a number on every column of a whole-project view is just
+noise), leaving the month band as the only date header.
 
 `‹` and `›` move the window (by three quarters of a span, so you keep some overlap) and
 **Today** jumps back to now. A task whose bar falls outside the window keeps its row and
@@ -394,13 +402,25 @@ Back it up by copying `project.json`, or from the app with **File > Save project
 |---|---|---|---|
 | Export > MS Project XML | MSPDI XML | yes, MS Project draws its own Gantt from the dates | MS Project (File > Open), ProjectLibre |
 | Export > Excel with Gantt | Excel workbook | yes, Gantt bars as coloured day cells, under a merged month band | Excel, Google Sheets |
-| Export > PDF / print | print dialog | yes, exactly what's on screen | anything |
+| Export > PDF / print (A3) | print dialog | yes, exactly what's on screen | anything |
+| Export > PDF — fit to one page | print dialog | yes, guaranteed one page | anything |
 | Export > CSV | CSV | no, data only | anything |
 | File > Save project | app's own format | n/a | this app (**File > Open project**) |
 
-**PDF**: the menu item opens your browser's print dialog — choose *Destination: Save as PDF*.
-The toolbar is hidden, the whole Gantt is unrolled (no scrollbars) and scaled to fit A3
-landscape. Chrome needs *More settings > Background graphics* left on, or the bars print white.
+**PDF**: both open your browser's print dialog — choose *Destination: Save as PDF*. The
+toolbar is hidden and the whole Gantt is unrolled (no scrollbars) either way.
+
+- **PDF / print (A3)** scales what's on screen down to fit a standard A3 landscape sheet.
+  Good for a real printer, but a plan with a lot of rows can still spill onto a second
+  page — A3 has a fixed height, and this option only fits the width.
+- **PDF — fit to one page** sizes the *page itself* to match the plan instead of shrinking
+  the plan to match a fixed page — so it always lands on exactly one page, whole and at
+  full size, however tall or wide the plan is. The trade is a page size a physical
+  printer almost certainly can't match, which is why this is for *Save as PDF* rather
+  than paper. Pick whichever range (Day … All) you want captured before exporting — a
+  wide `All` view makes a wide page, which is expected, not a bug.
+
+Chrome needs *More settings > Background graphics* left on for either, or the bars print white.
 
 ### Checking the XML is good
 

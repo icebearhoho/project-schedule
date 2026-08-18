@@ -392,7 +392,8 @@
     <div class="sheet">
       <button onclick="pick(this, exportXML)">MS Project XML (.xml)</button>
       <button onclick="pick(this, exportXLSX)">Excel with Gantt (.xlsx)</button>
-      <button onclick="pick(this, exportPDF)">PDF / print</button>
+      <button onclick="pick(this, exportPDF)">PDF / print (A3)</button>
+      <button onclick="pick(this, exportPDFFit)">PDF — fit to one page</button>
       <button onclick="pick(this, exportCSV)">CSV (.csv)</button>
     </div>
   </details>
@@ -971,7 +972,13 @@ function render() {
   const hidden = hiddenRows();
   const cell = (i, f, v, cls, ph) => `<td class="${cls || ''}"><input value="${esc(v ?? '')}"
       placeholder="${ph || ''}" aria-label="${f}" onchange="edit(${i},'${f}',this.value)" onfocus="sel=${i};hl()"></td>`;
-  let h = `<thead><tr class="hspacer"><th colspan="8"></th></tr><tr><th>WBS</th><th class="n">ID</th><th class="tname">Task name</th><th class="n">Days</th>
+  // Explicit column widths: an <input> reports a fixed ~20-character intrinsic width to
+  // the table's layout regardless of its value, so without this Days/% end up far wider
+  // than they need and Task name ends up narrower than task names actually are.
+  let h = `<colgroup><col style="width:52px"><col style="width:40px"><col style="width:300px">` +
+    `<col style="width:54px"><col style="width:122px"><col style="width:122px">` +
+    `<col style="width:86px"><col style="width:48px"></colgroup>` +
+    `<thead><tr class="hspacer"><th colspan="8"></th></tr><tr><th>WBS</th><th class="n">ID</th><th class="tname">Task name</th><th class="n">Days</th>
       <th>Start</th><th>Finish</th>
       <th title="Predecessor. 3 = finish-to-start. Also 3FS, 3SS, 3FF, 3SF, with lag in working days: 3SS+2, 3FF-1. Separate several with commas.">Pred</th>
       <th class="n">%</th></tr></thead><tbody>`;
@@ -986,7 +993,7 @@ function render() {
     h += `<tr id="r${i}" class="${i === sel ? 'sel ' : ''}${sum ? 'sum' : ''}" onclick="sel=${i};hl()">` +
       `<td class="ro">${codes[i]}</td><td class="n">${t.id}</td>` +
       `<td><div class="name" style="padding-left:${pad}px">${twist}` +
-      `<input value="${esc(t.name)}" aria-label="Task name" onchange="edit(${i},'name',this.value)" onfocus="sel=${i};hl()"></div></td>` +
+      `<input value="${esc(t.name)}" title="${esc(t.name)}" aria-label="Task name" onchange="edit(${i},'name',this.value)" onfocus="sel=${i};hl()"></div></td>` +
       (sum ? `<td class="ro n">${t.rollDuration ?? ''}</td>` : cell(i, 'duration', t.duration, 'n')) +
       // Start is a real date field: filled in with the scheduled date, and editing it pins
       // the task to "no earlier than". Finish is pickable too and sets the duration.
@@ -1126,7 +1133,10 @@ function drawGantt(hidden) {
   let days = '', months = '';
   let runStart = 0, runLabel = cols[0].toLocaleString('en', { month: 'short', year: 'numeric' });
   cols.forEach((d, i) => {
-    const label = dw >= 64 ? d.toLocaleString('en', { weekday: 'short' }) + ' ' + d.getDate()
+    // All view spans the whole plan at a fixed width, so a number on every single day is
+    // just noise — the month band alone carries enough orientation there.
+    const label = view.span === 'all' ? ''
+      : dw >= 64 ? d.toLocaleString('en', { weekday: 'short' }) + ' ' + d.getDate()
       : dw >= 16 ? d.getDate() : (dw >= 7 && d.getDay() === 1 ? d.getDate() : '');
     days += `<div style="width:${dw}px" title="${fmtDate(d)}">${label}</div>`;
     const m = d.toLocaleString('en', { month: 'short', year: 'numeric' });
@@ -1433,12 +1443,38 @@ async function exportXLSX() {
   download(fileName('.xlsx'), buf, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
+// A <style> whose @page overrides the default one — set to a size matching the plan for
+// "fit to one page", cleared (falling back to the default A3 rule) for the normal print.
+function fitPageStyle() {
+  let el = document.getElementById('fitPageStyle');
+  if (!el) { el = document.createElement('style'); el.id = 'fitPageStyle'; document.head.appendChild(el); }
+  return el;
+}
+
 // PDF via the browser's own print dialog: pick "Save as PDF". Prints the grid and the
-// Gantt exactly as drawn, scaled to fit A3 landscape.
+// Gantt exactly as drawn, scaled to fit a standard A3 landscape page — good for printing
+// on paper, though a plan with many rows can still spill onto a second page.
 function exportPDF() {
   document.getElementById('ptitle').textContent = proj().name + ' — ' + fmtDate(new Date());
+  fitPageStyle().textContent = '';
   const w = document.getElementById('tbl').offsetWidth + (document.getElementById('gantt')?.offsetWidth || 0);
   document.documentElement.style.setProperty('--ps', Math.min(1, 1400 / w));
+  window.print();
+}
+
+// PDF sized to the plan itself: the page becomes exactly as big as the grid + chart, so
+// everything lands on a single page at full size with no scaling and no page breaks. The
+// trade is a page a physical printer likely can't match — meant for "Save as PDF".
+function exportPDFFit() {
+  document.getElementById('ptitle').textContent = proj().name + ' — ' + fmtDate(new Date());
+  document.documentElement.style.setProperty('--ps', 1);
+  const w = document.getElementById('tbl').offsetWidth + (document.getElementById('gantt')?.offsetWidth || 0);
+  const h = Math.max(document.getElementById('tbl').offsetHeight, document.getElementById('gantt')?.offsetHeight || 0)
+    + 32; // headroom for the title, which is only laid out once print styles are active
+  const MARGIN_MM = 10, PX_TO_MM = 25.4 / 96;
+  const pageW = Math.max(80, w * PX_TO_MM + MARGIN_MM * 2).toFixed(1);
+  const pageH = Math.max(60, h * PX_TO_MM + MARGIN_MM * 2).toFixed(1);
+  fitPageStyle().textContent = `@media print { @page { size: ${pageW}mm ${pageH}mm; margin: ${MARGIN_MM}mm; } }`;
   window.print();
 }
 
