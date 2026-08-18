@@ -218,11 +218,9 @@
                  font-weight: 650; line-height: 20px; border-right: 1px solid var(--line); overflow: hidden; }
   .gdays div { flex: 0 0 auto; height: calc(var(--row) - 20px); color: var(--faint); font-size: 10px;
                line-height: 12px; text-align: center; }
-  .gdays div.off { color: var(--faint); background: var(--line-soft); }
   .gantt-row { position: relative; height: var(--row); border-bottom: 1px solid var(--line-soft); overflow: hidden; }
   .gantt-row:hover { background: var(--sunken); }
   .gantt-row.sel { background: var(--accent-soft); }
-  .off-col { position: absolute; top: 0; bottom: 0; background: var(--line-soft); opacity: .7; }
   .today { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--danger); opacity: .55; }
   /* --c is set per bar from the task's colour; everything else is derived from it. */
   .bar { position: absolute; top: 6px; height: 18px; border-radius: 4px; background: var(--c, var(--bar)); overflow: hidden; }
@@ -232,8 +230,12 @@
   .sumbar::before, .sumbar::after { content: ''; position: absolute; top: 6px; border: 5px solid transparent;
                                     border-top-color: color-mix(in srgb, var(--c, var(--bar)), var(--bar-summary) 60%); }
   .sumbar::before { left: 0; } .sumbar::after { right: 0; }
-  .ms { position: absolute; top: 8px; left: 0; width: 13px; height: 13px; transform: rotate(45deg); border-radius: 2px;
+  /* milestone: a flag, so a zero-day marker reads as an event rather than a tiny bar */
+  .ms { position: absolute; top: 5px; left: 0; width: 2px; height: 21px; border-radius: 1px;
         background: color-mix(in srgb, var(--c, var(--bar)), var(--shade) 25%); }
+  .ms::after { content: ''; position: absolute; left: 2px; top: 0;
+               border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+               border-left: 11px solid color-mix(in srgb, var(--c, var(--bar)), var(--shade) 25%); }
   /* colour picker */
   .swatches { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px; }
   .swatches button { width: 34px; height: 34px; min-height: 34px; padding: 0; border: 2px solid transparent;
@@ -1005,16 +1007,14 @@ function drawGantt(hidden) {
   const dw = view.span === 'all' ? DAY_W : Math.max(4, Math.min(avail, Math.floor(avail / n)));
   const W = n * dw;
 
-  let days = '', shade = '', months = '';
+  let days = '', months = '';
   let runStart = 0, runLabel = '';
   for (let i = 0; i < n; i++) {
     const d = new Date(from); d.setDate(d.getDate() + i);
-    const off = !isWorkday(d, cal());
     // Day numbers only when they fit; below that, a tick on Mondays; below that, nothing.
     const label = dw >= 64 ? d.toLocaleString('en', { weekday: 'short' }) + ' ' + d.getDate()
       : dw >= 16 ? d.getDate() : (dw >= 7 && d.getDay() === 1 ? d.getDate() : '');
-    days += `<div class="${off ? 'off' : ''}" style="width:${dw}px" title="${fmtDate(d)}">${label}</div>`;
-    if (off) shade += `<div class="off-col" style="left:${i * dw}px;width:${dw}px"></div>`;
+    days += `<div style="width:${dw}px" title="${fmtDate(d)}${isWorkday(d, cal()) ? '' : ' — non-working'}">${label}</div>`;
     const m = d.toLocaleString('en', { month: 'short', year: 'numeric' });
     if (i === 0) runLabel = m;
     else if (m !== runLabel) {
@@ -1051,7 +1051,7 @@ function drawGantt(hidden) {
         // split by a weekend, sits a gap away from the last segment).
         let shape = '', drawnEnd;
         if (summary) { shape = `<div class="sumbar" style="left:${x}px;width:${w}px;${c}" title="${tip}"></div>`; drawnEnd = x + w; }
-        else if (milestone) { shape = `<div class="ms" style="left:${x}px;${c}" title="${tip}"></div>`; drawnEnd = x + 16; }
+        else if (milestone) { shape = `<div class="ms" style="left:${x}px;${c}" title="${tip}"></div>`; drawnEnd = x + 13; }
         else {
           // One segment per run of working days, so a bar covers exactly the days it is
           // scheduled for and leaves weekends and holidays empty. Below ~8px a day the
@@ -1083,7 +1083,7 @@ function drawGantt(hidden) {
   });
   document.getElementById('gantt').innerHTML =
     `<div class="ghead" style="width:${W}px"><div class="gmonths">${months}</div><div class="gdays">${days}</div></div>` +
-    `<div style="position:relative;width:${W}px">${shade}${today}${rows}</div>`;
+    `<div style="position:relative;width:${W}px">${today}${rows}</div>`;
 
   document.getElementById('seg').innerHTML = Object.entries(SPANS).map(([k, s]) =>
     `<button onclick="setSpan('${k}')" aria-pressed="${view.span === k}">${s.label}</button>`).join('');

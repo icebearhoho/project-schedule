@@ -168,8 +168,8 @@ first, then link across the phases.
 **Schedule** in the toolbar opens a panel per project: tick which weekdays are working days
 (any combination — a 6-day week is fine) and list holidays or shutdown days, one
 `YYYY-MM-DD` per line. Durations, links and lag all count in working days, so a holiday
-pushes everything after it. Non-working days are shaded in the Gantt and exported into
-the MS Project XML as calendar exceptions.
+pushes everything after it. Non-working days show up as gaps in the bars and are
+exported into the MS Project XML as calendar exceptions.
 
 ### Public holidays
 
@@ -204,7 +204,7 @@ MS Project as working exceptions, so it schedules them the same way.
 
 ## Phases and colours
 
-**Add milestone** drops in a zero-day marker, drawn as a diamond.
+**Add milestone** drops in a zero-day marker, drawn as a flag at its date.
 
 **Add phase** creates a summary row with a first subtask already under it — the quickest
 way to give a plan structure. (A phase is just a task with children; **Indent** on
@@ -230,7 +230,8 @@ never lives inside the bar, so a one-day bar can still show a long name:
 
 A bar is drawn only on the days the task actually occupies: it breaks over weekends,
 holidays and any day you untick in **Schedule**, so its painted length matches the day
-count in the grid. (Below about 8px per day the gaps would read as noise, so at `3 months`
+count in the grid. The chart background stays one flat colour — non-working days are shown by the
+gaps in the bars, not by shading whole columns, which turns a long plan into stripes. (Below about 8px per day the gaps would read as noise, so at `3 months`
 and wider zooms the bar is drawn solid.)
 
 ## Room for the chart
