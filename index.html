@@ -302,6 +302,7 @@
   <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
   <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 15v5h-5M15 4h5v5M9 20H4v-5"/></symbol>
   <symbol id="i-shrink" viewBox="0 0 24 24"><path d="M9 4v5H4M15 20v-5h5M20 9h-5V4M4 15h5v5"/></symbol>
+  <symbol id="i-milestone" viewBox="0 0 24 24"><path d="M12 4l8 8-8 8-8-8z"/></symbol>
   <symbol id="i-phase" viewBox="0 0 24 24"><path d="M4 5h16M7 10h13M7 15h9M4 5v14"/></symbol>
   <symbol id="i-paint" viewBox="0 0 24 24"><path d="M4 20h16M6 16l6-11 6 11z"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></symbol>
@@ -334,6 +335,8 @@
     <button class="btn" onclick="addTask()"><svg class="icon"><use href="#i-plus"/></svg>Add task</button>
     <button class="btn" onclick="addPhase()" title="Add a phase with a first subtask under it">
       <svg class="icon"><use href="#i-phase"/></svg>Add phase</button>
+    <button class="btn" onclick="addMilestone()" title="Add a zero-day marker, drawn as a diamond">
+      <svg class="icon"><use href="#i-milestone"/></svg>Add milestone</button>
     <button class="btn icon-only" onclick="delTask()" title="Delete row" aria-label="Delete row">
       <svg class="icon"><use href="#i-trash"/></svg></button>
   </div>
@@ -493,7 +496,7 @@ applyTheme();
    Kept in localStorage, never in the plan, so changing the view is not an edit. ---- */
 const SPANS = { day: { days: 1, label: 'Day' }, week: { days: 7, label: 'Week' },
                 month: { days: 30, label: 'Month' }, quarter: { days: 91, label: '3 months' },
-                all: { days: 0, label: 'All' } };
+                year: { days: 365, label: '12 months' }, all: { days: 0, label: 'All' } };
 let view = (() => {
   try { const v = JSON.parse(localStorage.getItem('view')); if (v && SPANS[v.span]) return v; } catch (e) { }
   return { span: 'month', anchor: null };
@@ -669,6 +672,18 @@ function addPhase() {
   sel = at; render();
   document.getElementById('r' + sel)?.querySelector('.name input')?.select();
 }
+// A milestone is simply a task of zero days; the chart draws those as a diamond.
+function addMilestone() {
+  snapshot();
+  const at = proj().tasks.length ? sel + 1 + descendants(sel).length : 0;
+  proj().tasks.splice(at, 0, {
+    id: proj().nextId++, name: 'New milestone', duration: 0,
+    level: proj().tasks.length ? (Number(proj().tasks[sel].level) || 1) : 1, preds: [], pct: 0,
+  });
+  sel = at; render();
+  document.getElementById('r' + sel)?.querySelector('.name input')?.select();
+}
+
 function delTask() {
   const t = proj().tasks[sel];
   if (!t) return;
@@ -1028,19 +1043,15 @@ function drawGantt(hidden) {
         const x = s * dw, w = Math.max(2, (e - s) * dw - 3);
         const tip = esc(t.name) + ' — ' + fd(t.startDate) + ' to ' + fd(t.finishDate) + (pct ? ' · ' + pct + '%' : '');
         const c = `--c:${resolvedColor(i)}`;
-        // Put the name after the bar when there's room, before it when the bar runs to
-        // the right edge, and let CSS clip with an ellipsis when neither side is roomy.
-        // The bar's own width never limits the label, which is the point.
-        const barEnd = (Number(t.duration) === 0 ? s * dw + 18 : e * dw);
-        const after = W - barEnd - 10, before = s * dw - 10;
         const text = esc(t.name) + (pct ? ' · ' + pct + '%' : '');
-        const label = (after >= 70)
-          ? `<span class="lbl" style="left:${barEnd + 8}px;max-width:${after}px" title="${tip}">${text}</span>`
-          : before >= 70
-            ? `<span class="lbl before" style="left:0;width:${before}px" title="${tip}">${text}</span>`
-            : `<span class="lbl over" style="left:${s * dw + 6}px;max-width:${Math.max(40, (e - s) * dw - 12)}px" title="${tip}">${text}</span>`;
-        if (kids[i].length) inner = `<div class="sumbar" style="left:${x}px;width:${w}px;${c}" title="${tip}"></div>` + label;
-        else if (Number(t.duration) === 0) inner = `<div class="ms" style="left:${x}px;${c}" title="${tip}"></div>` + label;
+        const summary = kids[i].length > 0, milestone = !summary && Number(t.duration) === 0;
+
+        // Draw the shape first and remember where it really ends, so the label hugs the
+        // last thing drawn rather than the end of the calendar span (which, for a bar
+        // split by a weekend, sits a gap away from the last segment).
+        let shape = '', drawnEnd;
+        if (summary) { shape = `<div class="sumbar" style="left:${x}px;width:${w}px;${c}" title="${tip}"></div>`; drawnEnd = x + w; }
+        else if (milestone) { shape = `<div class="ms" style="left:${x}px;${c}" title="${tip}"></div>`; drawnEnd = x + 16; }
         else {
           // One segment per run of working days, so a bar covers exactly the days it is
           // scheduled for and leaves weekends and holidays empty. Below ~8px a day the
@@ -1048,13 +1059,24 @@ function drawGantt(hidden) {
           const runs = workRuns(from, s, e, n, dw >= 8);
           const total = runs.reduce((a, r) => a + (r.b - r.a), 0) || 1;
           let left = Math.round(total * pct / 100);
-          inner = runs.map(r => {
+          shape = runs.map(r => {
             const len = r.b - r.a, filled = Math.max(0, Math.min(len, left));
             left -= filled;
             return `<div class="bar" style="left:${r.a * dw}px;width:${Math.max(2, len * dw - 3)}px;${c}" title="${tip}">` +
               `<div class="done" style="width:${(filled / len * 100).toFixed(2)}%"></div></div>`;
-          }).join('') + label;
+          }).join('');
+          drawnEnd = runs.length ? runs[runs.length - 1].b * dw : x + w;
         }
+
+        // After the shape when there's room, before it when it runs to the right edge,
+        // and on it only when neither side has any.
+        const after = W - drawnEnd - 10, before = x - 10;
+        const label = (after >= 70)
+          ? `<span class="lbl" style="left:${drawnEnd + 8}px;max-width:${after}px" title="${tip}">${text}</span>`
+          : before >= 70
+            ? `<span class="lbl before" style="left:0;width:${before}px" title="${tip}">${text}</span>`
+            : `<span class="lbl over" style="left:${x + 6}px;max-width:${Math.max(40, drawnEnd - x - 12)}px" title="${tip}">${text}</span>`;
+        inner = shape + label;
       }
     }
     rows += `<div class="gantt-row ${i === sel ? 'sel' : ''}" id="g${i}" style="width:${W}px" onclick="sel=${i};hl()">${inner}</div>`;
@@ -1231,15 +1253,33 @@ async function exportXLSX() {
   ).toString(16).padStart(2, '0')).join('').toUpperCase();
 
   const wb = new ExcelJS.Workbook();
-  const ws2 = wb.addWorksheet('Gantt', { views: [{ state: 'frozen', xSplit: FIELDS, ySplit: 1 }] });
+  const ws2 = wb.addWorksheet('Gantt', { views: [{ state: 'frozen', xSplit: FIELDS, ySplit: 2 }] });
   ws2.columns = [{ width: 8 }, { width: 5 }, { width: 32 }, { width: 14 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 11 },
   ...Array.from({ length: days }, () => ({ width: 3 }))];
 
   const rows = tableRows();
+  // Two header rows: a merged band naming each month, then the day numbers. A month name
+  // written into a 3-character day column just gets clipped, which is what it used to do.
+  const months = ws2.addRow([...rows[0].map(() => ''), ...Array.from({ length: days }, () => '')]);
   const head = ws2.addRow([...rows[0], ...Array.from({ length: days }, (_, i) => {
     const d = new Date(from); d.setDate(d.getDate() + i);
-    return d.getDate() === 1 || i === 0 ? d.toLocaleString('en', { month: 'short' }) + ' ' + d.getDate() : d.getDate();
+    return d.getDate();
   })]);
+  for (let i = 0, runStart = 0; i <= days; i++) {
+    const d = new Date(from); d.setDate(d.getDate() + i);
+    const last = i === days;
+    if (!last && i !== 0 && d.getDate() !== 1) continue;
+    if (i > runStart || last) {
+      const a = new Date(from); a.setDate(a.getDate() + runStart);
+      const cell = months.getCell(FIELDS + 1 + runStart);
+      cell.value = a.toLocaleString('en', { month: 'long', year: 'numeric' });
+      cell.alignment = { horizontal: 'center' };
+      const end = (last ? days : i) - 1;
+      if (end > runStart) ws2.mergeCells(1, FIELDS + 1 + runStart, 1, FIELDS + 1 + end);
+    }
+    runStart = i;
+  }
+  months.font = { bold: true };
   head.font = { bold: true };
   head.alignment = { horizontal: 'center' };
 
@@ -1260,7 +1300,7 @@ async function exportXLSX() {
       else if (!isWorkday(d, cal())) c.fill = fill('FFF2F2F2');
     }
   });
-  ws2.autoFilter = { from: { row: 1, column: 1 }, to: { row: proj().tasks.length + 1, column: FIELDS } };
+  ws2.autoFilter = { from: { row: 2, column: 1 }, to: { row: proj().tasks.length + 2, column: FIELDS } };
 
   const buf = await wb.xlsx.writeBuffer();
   download(fileName('.xlsx'), buf, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

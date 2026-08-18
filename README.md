@@ -204,6 +204,8 @@ MS Project as working exceptions, so it schedules them the same way.
 
 ## Phases and colours
 
+**Add milestone** drops in a zero-day marker, drawn as a diamond.
+
 **Add phase** creates a summary row with a first subtask already under it — the quickest
 way to give a plan structure. (A phase is just a task with children; **Indent** on
 existing rows does the same thing by hand.)
@@ -218,7 +220,8 @@ same colours.
 Each bar is labelled with its task name and, once you set one, its percentage. The label
 never lives inside the bar, so a one-day bar can still show a long name:
 
-- normally the name sits **after** the bar,
+- normally the name sits **after** the bar — right after the last drawn segment, not
+  after the calendar span, so a bar split by a weekend has no gap before its label,
 - if the bar runs to the right edge, the name moves **before** it,
 - if the bar fills the pane (usually in `Day` view) the name rides **on** it in a chip,
   so it stays on a readable background rather than on the bar colour,
@@ -243,8 +246,9 @@ button in the corner comes back.
 
 ## Timeline focus
 
-The **Day / Week / Month / 3 months / All** buttons set how much calendar the Gantt shows
-at once. A chosen range is scaled to fit the pane exactly, so there's nothing to scroll —
+The **Day / Week / Month / 3 months / 12 months / All** buttons set how much calendar the
+Gantt shows at once. `12 months` fits a year into the pane, which turns the header into a
+month-by-month view of a long plan. A chosen range is scaled to fit the pane exactly, so there's nothing to scroll —
 pick `Week` and you get one wide week, pick `3 months` and the quarter is squeezed in.
 `All` goes back to the whole plan at a fixed day width, scrolling sideways.
 
@@ -369,7 +373,7 @@ Back it up by copying `project.json`, or from the app with **File > Save project
 | Button | File | Chart included? | Opens in |
 |---|---|---|---|
 | Export > MS Project XML | MSPDI XML | yes, MS Project draws its own Gantt from the dates | MS Project (File > Open), ProjectLibre |
-| Export > Excel with Gantt | Excel workbook | yes, Gantt bars as coloured day cells next to the task columns | Excel, Google Sheets |
+| Export > Excel with Gantt | Excel workbook | yes, Gantt bars as coloured day cells, under a merged month band | Excel, Google Sheets |
 | Export > PDF / print | print dialog | yes, exactly what's on screen | anything |
 | Export > CSV | CSV | no, data only | anything |
 | File > Save project | app's own format | n/a | this app (**File > Open project**) |
