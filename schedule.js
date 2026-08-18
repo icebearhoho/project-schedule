@@ -329,9 +329,27 @@ const HEADINGS = {
   duration: /(duration|^days$|^dur\b)/i,
   start: /^start/i,
   finish: /^(finish|end)/i,
-  preds: /(predecessor|^pred|depends)/i,
+  preds: /(predecessor|^pred|depend)/i,
+  linkType: /^(type|link ?type|relationship)$/i,   // some sheets keep FS/SS in its own column
+  phase: /^(phase|group|stage|workstream)$/i,      // ... and group their rows under a heading
   pct: /(%|percent|progress|complete)/i,
 };
+
+// Sheets write dates every which way. Accept ISO, d/m/y and real date cells; anything
+// else is left alone and reported rather than guessed at.
+function readDate(v) {
+  if (v instanceof Date) return fmtDate(v);
+  const s = String(v || '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/); // d/m/y, the common non-US form
+  if (m && +m[2] >= 1 && +m[2] <= 12 && +m[1] >= 1 && +m[1] <= 31) {
+    return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+  }
+  return '';
+}
+
+// "#4" and "4.0" both mean task 4 as far as a link is concerned.
+const idKey = v => String(v || '').trim().replace(/^#/, '').replace(/\.0+$/, '');
 
 const cellText = v => (v === null || v === undefined) ? ''
   : (v instanceof Date) ? fmtDate(v)
@@ -357,9 +375,9 @@ function tasksFromRows(rows, cal) {
   if (!body.length) throw new Error('The sheet has headings but no task rows.');
 
   const idMap = new Map();           // whatever the file called a task -> the id we give it
-  const tasks = body.map((r, i) => {
+  let tasks = body.map((r, i) => {
     const id = i + 1;
-    const oldId = at(r, 'id');
+    const oldId = idKey(at(r, 'id'));
     idMap.set(oldId || String(i + 1), id);
     if (!oldId) idMap.set(String(i + 1), id);
 
@@ -373,26 +391,43 @@ function tasksFromRows(rows, cal) {
     const durText = at(r, 'duration');
     const duration = durText === '' ? null : Math.max(0, parseFloat(durText.replace(/[^\d.\-]/g, '')) || 0);
     const pctText = at(r, 'pct');
-    const startText = at(r, 'start'), finishText = at(r, 'finish');
-    const isDate = v => /^\d{4}-\d{2}-\d{2}$/.test(v);
+    const startText = col.start === undefined ? '' : r[col.start];
+    const finishText = col.finish === undefined ? '' : r[col.finish];
+    // A link type held in its own column applies to every link on that row.
+    const rowType = (at(r, 'linkType').match(/\b(FS|SS|FF|SF)\b/i) || [])[1];
 
     return {
       id, name: rawName.trim(), level: Math.max(1, level),
       duration, pct: pctText === '' ? 0 : Math.min(100, Math.max(0, parseFloat(pctText.replace(/[^\d.\-]/g, '')) || 0)),
       preds: at(r, 'preds').split(/[,;]+/).map(x => x.trim()).filter(Boolean),
-      _start: isDate(startText) ? startText : '', _finish: isDate(finishText) ? finishText : '',
-      _rawStart: startText, _rawFinish: finishText,
+      _type: rowType ? rowType.toUpperCase() : '', _phase: at(r, 'phase'),
+      _start: readDate(startText), _finish: readDate(finishText),
+      _rawStart: String(startText || '').trim(), _rawFinish: String(finishText || '').trim(),
     };
   });
 
   let guessedDuration = 0, droppedLinks = 0, unreadDates = 0;
   tasks.forEach(t => {
     // Links are rewritten to the new ids; a link to something not in the file is dropped.
-    t.preds = t.preds.map(p => {
-      const link = parsePred(p);
-      if (!link || !idMap.has(String(link.id))) { droppedLinks++; return null; }
-      return fmtPred({ ...link, id: idMap.get(String(link.id)) });
-    }).filter(Boolean);
+    const one = tok => {
+      const clean = idKey(tok);
+      const key = clean.replace(/(FS|SS|FF|SF).*$/i, '').replace(/[+-]\d+\s*$/, '').trim();
+      if (!idMap.has(key)) return null;
+      const link = parsePred(clean) || { id: 0, type: 'FS', lag: 0 };
+      // An explicit type on the token wins; otherwise the row's Type column applies.
+      return fmtPred({ ...link, id: idMap.get(key), type: link.type !== 'FS' ? link.type : (t._type || 'FS') });
+    };
+    t.preds = t.preds.flatMap(tok => {
+      const whole = one(tok);            // "4", "#4", "4.0", "200FS+2"
+      if (whole) return [whole];
+      if (tok.includes('+')) {           // "part 1 + part 2" is a list, not a lag
+        const parts = tok.split('+').map(x => one(x.trim())).filter(Boolean);
+        if (parts.length) return parts;
+      }
+      // "(project start)" and other prose are not dropped links, they are just not links.
+      if (/\d/.test(tok)) droppedLinks++;
+      return [];
+    });
 
     if (t.duration === null) {
       if (t._start && t._finish) {
@@ -403,12 +438,31 @@ function tasksFromRows(rows, cal) {
     // Only tasks with nothing driving them keep their date, or the links would be pointless.
     if (t._start && !t.preds.length) t.start = t._start;
     else if (t._rawStart && !t._start) unreadDates++;
-    delete t._start; delete t._finish; delete t._rawStart; delete t._rawFinish;
+    delete t._start; delete t._finish; delete t._rawStart; delete t._rawFinish; delete t._type;
   });
 
+  // A Phase/Group column becomes real summary rows, so the outline matches the sheet.
+  let grouped = tasks;
+  const phases = tasks.map(t => t._phase || '');
+  if (col.phase !== undefined && col.wbs === undefined && phases.some(Boolean)) {
+    let nextId = tasks.length + 1;
+    grouped = [];
+    let current = null;
+    tasks.forEach((t, i) => {
+      if (phases[i] && phases[i] !== current) {
+        current = phases[i];
+        grouped.push({ id: nextId++, name: current, duration: 0, level: 1, preds: [], pct: 0 });
+      }
+      grouped.push({ ...t, level: current ? t.level + 1 : t.level });
+    });
+    notes.push('Grouped the tasks under ' + grouped.filter(t => t.level === 1).length + ' phase heading(s) from the Phase column.');
+  }
+  grouped.forEach(t => delete t._phase);
+
   // A row with subtasks is a summary here, so its own duration is ignored anyway.
-  const kids = childrenOf(tasks);
-  tasks.forEach((t, i) => { if (kids[i].length) { t.duration = 0; t.preds = []; } });
+  const kids = childrenOf(grouped);
+  grouped.forEach((t, i) => { if (kids[i].length) { t.duration = 0; t.preds = []; } });
+  tasks = grouped;
 
   if (guessedDuration) notes.push(guessedDuration + ' task(s) had no duration, so it was worked out from their start and finish dates.');
   if (droppedLinks) notes.push(droppedLinks + ' predecessor reference(s) pointed outside the file and were dropped.');

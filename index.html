@@ -1284,13 +1284,13 @@ function save() { download(fileName('.json'), JSON.stringify(strip(ws).projects[
 
 // Reads a spreadsheet into a NEW project, so an import can never damage what's open.
 // Excel needs the same library the export uses; CSV is read here directly.
-async function importSheet(input) {
+async function importSheet(input, wantedSheet) {
   const f = input.files[0];
   input.value = '';
   if (!f) return;
   banner('err', ''); banner('warn', 'Reading ' + f.name + '…');
   try {
-    let rows;
+    let rows, sheetUsed = '';
     if (/\.csv$/i.test(f.name)) {
       rows = parseCsv(await f.text());
     } else {
@@ -1302,15 +1302,33 @@ async function importSheet(input) {
       });
       const wb = new ExcelJS.Workbook();
       await wb.xlsx.load(await f.arrayBuffer());
-      const sheet = wb.worksheets[0];
-      if (!sheet) throw new Error('That workbook has no sheets.');
-      rows = [];
-      sheet.eachRow({ includeEmpty: false }, row => rows.push((row.values || []).slice(1)));
+      if (!wb.worksheets.length) throw new Error('That workbook has no sheets.');
+
+      const readSheet = sh => { const out = []; sh.eachRow({ includeEmpty: false }, r => out.push((r.values || []).slice(1))); return out; };
+      // Workbooks usually hold notes and lookups beside the plan, so only offer the
+      // sheets that actually parse as a task list, and say how many tasks each holds.
+      const candidates = wb.worksheets.map(sh => {
+        const r = readSheet(sh);
+        try { return { name: sh.name, rows: r, count: tasksFromRows(r, cal()).tasks.length }; }
+        catch (e) { return { name: sh.name, rows: r, count: 0 }; }
+      }).filter(c => c.count > 0);
+      if (!candidates.length) throw new Error('No sheet in that workbook looks like a task list.');
+
+      let chosen = wantedSheet ? candidates.find(c => c.name === wantedSheet) : null;
+      if (!chosen && candidates.length === 1) chosen = candidates[0];
+      if (!chosen) {
+        const menu = candidates.map((c, i) => (i + 1) + ') ' + c.name + ' — ' + c.count + ' tasks').join('\n');
+        const pickIdx = prompt('This workbook has more than one task list.\nWhich sheet should be imported?\n\n' + menu, '1');
+        if (pickIdx === null) { banner('warn', ''); return; }
+        chosen = candidates[Math.min(candidates.length, Math.max(1, parseInt(pickIdx, 10) || 1)) - 1];
+      }
+      sheetUsed = chosen.name;
+      rows = chosen.rows;
     }
 
     const { tasks, notes } = tasksFromRows(rows, cal());
     snapshot();
-    const p = blank(f.name.replace(/\.[^.]+$/, ''));
+    const p = blank(sheetUsed || f.name.replace(/\.[^.]+$/, ''));
     // A spreadsheet carries no working calendar, so inherit the one you are looking at —
     // otherwise the same durations would land on different dates.
     p.calendar = JSON.parse(JSON.stringify(cal()));
@@ -1320,7 +1338,8 @@ async function importSheet(input) {
     ws.projects.push(p);
     cur = ws.projects.length - 1; sel = 0;
     render();
-    banner('warn', ['Imported ' + tasks.length + ' task(s) from ' + f.name + ' as a new project.',
+    banner('warn', ['Imported ' + tasks.length + ' task(s) from ' + f.name +
+      (sheetUsed ? ' (sheet "' + sheetUsed + '")' : '') + ' as a new project.',
       ...notes, 'It uses this project’s working calendar. Check it, then use File > Combine to fold it into another plan.'].join(' '));
   } catch (e) {
     banner('warn', '');
