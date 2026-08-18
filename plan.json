@@ -1,5 +1,5 @@
 {
-  "rev": 8,
+  "rev": 9,
   "data": {
     "projects": [
       {
@@ -13,7 +13,21 @@
             4,
             5
           ],
-          "holidays": []
+          "holidays": [
+            "2027-01-01",
+            "2027-02-06",
+            "2027-02-07",
+            "2027-02-08",
+            "2027-03-09",
+            "2027-03-26",
+            "2027-05-01",
+            "2027-05-17",
+            "2027-05-20",
+            "2027-08-09",
+            "2027-10-28",
+            "2027-12-25"
+          ],
+          "extra": []
         },
         "tasks": [
           {
@@ -86,7 +100,7 @@
           {
             "id": 3,
             "name": "Gội đầu",
-            "duration": 1,
+            "duration": 336,
             "level": 1,
             "preds": [
               "2"
@@ -239,7 +253,8 @@
             4,
             5
           ],
-          "holidays": []
+          "holidays": [],
+          "extra": []
         },
         "tasks": [
           {
@@ -315,7 +330,8 @@
             4,
             5
           ],
-          "holidays": []
+          "holidays": [],
+          "extra": []
         },
         "tasks": [
           {
@@ -381,7 +397,8 @@
             4,
             5
           ],
-          "holidays": []
+          "holidays": [],
+          "extra": []
         },
         "tasks": [
           {
@@ -450,7 +467,7 @@
             "level": 1,
             "preds": [],
             "pct": 0,
-            "collapsed": true
+            "collapsed": false
           },
           {
             "id": 7,
@@ -468,7 +485,7 @@
             "level": 1,
             "preds": [],
             "pct": 0,
-            "collapsed": true
+            "collapsed": false
           },
           {
             "id": 11,
@@ -520,9 +537,369 @@
           }
         ],
         "nextId": 17
+      },
+      {
+        "pid": "pmsyd5ptf0e8t",
+        "name": "Project 5",
+        "start": "2026-08-18",
+        "calendar": {
+          "workdays": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "holidays": [],
+          "extra": []
+        },
+        "tasks": [
+          {
+            "id": 1,
+            "name": "Task 1",
+            "duration": 5,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          }
+        ],
+        "nextId": 2
+      },
+      {
+        "pid": "p-task-overview",
+        "name": "Task overview (imported)",
+        "start": "2026-08-14",
+        "calendar": {
+          "workdays": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "holidays": [],
+          "extra": []
+        },
+        "tasks": [
+          {
+            "id": 28,
+            "name": "P1: Initiation",
+            "duration": 0,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 1,
+            "name": "Inception Project Management Plan",
+            "level": 2,
+            "duration": 5,
+            "pct": 0,
+            "preds": [],
+            "start": "2026-08-14"
+          },
+          {
+            "id": 2,
+            "name": "System Topology & Cloud Infrastructure",
+            "level": 2,
+            "duration": 4,
+            "pct": 0,
+            "preds": [],
+            "start": "2026-08-14"
+          },
+          {
+            "id": 3,
+            "name": "Kick-off meeting",
+            "level": 2,
+            "duration": 1,
+            "pct": 0,
+            "preds": [
+              "1",
+              "2"
+            ]
+          },
+          {
+            "id": 29,
+            "name": "P2: Planning",
+            "duration": 0,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 4,
+            "name": "Requirements Gathering",
+            "level": 2,
+            "duration": 10,
+            "pct": 0,
+            "preds": [
+              "3"
+            ]
+          },
+          {
+            "id": 5,
+            "name": "UX/UI Design (Wireframes)",
+            "level": 2,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "4SS"
+            ]
+          },
+          {
+            "id": 6,
+            "name": "Certificate & Logo Design",
+            "level": 2,
+            "duration": 2,
+            "pct": 0,
+            "preds": [
+              "4SS"
+            ]
+          },
+          {
+            "id": 7,
+            "name": "Data Migration Planning",
+            "level": 2,
+            "duration": 10,
+            "pct": 0,
+            "preds": [
+              "4SS"
+            ]
+          },
+          {
+            "id": 8,
+            "name": "Master Acceptance Test Plan",
+            "level": 2,
+            "duration": 10,
+            "pct": 0,
+            "preds": [
+              "4"
+            ]
+          },
+          {
+            "id": 9,
+            "name": "IT Security Operation Plan",
+            "level": 2,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "4SS"
+            ]
+          },
+          {
+            "id": 10,
+            "name": "Exit Management Plan",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "4SS"
+            ]
+          },
+          {
+            "id": 30,
+            "name": "P3: Execution",
+            "duration": 0,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 11,
+            "name": "Sprint 1: Architecture & Security Baseline",
+            "level": 2,
+            "duration": 20,
+            "pct": 0,
+            "preds": [
+              "8"
+            ]
+          },
+          {
+            "id": 12,
+            "name": "Sprint 2: Core Development",
+            "level": 2,
+            "duration": 20,
+            "pct": 0,
+            "preds": [
+              "11"
+            ]
+          },
+          {
+            "id": 13,
+            "name": "Sprint 3: Integration & ETL",
+            "level": 2,
+            "duration": 20,
+            "pct": 0,
+            "preds": [
+              "12"
+            ]
+          },
+          {
+            "id": 14,
+            "name": "Sprint 4: Security Hardening & System Testing",
+            "level": 2,
+            "duration": 20,
+            "pct": 0,
+            "preds": [
+              "13"
+            ]
+          },
+          {
+            "id": 31,
+            "name": "P4: Testing",
+            "duration": 0,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 15,
+            "name": "Contractor completes system testing & submits Test Report",
+            "level": 2,
+            "duration": 8,
+            "pct": 0,
+            "preds": [
+              "14"
+            ]
+          },
+          {
+            "id": 16,
+            "name": "UAT Preparation Package (Plan, Updated MATP, Authority Briefing)",
+            "level": 2,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "15SS"
+            ]
+          },
+          {
+            "id": 17,
+            "name": "Authority review & approval of System Test Report",
+            "level": 2,
+            "duration": 10,
+            "pct": 0,
+            "preds": [
+              "15"
+            ]
+          },
+          {
+            "id": 18,
+            "name": "UAT Round 1 + on-site support + fix",
+            "level": 2,
+            "duration": 10,
+            "pct": 0,
+            "preds": [
+              "16",
+              "17"
+            ]
+          },
+          {
+            "id": 19,
+            "name": "UAT Round 2 + fix",
+            "level": 2,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "18"
+            ]
+          },
+          {
+            "id": 20,
+            "name": "UAT Round 3 (contingency) + fix",
+            "level": 2,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "19"
+            ]
+          },
+          {
+            "id": 21,
+            "name": "UAT Report",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "19"
+            ]
+          },
+          {
+            "id": 22,
+            "name": "Non-Functional & Migration Testing (RPO/RTO, SSAT)",
+            "level": 2,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "17SS"
+            ]
+          },
+          {
+            "id": 32,
+            "name": "P5: Closure",
+            "duration": 0,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 23,
+            "name": "Submit Backup & Recovery Plan",
+            "level": 2,
+            "duration": 30,
+            "pct": 0,
+            "preds": [
+              "22"
+            ]
+          },
+          {
+            "id": 24,
+            "name": "Submit VAPT report + re-scan",
+            "level": 2,
+            "duration": 14,
+            "pct": 0,
+            "preds": [
+              "22"
+            ]
+          },
+          {
+            "id": 25,
+            "name": "Submit Deployment Plan + Incident/Support templates",
+            "level": 2,
+            "duration": 14,
+            "pct": 0,
+            "preds": [
+              "17"
+            ]
+          },
+          {
+            "id": 26,
+            "name": "Final production data migration",
+            "level": 2,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "21",
+              "22"
+            ]
+          },
+          {
+            "id": 27,
+            "name": "Go-live",
+            "level": 2,
+            "duration": 1,
+            "pct": 0,
+            "preds": [
+              "23",
+              "24",
+              "25",
+              "26"
+            ]
+          }
+        ],
+        "nextId": 33
       }
     ],
-    "nextPid": 5
+    "nextPid": 6
   },
-  "at": "2026-08-17T03:53:26.327Z"
+  "at": "2026-08-18T07:51:20.946Z"
 }
