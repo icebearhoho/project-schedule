@@ -204,10 +204,9 @@ MS Project as working exceptions, so it schedules them the same way.
 
 ## Phases and colours
 
-**Add milestone** drops in a zero-day marker. Milestones appear twice: as a flag on their
-own row, and — more usefully — as a **flag standing on the timeline** above the date
-header, with the name and date beside it and a stem down to the axis, the way a summary
-slide shows key dates. Labels are packed into lanes so they never overlap, and clicking
+**Add milestone** drops in a zero-day marker. Milestones appear as a **flag standing on the timeline**
+above the date header, with the name and date beside it and a stem down to the axis, the
+way a summary slide shows key dates — and nothing in the chart body. Labels are packed into lanes so they never overlap, and clicking
 one selects that task in the grid. The band disappears when a plan has no milestones.
 
 **Add phase** creates a summary row with a first subtask already under it — the quickest
@@ -221,16 +220,23 @@ both the light and the dark background, and the completed part of each bar is de
 from the bar's own colour — darker on light, lighter on dark. The Excel export uses the
 same colours.
 
-Each bar is labelled with its task name and, once you set one, its percentage. The label
-never lives inside the bar, so a one-day bar can still show a long name:
+Each row shows the **task name to the left of its bar and the dates to the right**
+(`Aug 14 – Aug 20`, with the percentage appended once you set one). Where a bar starts too
+close to the left edge for the name to fit, both move to the right of the bar, name first,
+so every row reads the same way. Neither label is limited by the bar's own width, so a
+one-day bar still shows a long name:
 
-- normally the name sits **after** the bar — right after the last drawn segment, not
-  after the calendar span, so a bar split by a weekend has no gap before its label,
-- if the bar runs to the right edge, the name moves **before** it,
-- if the bar fills the pane (usually in `Day` view) the name rides **on** it in a chip,
-  so it stays on a readable background rather than on the bar colour,
+- labels attach to the last drawn bar segment, not to the end of the calendar span, so a
+  bar split by a weekend has no gap before its label,
+- each label is sized to its own text, so a name never sits under its dates,
 - when there is genuinely no room, the text is cut with an ellipsis and the tooltip
   carries the full name, dates and percentage.
+
+**Phases and milestones stay out of the chart body.** A phase is shown by washing its
+rows in its own colour — pick per-phase colours from **Colour** and each becomes a band
+across the chart — and milestones appear only as flags on the timeline. Rows carry no
+dividing lines; the grid beside them already marks the rows out. The two panes scroll
+together vertically, so row 5 in the table is always beside bar 5 in the chart.
 
 A bar is drawn only on the days the task actually occupies: it breaks over weekends,
 holidays and any day you untick in **Schedule**, so its painted length matches the day

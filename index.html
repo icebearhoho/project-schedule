@@ -173,8 +173,11 @@
   /* ---- grid ---- */
   table { border-collapse: separate; border-spacing: 0; width: max-content; }
   th, td { height: var(--row); padding: 0; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
-  th { position: sticky; top: 0; z-index: 3; padding: 0 8px; background: var(--sunken); color: var(--muted);
+  th { position: sticky; top: var(--bandh, 0px); z-index: 3; padding: 0 8px; background: var(--sunken); color: var(--muted);
        font-size: 12px; font-weight: 650; text-align: left; border-bottom: 1px solid var(--line); }
+  /* Keeps the grid's header exactly as tall as the chart's, so row 5 in the table is
+     always beside bar 5 in the chart, scrolled or not. */
+  tr.hspacer th { top: 0; height: var(--bandh, 0px); padding: 0; border: 0; }
   th.n, td.n { text-align: right; }
   td { color: var(--text); }
   td.ro { padding: 0 8px; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -229,24 +232,16 @@
                  font-weight: 650; line-height: 20px; border-right: 1px solid var(--line); overflow: hidden; }
   .gdays div { flex: 0 0 auto; height: calc(var(--row) - 20px); color: var(--faint); font-size: 10px;
                line-height: 12px; text-align: center; }
-  .gantt-row { position: relative; height: var(--row); border-bottom: 1px solid var(--line-soft); overflow: hidden; }
-  .gantt-row:hover { background: var(--sunken); }
+  /* Each row carries its phase colour as a wash, so a phase reads as a band across the
+     chart. No dividing lines: the grid beside it already gives the eye its rows. */
+  .gantt-row { position: relative; height: var(--row); overflow: hidden;
+               background: color-mix(in srgb, var(--rowc, var(--surface)), var(--surface) 92%); }
+  .gantt-row:hover { background: color-mix(in srgb, var(--rowc, var(--sunken)), var(--sunken) 75%); }
   .gantt-row.sel { background: var(--accent-soft); }
   .today { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--danger); opacity: .55; }
   /* --c is set per bar from the task's colour; everything else is derived from it. */
   .bar { position: absolute; top: 6px; height: 18px; border-radius: 4px; background: var(--c, var(--bar)); overflow: hidden; }
   .bar .done { height: 100%; background: color-mix(in srgb, var(--c, var(--bar)), var(--shade) var(--shade-pct)); }
-  .sumbar { position: absolute; top: 11px; height: 7px; border-radius: 2px;
-            background: color-mix(in srgb, var(--c, var(--bar)), var(--bar-summary) 60%); }
-  .sumbar::before, .sumbar::after { content: ''; position: absolute; top: 6px; border: 5px solid transparent;
-                                    border-top-color: color-mix(in srgb, var(--c, var(--bar)), var(--bar-summary) 60%); }
-  .sumbar::before { left: 0; } .sumbar::after { right: 0; }
-  /* milestone: a flag, so a zero-day marker reads as an event rather than a tiny bar */
-  .ms { position: absolute; top: 5px; left: 0; width: 2px; height: 21px; border-radius: 1px;
-        background: color-mix(in srgb, var(--c, var(--bar)), var(--shade) 25%); }
-  .ms::after { content: ''; position: absolute; left: 2px; top: 0;
-               border-top: 5px solid transparent; border-bottom: 5px solid transparent;
-               border-left: 11px solid color-mix(in srgb, var(--c, var(--bar)), var(--shade) 25%); }
   /* colour picker */
   .swatches { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px; }
   .swatches button { width: 34px; height: 34px; min-height: 34px; padding: 0; border: 2px solid transparent;
@@ -259,7 +254,9 @@
      name and the text always has the row background behind it. */
   .lbl { position: absolute; top: 6px; height: 18px; line-height: 18px; font-size: 12px;
          color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lbl.before, .lbl.name { font-weight: 550; }
   .lbl.before { text-align: right; }
+  .lbl.dates { color: var(--faint); }
   /* last resort: the bar fills the pane, so the name rides on top of it in a chip that
      keeps the text on a surface-coloured background rather than on the bar colour */
   .lbl.over { color: var(--text); background: color-mix(in srgb, var(--surface), transparent 10%);
@@ -911,7 +908,7 @@ function render() {
   const hidden = hiddenRows();
   const cell = (i, f, v, cls, ph) => `<td class="${cls || ''}"><input value="${esc(v ?? '')}"
       placeholder="${ph || ''}" aria-label="${f}" onchange="edit(${i},'${f}',this.value)" onfocus="sel=${i};hl()"></td>`;
-  let h = `<thead><tr><th>WBS</th><th class="n">ID</th><th class="tname">Task name</th><th class="n">Days</th>
+  let h = `<thead><tr class="hspacer"><th colspan="8"></th></tr><tr><th>WBS</th><th class="n">ID</th><th class="tname">Task name</th><th class="n">Days</th>
       <th>Start</th><th>Finish</th>
       <th title="Predecessor. 3 = finish-to-start. Also 3FS, 3SS, 3FF, 3SF, with lag in working days: 3SS+2, 3FF-1. Separate several with commas.">Pred</th>
       <th class="n">%</th></tr></thead><tbody>`;
@@ -1082,7 +1079,10 @@ function drawGantt(hidden) {
   proj().tasks.forEach((t, i) => {
     if (hidden.has(i)) return;
     let inner = '';
-    if (t.startDate instanceof Date) {
+    const isSummary = kids[i].length > 0, isMilestone = !isSummary && Number(t.duration) === 0;
+    // Phases are shown by the row wash and milestones by the flags on the timeline, so
+    // neither draws anything of its own down here.
+    if (t.startDate instanceof Date && !isSummary && !isMilestone) {
       const s = dayIdx(from, t.startDate), e = s + Math.max(1, dayIdx(t.startDate, t.endExclusive));
       if (e <= 0) inner = `<span class="offscreen left" title="${esc(t.name)} ended ${fd(t.finishDate)}">` +
         `<svg class="icon"><use href="#i-left"/></svg></span>`;
@@ -1093,48 +1093,47 @@ function drawGantt(hidden) {
         const x = s * dw, w = Math.max(2, (e - s) * dw - 3);
         const tip = esc(t.name) + ' — ' + fd(t.startDate) + ' to ' + fd(t.finishDate) + (pct ? ' · ' + pct + '%' : '');
         const c = `--c:${resolvedColor(i)}`;
-        const text = esc(t.name) + (pct ? ' · ' + pct + '%' : '');
-        const summary = kids[i].length > 0, milestone = !summary && Number(t.duration) === 0;
+        // One segment per run of working days, so a bar covers exactly the days it is
+        // scheduled for and leaves weekends and holidays empty. Below ~8px a day the
+        // gaps would just look like noise, so the bar is drawn solid instead.
+        const runs = workRuns(from, s, e, n, dw >= 8);
+        const total = runs.reduce((a, r) => a + (r.b - r.a), 0) || 1;
+        let left = Math.round(total * pct / 100);
+        const shape = runs.map(r => {
+          const len = r.b - r.a, filled = Math.max(0, Math.min(len, left));
+          left -= filled;
+          return `<div class="bar" style="left:${r.a * dw}px;width:${Math.max(2, len * dw - 3)}px;${c}" title="${tip}">` +
+            `<div class="done" style="width:${(filled / len * 100).toFixed(2)}%"></div></div>`;
+        }).join('');
+        const drawnEnd = runs.length ? runs[runs.length - 1].b * dw : x + w;
 
-        // Draw the shape first and remember where it really ends, so the label hugs the
-        // last thing drawn rather than the end of the calendar span (which, for a bar
-        // split by a weekend, sits a gap away from the last segment).
-        let shape = '', drawnEnd;
-        if (summary) { shape = `<div class="sumbar" style="left:${x}px;width:${w}px;${c}" title="${tip}"></div>`; drawnEnd = x + w; }
-        else if (milestone) { shape = `<div class="ms" style="left:${x}px;${c}" title="${tip}"></div>`; drawnEnd = x + 13; }
-        else {
-          // One segment per run of working days, so a bar covers exactly the days it is
-          // scheduled for and leaves weekends and holidays empty. Below ~8px a day the
-          // gaps would just look like noise, so the bar is drawn solid instead.
-          const runs = workRuns(from, s, e, n, dw >= 8);
-          const total = runs.reduce((a, r) => a + (r.b - r.a), 0) || 1;
-          let left = Math.round(total * pct / 100);
-          shape = runs.map(r => {
-            const len = r.b - r.a, filled = Math.max(0, Math.min(len, left));
-            left -= filled;
-            return `<div class="bar" style="left:${r.a * dw}px;width:${Math.max(2, len * dw - 3)}px;${c}" title="${tip}">` +
-              `<div class="done" style="width:${(filled / len * 100).toFixed(2)}%"></div></div>`;
-          }).join('');
-          drawnEnd = runs.length ? runs[runs.length - 1].b * dw : x + w;
-        }
-
-        // After the shape when there's room, before it when it runs to the right edge,
-        // and on it only when neither side has any.
-        const after = W - drawnEnd - 10, before = x - 10;
-        const label = (after >= 70)
-          ? `<span class="lbl" style="left:${drawnEnd + 8}px;max-width:${after}px" title="${tip}">${text}</span>`
-          : before >= 70
-            ? `<span class="lbl before" style="left:0;width:${before}px" title="${tip}">${text}</span>`
-            : `<span class="lbl over" style="left:${x + 6}px;max-width:${Math.max(40, drawnEnd - x - 12)}px" title="${tip}">${text}</span>`;
-        inner = shape + label;
+        // Name to the left of the bar, dates to the right of it. If the bar starts too
+        // near the edge for a name, both go to the right, name first, so every row still
+        // reads name-then-dates. Each box is sized to its own text so they cannot overlap.
+        const short = d => d.toLocaleString('en', { day: 'numeric', month: 'short' });
+        const dates = short(t.startDate) + ' – ' + short(t.finishDate) + (pct ? ' · ' + pct + '%' : '');
+        const datesW = textWidth(dates, '11px system-ui') + 4;
+        const roomLeft = x >= 90;
+        const spare = Math.max(40, W - drawnEnd - 18);
+        const nameW = roomLeft ? 0 : Math.min(textWidth(t.name, '550 11px system-ui') + 4, Math.max(30, spare - datesW - 10));
+        const datesAt = drawnEnd + 8 + (roomLeft ? 0 : nameW + 10);
+        inner = shape +
+          (roomLeft
+            ? `<span class="lbl before" style="left:0;width:${x - 8}px" title="${tip}">${esc(t.name)}</span>`
+            : `<span class="lbl name" style="left:${drawnEnd + 8}px;width:${nameW}px" title="${tip}">${esc(t.name)}</span>`) +
+          `<span class="lbl dates" style="left:${datesAt}px;max-width:${Math.max(30, W - datesAt - 8)}px" title="${tip}">${dates}</span>`;
       }
     }
-    rows += `<div class="gantt-row ${i === sel ? 'sel' : ''}" id="g${i}" style="width:${W}px" onclick="sel=${i};hl()">${inner}</div>`;
+    rows += `<div class="gantt-row ${i === sel ? 'sel' : ''}" id="g${i}" ` +
+      `style="width:${W}px;--rowc:${resolvedColor(i)}" onclick="sel=${i};hl()">${inner}</div>`;
   });
   document.getElementById('gantt').innerHTML =
     `<div class="ghead" style="width:${W}px">${milestoneBand(from, n, dw, W)}` +
     `<div class="gmonths">${months}</div><div class="gdays">${days}</div></div>` +
     `<div style="position:relative;width:${W}px">${today}${rows}</div>`;
+
+  const band = document.querySelector('.mband');
+  document.getElementById('panes').style.setProperty('--bandh', (band ? band.offsetHeight : 0) + 'px');
 
   document.getElementById('seg').innerHTML = Object.entries(SPANS).map(([k, s]) =>
     `<button onclick="setSpan('${k}')" aria-pressed="${view.span === k}">${s.label}</button>`).join('');
@@ -1147,6 +1146,20 @@ function drawGantt(hidden) {
 // The fitted view depends on the pane width, so redraw when the window changes size.
 let resizeTimer;
 addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 150); });
+
+/* ---- the two panes are separate scroll boxes, so their vertical scroll is mirrored:
+   without this, scrolling one leaves the rows and the bars describing different tasks ---- */
+(() => {
+  const grid = document.getElementById('paneGrid'), gantt = document.getElementById('paneGantt');
+  let syncing = false;
+  const tie = (from, to) => from.addEventListener('scroll', () => {
+    if (syncing) return;                     // ignore the scroll our own write causes
+    syncing = true;
+    to.scrollTop = from.scrollTop;
+    requestAnimationFrame(() => { syncing = false; });
+  });
+  tie(grid, gantt); tie(gantt, grid);
+})();
 
 /* ---- splitter: drag the divider to give either side more room ---- */
 function applyGridWidth() {
