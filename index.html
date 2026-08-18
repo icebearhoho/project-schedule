@@ -213,6 +213,17 @@
   #gantt { position: relative; width: max-content; }
   .ghead { position: sticky; top: 0; z-index: 3; background: var(--sunken);
            border-bottom: 1px solid var(--line); }
+  /* milestone band: flags standing on the timeline, the way a summary slide shows them */
+  .mband { position: relative; border-bottom: 1px solid var(--line-soft); }
+  .mstem { position: absolute; width: 1px; background: var(--line); }
+  .mflag { position: absolute; width: 2px; height: 13px; border-radius: 1px; background: var(--c, var(--bar)); }
+  .mflag::after { content: ''; position: absolute; left: 2px; top: 0;
+                  border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+                  border-left: 9px solid var(--c, var(--bar)); }
+  .mtext { position: absolute; white-space: nowrap; font-size: 11px; line-height: 13px; color: var(--text);
+           cursor: pointer; }
+  .mtext b { font-weight: 600; }
+  .mtext span { color: var(--muted); }
   .gmonths, .gdays { display: flex; }
   .gmonths div { flex: 0 0 auto; height: 20px; padding-left: 6px; color: var(--muted); font-size: 11px;
                  font-weight: 650; line-height: 20px; border-right: 1px solid var(--line); overflow: hidden; }
@@ -998,6 +1009,45 @@ function workRuns(from, s, e, n, split) {
   return out;
 }
 
+// Milestones drawn on the timeline itself: a flag at the date with the name beside it,
+// on a stem down to the axis. Labels are packed into lanes so they never overlap.
+const textWidth = (() => {
+  const c = document.createElement('canvas').getContext('2d');
+  return (text, font) => { c.font = font; return c.measureText(text).width; };
+})();
+
+function milestoneBand(from, n, dw, W) {
+  const marks = proj().tasks
+    .map((t, i) => ({ t, i }))
+    .filter(({ t, i }) => !kids[i].length && Number(t.duration) === 0 && t.startDate instanceof Date)
+    .map(({ t, i }) => ({ t, i, x: dayIdx(from, t.startDate) * dw }))
+    .filter(m => m.x >= 0 && m.x <= W)
+    .sort((a, b) => a.x - b.x);
+  if (!marks.length) return '';
+
+  const LANE = 17, PAD = 14;
+  const laneEnds = [];                       // right-hand edge of the last label in each lane
+  const placed = marks.map(m => {
+    const date = m.t.startDate.toLocaleString('en', { day: 'numeric', month: 'short' });
+    const w = PAD + textWidth(m.t.name + '  ' + date, '600 11px system-ui') + 12;
+    let lane = laneEnds.findIndex(end => m.x > end);
+    if (lane < 0) { lane = laneEnds.length; laneEnds.push(0); }
+    laneEnds[lane] = m.x + w;
+    return { ...m, lane, date };
+  });
+  const lanes = laneEnds.length;
+  const height = lanes * LANE + 8;
+
+  const body = placed.map(m => {
+    const top = (lanes - 1 - m.lane) * LANE + 2;   // later lanes sit higher, like a stepped callout
+    return `<div class="mstem" style="left:${m.x}px;top:${top + 6}px;height:${height - top - 6}px"></div>` +
+      `<div class="mflag" style="left:${m.x}px;top:${top}px;--c:${resolvedColor(m.i)}"></div>` +
+      `<div class="mtext" style="left:${m.x + PAD}px;top:${top}px" onclick="sel=${m.i};hl()"` +
+      ` title="${esc(m.t.name)} — ${fd(m.t.startDate)}"><b>${esc(m.t.name)}</b> <span>${m.date}</span></div>`;
+  }).join('');
+  return `<div class="mband" style="height:${height}px">${body}</div>`;
+}
+
 function drawGantt(hidden) {
   const [from, to] = bounds();
   const n = view.span === 'all' ? Math.max(20, dayIdx(from, to)) : Math.max(1, dayIdx(from, to));
@@ -1082,7 +1132,8 @@ function drawGantt(hidden) {
     rows += `<div class="gantt-row ${i === sel ? 'sel' : ''}" id="g${i}" style="width:${W}px" onclick="sel=${i};hl()">${inner}</div>`;
   });
   document.getElementById('gantt').innerHTML =
-    `<div class="ghead" style="width:${W}px"><div class="gmonths">${months}</div><div class="gdays">${days}</div></div>` +
+    `<div class="ghead" style="width:${W}px">${milestoneBand(from, n, dw, W)}` +
+    `<div class="gmonths">${months}</div><div class="gdays">${days}</div></div>` +
     `<div style="position:relative;width:${W}px">${today}${rows}</div>`;
 
   document.getElementById('seg').innerHTML = Object.entries(SPANS).map(([k, s]) =>

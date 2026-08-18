@@ -204,7 +204,11 @@ MS Project as working exceptions, so it schedules them the same way.
 
 ## Phases and colours
 
-**Add milestone** drops in a zero-day marker, drawn as a flag at its date.
+**Add milestone** drops in a zero-day marker. Milestones appear twice: as a flag on their
+own row, and — more usefully — as a **flag standing on the timeline** above the date
+header, with the name and date beside it and a stem down to the axis, the way a summary
+slide shows key dates. Labels are packed into lanes so they never overlap, and clicking
+one selects that task in the grid. The band disappears when a plan has no milestones.
 
 **Add phase** creates a summary row with a first subtask already under it — the quickest
 way to give a plan structure. (A phase is just a task with children; **Indent** on
