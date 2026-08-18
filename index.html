@@ -395,6 +395,7 @@
     <div class="sheet">
       <button onclick="pick(this, save)">Save project (.json)</button>
       <button onclick="pick(this, () => document.getElementById('file').click())">Open project (.json)</button>
+      <button onclick="pick(this, () => document.getElementById('sheet').click())">Import tasks (.xlsx, .csv)</button>
       <label>Combine into this project</label>
       <div id="combineList"></div>
       <p class="hint">Adds another project's tasks here as one phase, so you can link across
@@ -402,6 +403,7 @@
     </div>
   </details>
   <input type="file" id="file" accept=".json" hidden onchange="open_(this)">
+  <input type="file" id="sheet" accept=".xlsx,.csv" hidden onchange="importSheet(this)">
   <span class="sep"></span>
   <div class="group">
     <button class="btn icon-only" onclick="shiftView(-1)" title="Earlier" aria-label="Show earlier dates">
@@ -1279,6 +1281,52 @@ function exportCSV() {
 }
 
 function save() { download(fileName('.json'), JSON.stringify(strip(ws).projects[cur], null, 2), 'application/json'); }
+
+// Reads a spreadsheet into a NEW project, so an import can never damage what's open.
+// Excel needs the same library the export uses; CSV is read here directly.
+async function importSheet(input) {
+  const f = input.files[0];
+  input.value = '';
+  if (!f) return;
+  banner('err', ''); banner('warn', 'Reading ' + f.name + '…');
+  try {
+    let rows;
+    if (/\.csv$/i.test(f.name)) {
+      rows = parseCsv(await f.text());
+    } else {
+      if (!window.ExcelJS) await new Promise((ok, no) => {
+        const el = document.createElement('script');
+        el.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+        el.onload = ok; el.onerror = () => no(new Error('Could not load the Excel library (no internet?). Save the sheet as .csv and import that.'));
+        document.head.appendChild(el);
+      });
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(await f.arrayBuffer());
+      const sheet = wb.worksheets[0];
+      if (!sheet) throw new Error('That workbook has no sheets.');
+      rows = [];
+      sheet.eachRow({ includeEmpty: false }, row => rows.push((row.values || []).slice(1)));
+    }
+
+    const { tasks, notes } = tasksFromRows(rows, cal());
+    snapshot();
+    const p = blank(f.name.replace(/\.[^.]+$/, ''));
+    // A spreadsheet carries no working calendar, so inherit the one you are looking at —
+    // otherwise the same durations would land on different dates.
+    p.calendar = JSON.parse(JSON.stringify(cal()));
+    p.start = tasks.map(t => t.start).filter(Boolean).sort()[0] || p.start;
+    p.tasks = tasks;
+    p.nextId = tasks.length + 1;
+    ws.projects.push(p);
+    cur = ws.projects.length - 1; sel = 0;
+    render();
+    banner('warn', ['Imported ' + tasks.length + ' task(s) from ' + f.name + ' as a new project.',
+      ...notes, 'It uses this project’s working calendar. Check it, then use File > Combine to fold it into another plan.'].join(' '));
+  } catch (e) {
+    banner('warn', '');
+    banner('err', 'Could not import ' + f.name + ': ' + e.message);
+  }
+}
 
 function open_(input) {
   const f = input.files[0]; if (!f) return;

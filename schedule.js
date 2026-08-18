@@ -297,6 +297,126 @@ function applyNationalCalendar(cal, key) {
   };
 }
 
+/* ---- importing a spreadsheet ----
+   Takes rows of cells (from a .csv or a .xlsx sheet) and works out tasks from them.
+   Columns are found by their heading, so the column order doesn't matter and extra
+   columns are ignored. Anything it has to guess is returned in `notes`. */
+
+// Splits CSV text into rows of cells, honouring quoted fields and embedded newlines.
+function parseCsv(text) {
+  const rows = [];
+  let row = [], cell = '', quoted = false;
+  const src = String(text).replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (quoted) {
+      if (ch === '"' && src[i + 1] === '"') { cell += '"'; i++; }
+      else if (ch === '"') quoted = false;
+      else cell += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ',') { row.push(cell); cell = ''; }
+    else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+    else cell += ch;
+  }
+  if (cell.length || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter(r => r.some(c => String(c).trim() !== ''));
+}
+
+const HEADINGS = {
+  wbs: /^wbs$/i,
+  id: /^(id|uid|ref|task ?id|no\.?|#)$/i,
+  name: /(task ?name|^name$|^task$|description|activity)/i,
+  duration: /(duration|^days$|^dur\b)/i,
+  start: /^start/i,
+  finish: /^(finish|end)/i,
+  preds: /(predecessor|^pred|depends)/i,
+  pct: /(%|percent|progress|complete)/i,
+};
+
+const cellText = v => (v === null || v === undefined) ? ''
+  : (v instanceof Date) ? fmtDate(v)
+    : (typeof v === 'object') ? String(v.text || v.result || v.richText && v.richText.map(t => t.text).join('') || '')
+      : String(v);
+
+// rows: array of arrays. -> { tasks, notes }
+function tasksFromRows(rows, cal) {
+  const grid = (rows || []).map(r => (r || []).map(cellText));
+  const notes = [];
+  const headerAt = grid.findIndex(r => r.some(c => HEADINGS.name.test(c.trim())));
+  if (headerAt < 0) throw new Error('No task name column found — the sheet needs a heading row with a column called "Task name".');
+
+  const header = grid[headerAt].map(c => c.trim());
+  const col = {};
+  for (const [key, re] of Object.entries(HEADINGS)) {
+    const i = header.findIndex(h => re.test(h));
+    if (i >= 0 && col[key] === undefined) col[key] = i;
+  }
+  const at = (row, key) => col[key] === undefined ? '' : (row[col[key]] || '').trim();
+
+  const body = grid.slice(headerAt + 1).filter(r => at(r, 'name') !== '');
+  if (!body.length) throw new Error('The sheet has headings but no task rows.');
+
+  const idMap = new Map();           // whatever the file called a task -> the id we give it
+  const tasks = body.map((r, i) => {
+    const id = i + 1;
+    const oldId = at(r, 'id');
+    idMap.set(oldId || String(i + 1), id);
+    if (!oldId) idMap.set(String(i + 1), id);
+
+    const rawName = col.name === undefined ? '' : (r[col.name] || '');
+    const wbs = at(r, 'wbs');
+    // Depth comes from the WBS code (1.2.1) when there is one, otherwise from the
+    // leading spaces this app writes when it exports.
+    const level = /^\d+(\.\d+)*$/.test(wbs) ? wbs.split('.').length
+      : Math.floor((rawName.match(/^ */)[0].length) / 2) + 1;
+
+    const durText = at(r, 'duration');
+    const duration = durText === '' ? null : Math.max(0, parseFloat(durText.replace(/[^\d.\-]/g, '')) || 0);
+    const pctText = at(r, 'pct');
+    const startText = at(r, 'start'), finishText = at(r, 'finish');
+    const isDate = v => /^\d{4}-\d{2}-\d{2}$/.test(v);
+
+    return {
+      id, name: rawName.trim(), level: Math.max(1, level),
+      duration, pct: pctText === '' ? 0 : Math.min(100, Math.max(0, parseFloat(pctText.replace(/[^\d.\-]/g, '')) || 0)),
+      preds: at(r, 'preds').split(/[,;]+/).map(x => x.trim()).filter(Boolean),
+      _start: isDate(startText) ? startText : '', _finish: isDate(finishText) ? finishText : '',
+      _rawStart: startText, _rawFinish: finishText,
+    };
+  });
+
+  let guessedDuration = 0, droppedLinks = 0, unreadDates = 0;
+  tasks.forEach(t => {
+    // Links are rewritten to the new ids; a link to something not in the file is dropped.
+    t.preds = t.preds.map(p => {
+      const link = parsePred(p);
+      if (!link || !idMap.has(String(link.id))) { droppedLinks++; return null; }
+      return fmtPred({ ...link, id: idMap.get(String(link.id)) });
+    }).filter(Boolean);
+
+    if (t.duration === null) {
+      if (t._start && t._finish) {
+        t.duration = Math.max(0, workdaysBetween(parseDate(t._start), addWorkdays(parseDate(t._finish), 1, cal), cal));
+        guessedDuration++;
+      } else t.duration = 1;
+    }
+    // Only tasks with nothing driving them keep their date, or the links would be pointless.
+    if (t._start && !t.preds.length) t.start = t._start;
+    else if (t._rawStart && !t._start) unreadDates++;
+    delete t._start; delete t._finish; delete t._rawStart; delete t._rawFinish;
+  });
+
+  // A row with subtasks is a summary here, so its own duration is ignored anyway.
+  const kids = childrenOf(tasks);
+  tasks.forEach((t, i) => { if (kids[i].length) { t.duration = 0; t.preds = []; } });
+
+  if (guessedDuration) notes.push(guessedDuration + ' task(s) had no duration, so it was worked out from their start and finish dates.');
+  if (droppedLinks) notes.push(droppedLinks + ' predecessor reference(s) pointed outside the file and were dropped.');
+  if (unreadDates) notes.push(unreadDates + ' date(s) were not in YYYY-MM-DD format and were ignored.');
+  if (col.duration === undefined && col.start === undefined) notes.push('No duration column was found, so every task was given 1 day.');
+  return { tasks, notes };
+}
+
 // WBS numbers (1, 1.1, 1.2, 2 ...) from the outline levels.
 function wbsCodes(tasks) {
   const counters = [];
@@ -311,7 +431,7 @@ function wbsCodes(tasks) {
 if (typeof module !== 'undefined') {
   module.exports = {
     schedule, parsePred, fmtPred, childrenOf, wbsCodes, makeCal, combineProjects,
-    NATIONAL_CALENDARS, applyNationalCalendar,
+    NATIONAL_CALENDARS, applyNationalCalendar, tasksFromRows, parseCsv,
     addWorkdays, nextWorkday, prevWorkday, workdaysBetween, isWorkday, parseDate, fmtDate,
   };
 }

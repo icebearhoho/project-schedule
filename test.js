@@ -159,6 +159,80 @@ assert.equal(fmtDate(t[0].startDate), '2026-08-15', 'an extra working day outran
   assert.equal(fmtDate(t2[0].startDate), '2026-02-23', 'starts after the Spring Festival week');
 }
 
+// --- importing a spreadsheet ---
+{
+  const { tasksFromRows, parseCsv } = require('./schedule');
+
+  // the exact shape this app exports, indented names and all
+  const csv = '\uFEFF"WBS","ID","Task name","Duration (days)","Start","Finish","Predecessors","% Complete"\r\n' +
+    '"1","1","Discovery","5","2026-08-17","2026-08-21","","0"\r\n' +
+    '"1.1","2","  Interviews","3","2026-08-17","2026-08-19","","100"\r\n' +
+    '"1.2","3","  Report","2","2026-08-20","2026-08-21","2","50"\r\n' +
+    '"2","4","Launch","0","2026-08-24","2026-08-24","3","0"\r\n';
+  let r = tasksFromRows(parseCsv(csv));
+  assert.deepEqual(r.tasks.map(t => t.name), ['Discovery', 'Interviews', 'Report', 'Launch']);
+  assert.deepEqual(r.tasks.map(t => t.level), [1, 2, 2, 1], 'levels come from the WBS codes');
+  assert.deepEqual(r.tasks.map(t => t.preds), [[], [], ['2'], ['3']], 'links follow the renumbering');
+  assert.equal(r.tasks[1].pct, 100);
+  assert.equal(r.tasks[3].duration, 0, 'a milestone stays a milestone');
+  assert.equal(r.tasks[0].duration, 0, 'a row with subtasks becomes a summary');
+  assert.deepEqual(r.notes, []);
+  assert.deepEqual(schedule(r.tasks, '2026-08-17'), []); // and it schedules cleanly
+
+  // a foreign sheet: different column order, extra columns, "5 days", ids that are not 1..n
+  const rows = [
+    ['Project export'],
+    ['Owner', 'Task', 'Ref', 'Dur', 'Depends', 'Notes'],
+    ['Ann', 'Survey', '100', '5 days', '', 'ignore me'],
+    ['Bob', 'Design', '200', '3 days', '100', ''],
+    ['', '', '', '', '', ''],
+    ['Cat', 'Build', '300', '10 days', '200FS+2', ''],
+  ];
+  r = tasksFromRows(rows);
+  assert.deepEqual(r.tasks.map(t => t.name), ['Survey', 'Design', 'Build']);
+  assert.deepEqual(r.tasks.map(t => t.duration), [5, 3, 10], '"5 days" is read as 5');
+  assert.deepEqual(r.tasks.map(t => t.preds), [[], ['1'], ['2FS+2']], 'foreign ids are remapped, lag kept');
+  assert.deepEqual(r.tasks.map(t => t.level), [1, 1, 1]);
+
+  // no duration column: worked out from the dates, and said so
+  r = tasksFromRows([
+    ['Task name', 'Start', 'Finish'],
+    ['A', '2026-08-17', '2026-08-21'],
+    ['B', '2026-08-24', '2026-08-24'],
+  ]);
+  assert.deepEqual(r.tasks.map(t => t.duration), [5, 1]);
+  assert.match(r.notes.join(' '), /worked out from their start and finish/);
+  assert.equal(r.tasks[0].start, '2026-08-17', 'an unlinked task keeps its date');
+
+  // a task with a predecessor does not also get pinned, or the link would be pointless
+  r = tasksFromRows([
+    ['Task name', 'Duration', 'Start', 'Predecessors'],
+    ['A', '2', '2026-08-17', ''],
+    ['B', '2', '2026-08-19', '1'],
+  ]);
+  assert.equal(r.tasks[0].start, '2026-08-17');
+  assert.equal(r.tasks[1].start, undefined);
+
+  // links pointing outside the file are dropped and reported, not left to break the plan
+  r = tasksFromRows([['Task name', 'Duration', 'Predecessors'], ['A', '1', '999']]);
+  assert.deepEqual(r.tasks[0].preds, []);
+  assert.match(r.notes.join(' '), /pointed outside the file/);
+
+  // dates as real spreadsheet Date cells (what ExcelJS hands back) still read
+  r = tasksFromRows([['Task name', 'Start', 'Finish'], ['A', new Date(2026, 7, 17), new Date(2026, 7, 18)]]);
+  assert.equal(r.tasks[0].start, '2026-08-17');
+  assert.equal(r.tasks[0].duration, 2);
+
+  // useless input fails loudly rather than making up a plan
+  assert.throws(() => tasksFromRows([['Colour', 'Size'], ['red', 'big']]), /No task name column/);
+  assert.throws(() => tasksFromRows([['Task name', 'Duration']]), /no task rows/);
+
+  // csv parsing: quotes, commas and newlines inside fields
+  const tricky = parseCsv('"Task name","Duration"\n"Fix ""quotes"", commas","3"\n"Multi\nline","1"\n');
+  assert.deepEqual(tricky[1], ['Fix "quotes", commas', '3']);
+  assert.deepEqual(tricky[2], ['Multi\nline', '1']);
+}
+
 // --- combining a per-person project into a master plan ---
 {
   const { combineProjects } = require('./schedule');

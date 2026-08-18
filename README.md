@@ -11,7 +11,7 @@ to MS Project XML, Excel, PDF and CSV. No build step, no npm install. Node 18+ o
 | `serve.js` | static files + API, for running as a normal server |
 | `api/data.js` | the same API as a serverless function (Vercel) |
 | `merge.js` | combines two people’s edits when they publish at once |
-| `test.js` | `node test.js` — scheduler, merge, storage and API checks |
+| `test.js` | `node test.js` — scheduler, import, merge, storage and API checks |
 
 ## Run
 
@@ -103,6 +103,38 @@ switching projects is not itself a change and won't mark a draft.
 Exports always cover the project you're looking at. **File > Save project** saves the
 current one; **File > Open project** adds a saved project (or a whole workspace) — which
 is how you reuse one as a template.
+
+## Importing a spreadsheet
+
+**File > Import tasks (.xlsx, .csv)** reads a sheet into a **new project**, so an import
+can never damage the plan you have open. Combine it in afterwards if that's what you want.
+
+Columns are matched by their heading, in any order, and extra columns are ignored:
+
+| It looks for | Also accepts |
+|---|---|
+| Task name | Name, Task, Description, Activity |
+| Duration | Days, Dur — and values like `5 days` |
+| Start / Finish | `YYYY-MM-DD`, or real spreadsheet date cells |
+| Predecessors | Pred, Depends — including `3SS+2` style links |
+| ID | UID, Ref, Task ID — used to resolve those links |
+| WBS | gives the outline depth (`1.2.1` = three levels deep) |
+| % Complete | %, Percent, Progress |
+
+Anything it has to work out is reported in the yellow bar rather than done quietly:
+
+- **No duration column?** It's calculated from Start and Finish in working days, or
+  defaults to one day.
+- **Links pointing outside the file** are dropped and counted.
+- **Outline depth** comes from the WBS codes, or failing that from leading spaces in the
+  task names — which is what this app's own CSV export writes.
+- **Only tasks with no predecessors keep their date** as a pin. Pinning everything would
+  make the dependencies decorative.
+- The new project **inherits the working calendar** of the project you were viewing,
+  since a spreadsheet carries no calendar of its own.
+
+A sheet with no recognisable task-name column is refused with an explanation instead of
+producing an empty project.
 
 ## Combining projects into one
 
