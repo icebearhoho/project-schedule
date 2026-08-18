@@ -62,7 +62,8 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
-  const file = path.join(__dirname, url.pathname === '/' ? 'index.html' : path.basename(url.pathname));
+  // decode first, or a name with a space ("My plan.xlsx") never resolves
+  const file = path.join(__dirname, url.pathname === '/' ? 'index.html' : path.basename(decodeURIComponent(url.pathname)));
   fs.readFile(file, (e, b) => e ? res.writeHead(404).end('not found')
     : res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'text/plain' }).end(b));
 });
