@@ -1,5 +1,5 @@
 {
-  "rev": 24,
+  "rev": 25,
   "data": {
     "projects": [
       {
@@ -1553,6 +1553,36 @@
             ]
           },
           {
+            "id": 54,
+            "name": "Backup & Recovery Test + Evidence (RPO/RTO)",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "48SS"
+            ]
+          },
+          {
+            "id": 53,
+            "name": "Data Migration Simulation Test + Report",
+            "level": 2,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "48SS"
+            ]
+          },
+          {
+            "id": 55,
+            "name": "System Security Acceptance Test (SSAT)",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "54"
+            ]
+          },
+          {
             "id": 48,
             "name": "Authority review & approval of System Test Report",
             "level": 2,
@@ -1560,6 +1590,16 @@
             "pct": 0,
             "preds": [
               "43"
+            ]
+          },
+          {
+            "id": 56,
+            "name": "Vulnerability Assessment and Penetration Test (VAPT)",
+            "level": 2,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "55"
             ]
           },
           {
@@ -1624,16 +1664,6 @@
             "pct": 0
           },
           {
-            "id": 53,
-            "name": "Data Migration Simulation Test + Report",
-            "level": 2,
-            "duration": 4,
-            "pct": 0,
-            "preds": [
-              "48SS"
-            ]
-          },
-          {
             "id": 69,
             "name": "Data Migration Test Sign-off",
             "duration": 0,
@@ -1644,26 +1674,6 @@
             "pct": 0
           },
           {
-            "id": 54,
-            "name": "Backup & Recovery Test + Evidence (RPO/RTO)",
-            "level": 2,
-            "duration": 3,
-            "pct": 0,
-            "preds": [
-              "48SS"
-            ]
-          },
-          {
-            "id": 55,
-            "name": "System Security Acceptance Test (SSAT)",
-            "level": 2,
-            "duration": 3,
-            "pct": 0,
-            "preds": [
-              "54"
-            ]
-          },
-          {
             "id": 70,
             "name": "Security Acceptance Sign-off (SSAT)",
             "duration": 0,
@@ -1672,16 +1682,6 @@
               "55"
             ],
             "pct": 0
-          },
-          {
-            "id": 56,
-            "name": "Vulnerability Assessment and Penetration Test (VAPT)",
-            "level": 2,
-            "duration": 5,
-            "pct": 0,
-            "preds": [
-              "55"
-            ]
           },
           {
             "id": 71,
@@ -2593,5 +2593,5 @@
     ],
     "nextPid": 8
   },
-  "at": "2026-08-19T12:49:41.822Z"
+  "at": "2026-08-19T14:40:18.470Z"
 }
