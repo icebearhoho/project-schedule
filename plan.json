@@ -1,5 +1,5 @@
 {
-  "rev": 25,
+  "rev": 26,
   "data": {
     "projects": [
       {
@@ -1192,7 +1192,7 @@
             "duration": 20,
             "pct": 0,
             "preds": [],
-            "collapsed": false
+            "collapsed": true
           },
           {
             "id": 14,
@@ -1261,7 +1261,7 @@
             "duration": 20,
             "pct": 0,
             "preds": [],
-            "collapsed": false
+            "collapsed": true
           },
           {
             "id": 21,
@@ -1330,7 +1330,7 @@
             "duration": 20,
             "pct": 0,
             "preds": [],
-            "collapsed": false
+            "collapsed": true
           },
           {
             "id": 28,
@@ -1399,7 +1399,7 @@
             "duration": 20,
             "pct": 0,
             "preds": [],
-            "collapsed": false
+            "collapsed": true
           },
           {
             "id": 35,
@@ -2593,5 +2593,5 @@
     ],
     "nextPid": 8
   },
-  "at": "2026-08-19T14:40:18.470Z"
+  "at": "2026-08-19T16:27:39.102Z"
 }
