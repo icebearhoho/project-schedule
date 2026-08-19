@@ -1,5 +1,5 @@
 {
-  "rev": 23,
+  "rev": 24,
   "data": {
     "projects": [
       {
@@ -2006,7 +2006,7 @@
             "duration": 0,
             "pct": 0,
             "preds": [],
-            "collapsed": true
+            "collapsed": false
           },
           {
             "id": 14,
@@ -2588,10 +2588,10 @@
           }
         ],
         "nextId": 78,
-        "phaseLine": 2
+        "phaseLine": 5
       }
     ],
     "nextPid": 8
   },
-  "at": "2026-08-19T12:41:14.992Z"
+  "at": "2026-08-19T12:49:41.822Z"
 }
