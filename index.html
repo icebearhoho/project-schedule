@@ -1246,11 +1246,14 @@ function drawGantt(hidden) {
     if (hidden.has(i)) return;
     let inner = '';
     const isSummary = kids[i].length > 0, isMilestone = !isSummary && Number(t.duration) === 0;
-    // Milestones are shown by the flags on the timeline, so they draw nothing of their own
-    // down here. A summary still gets a bar — the bracket shape below — spanning whatever
-    // its subtasks add up to, the same rollup the grid's own Days/Start/Finish columns show,
-    // so the chart doesn't leave its parent rows blank the way the grid used to.
-    if (t.startDate instanceof Date && !isMilestone) {
+    // A phase (level 1) already reads as its own band — the row wash below plus the
+    // divider line at phase-start — so drawing a bar for it too just competes with that
+    // instead of adding information. A deeper summary (Sprint 1, say) had no visual of its
+    // own at all, which was the actual gap: it alone gets the bracket bar, spanning the
+    // rollup the grid's own Days/Start/Finish columns already show. Milestones are covered
+    // by the flags on the timeline, so they draw nothing here either.
+    const isPhase = isSummary && (Number(t.level) || 1) === 1;
+    if (t.startDate instanceof Date && !isMilestone && !isPhase) {
       const s = colAt(t.startDate), e = colAt(t.endExclusive);
       if (e <= 0) inner = `<span class="offscreen left" title="${esc(t.name)} ended ${fd(t.finishDate)}">` +
         `<svg class="icon"><use href="#i-left"/></svg></span>`;
