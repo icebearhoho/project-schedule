@@ -202,6 +202,11 @@
   tr.sel td { background: var(--accent-soft); }
   tr.sum td { background: var(--sunken); font-weight: 650; }
   tr.sum.sel td { background: var(--accent-soft); }
+  /* A rule above each phase (but not the first), width set by the user; 0 means none.
+     border-top on tr has no effect in the separate-borders table model, so it goes on
+     every cell instead — border-collapse would work but would also merge every other
+     cell's borders, which we don't want. */
+  tr.phase-start td { border-top: var(--phase-line, 0px) solid var(--line); }
   .name { display: flex; align-items: center; gap: 2px; }
   .fold { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 26px;
           flex: 0 0 22px; padding: 0; background: none; border: 0; border-radius: 5px; cursor: pointer; color: var(--muted); }
@@ -239,6 +244,7 @@
                background: var(--rowbg, color-mix(in srgb, var(--rowc, var(--surface)), var(--surface) 92%)); }
   .gantt-row:hover { background: color-mix(in srgb, var(--rowbg, var(--rowc, var(--sunken))), var(--sunken) 35%); }
   .gantt-row.sel { background: var(--accent-soft); }
+  .gantt-row.phase-start { border-top: var(--phase-line, 0px) solid var(--line); }
   .today { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--danger); opacity: .55; }
   /* --c is set per bar from the task's colour; everything else is derived from it. */
   .bar { position: absolute; top: 6px; height: 18px; border-radius: 4px; background: var(--c, var(--bar)); overflow: hidden;
@@ -350,7 +356,7 @@
       <svg class="icon"><use href="#i-phase"/></svg>Add phase</button>
     <button class="btn" onclick="addMilestone()" title="Add a zero-day marker, drawn as a diamond">
       <svg class="icon"><use href="#i-milestone"/></svg>Add milestone</button>
-    <button class="btn icon-only" onclick="delTask()" title="Delete row" aria-label="Delete row">
+    <button class="btn icon-only" onclick="delTask()" title="Delete selected row(s)" aria-label="Delete selected row(s)">
       <svg class="icon"><use href="#i-trash"/></svg></button>
   </div>
   <span class="sep"></span>
@@ -408,6 +414,12 @@
       <div class="swatches" id="bgSwatches"></div>
       <p class="hint">A phase's colour and background both carry down to its subtasks
         unless they set their own.</p>
+      <label for="phaseLineW">Line between phases</label>
+      <div class="group">
+        <input type="number" id="phaseLineW" min="0" max="12" step="1" style="width:60px"
+          onchange="setPhaseLineWidth(this.value)" aria-label="Phase divider width in pixels">
+        <span class="hint" style="margin:0">px — 0 turns it off</span>
+      </div>
     </div>
   </details>
   <details class="menu" id="m-file">
@@ -513,14 +525,40 @@ function resolvedColor(i) {
   }
   return PALETTE[proj().color] || PALETTE.blue;
 }
+// Applies to every multi-selected row in one step, so it undoes as one step too.
 function setRowColor(key) {
-  const t = proj().tasks[sel];
-  if (!t) return;
+  const rows = [...multi].map(i => proj().tasks[i]).filter(Boolean);
+  if (!rows.length) return;
   snapshot();
-  if (key) t.color = key; else delete t.color;
+  rows.forEach(t => { if (key) t.color = key; else delete t.color; });
   render();
 }
 function setProjectColor(key) { snapshot(); proj().color = key; render(); }
+
+// The swatch panels reflect the *whole* multi-selection: a swatch shows pressed only
+// when every selected row already shares that value, so "several different colours" is
+// visibly neither-pressed rather than misleadingly showing just the last-clicked row's.
+function paintColourMenu() {
+  const p = proj();
+  const rows = [...multi].sort((a, b) => a - b).map(i => p.tasks[i]).filter(Boolean);
+  const swatches = (current, fn, withClear) => Object.entries(PALETTE).map(([k, hex]) =>
+    `<button style="background:${hex}" aria-pressed="${current === k}" title="${k}"
+       aria-label="${k}" onclick="${fn}('${k}')"></button>`).join('') +
+    (withClear ? `<button class="clear" onclick="setRowColor('')" title="Follow the phase or project colour">Inherit</button>` : '');
+  const uniform = field => rows.length && rows.every(t => (t[field] || '') === (rows[0][field] || '')) ? (rows[0][field] || '') : null;
+  const label = rows.length > 1 ? rows.length + ' tasks selected'
+    : rows.length ? (kids[sel]?.length ? 'Phase: ' : 'Task: ') + rows[0].name : 'No row selected';
+
+  document.getElementById('rowColourLabel').textContent = label;
+  document.getElementById('rowSwatches').innerHTML = swatches(uniform('color'), 'setRowColor', true);
+  document.getElementById('projSwatches').innerHTML = swatches(p.color || 'blue', 'setProjectColor', false);
+  document.getElementById('bgLabel').textContent = 'Row background' +
+    (rows.length > 1 ? ' — ' + rows.length + ' tasks' : rows.length ? ' — ' + (kids[sel]?.length ? 'phase ' : '') + rows[0].name : '');
+  document.getElementById('bgSwatches').innerHTML = Object.entries(BACKGROUNDS).map(([k, hex]) =>
+    `<button style="background:${hex}" aria-pressed="${uniform('bg') === k}" title="${k}"
+       aria-label="${k}" onclick="setRowBg('${k}')"></button>`).join('') +
+    `<button class="clear" onclick="setRowBg('')" title="Follow the phase, or no background">None</button>`;
+}
 
 // Phase backgrounds work like colours: set one on a phase and its subtasks inherit it.
 function resolvedBg(i) {
@@ -536,10 +574,17 @@ function resolvedBg(i) {
   return BACKGROUNDS[proj().bg] || '';
 }
 function setRowBg(key) {
-  const t = proj().tasks[sel];
-  if (!t) return;
+  const rows = [...multi].map(i => proj().tasks[i]).filter(Boolean);
+  if (!rows.length) return;
   snapshot();
-  if (key) t.bg = key; else delete t.bg;
+  rows.forEach(t => { if (key) t.bg = key; else delete t.bg; });
+  render();
+}
+
+// The rule between phases, in px; 0 turns it off. Per project, like the phase colours.
+function setPhaseLineWidth(v) {
+  snapshot();
+  proj().phaseLine = Math.max(0, Math.min(12, Math.round(Number(v)) || 0));
   render();
 }
 
@@ -599,11 +644,29 @@ const blank = name => ({
   pid: newPid(), name: name || 'New Project', start: fmtDate(new Date()),
   calendar: { workdays: [1, 2, 3, 4, 5], holidays: [] },
   tasks: [{ id: 1, name: 'Task 1', duration: 5, level: 1, preds: [], pct: 0 }],
-  nextId: 2,
+  nextId: 2, phaseLine: 2,
 });
 
 let ws = load() || { projects: [blank('Project 1')], nextPid: 2 };
 let cur = 0, sel = 0, kids = [], codes = [];
+// Multi-select: `multi` is the full highlighted set (always includes sel), `anchor` is
+// where a Shift-click range starts from. Index-based like `sel` already was, so it is
+// reset to just {sel} by anything that inserts, deletes or reorders rows — a stale index
+// after such a change would point at the wrong task rather than at nothing.
+let multi = new Set([0]), anchor = 0;
+function selectRow(i, ev) {
+  if (ev && (ev.ctrlKey || ev.metaKey)) {
+    if (multi.has(i) && multi.size > 1) multi.delete(i); else multi.add(i);
+    anchor = i;
+  } else if (ev && ev.shiftKey) {
+    const [a, b] = [anchor, i].sort((x, y) => x - y);
+    multi = new Set(Array.from({ length: b - a + 1 }, (_, k) => a + k));
+  } else {
+    multi = new Set([i]); anchor = i;
+  }
+  sel = i;
+  hl(); paintColourMenu();
+}
 const proj = () => ws.projects[cur];
 const cal = () => proj().calendar;
 
@@ -630,6 +693,7 @@ function normalize(w) {
     p.tasks = p.tasks || [];
     p.tasks.forEach(t => { t.level = Math.max(1, Number(t.level) || 1); delete t.res; });
     p.nextId = p.nextId || Math.max(0, ...p.tasks.map(t => t.id)) + 1;
+    if (typeof p.phaseLine !== 'number') p.phaseLine = 2;
   });
   w.nextPid = w.nextPid || w.projects.length + 1;
   return w;
@@ -672,11 +736,11 @@ function undo() {
 }
 
 /* ---- projects ---- */
-function switchProject(i) { cur = Number(i); sel = 0; render(); }
+function switchProject(i) { cur = Number(i); sel = 0; multi = new Set([0]); render(); }
 function newProject() {
   snapshot();
   ws.projects.push(blank('Project ' + (ws.nextPid++)));
-  cur = ws.projects.length - 1; sel = 0; render();
+  cur = ws.projects.length - 1; sel = 0; multi = new Set([0]); render();
 }
 // Fold another project in as a phase of this one. Everything then lives in a single
 // plan, which is what makes cross-phase links possible.
@@ -687,6 +751,7 @@ function combineFrom(pid) {
   const { project, notes } = combineProjects(proj(), source);
   ws.projects[cur] = project;
   sel = proj().tasks.length - (source.tasks || []).length - 1; // land on the new phase row
+  multi = new Set([sel]);
   render();
   banner('warn', ['Combined "' + source.name + '" into this project.', ...notes].join(' '));
 }
@@ -696,7 +761,7 @@ function delProject() {
   if (!confirm('Delete project "' + proj().name + '"?')) return;
   snapshot();
   ws.projects.splice(cur, 1);
-  cur = Math.max(0, cur - 1); sel = 0; render();
+  cur = Math.max(0, cur - 1); sel = 0; multi = new Set([0]); render();
 }
 
 /* ---- calendar ---- */
@@ -731,7 +796,7 @@ function addTask() {
     id: proj().nextId++, name: 'New task', duration: 1,
     level: proj().tasks.length ? (Number(proj().tasks[sel].level) || 1) : 1, preds: [], pct: 0,
   });
-  sel = at; render();
+  sel = at; multi = new Set([sel]); render();
   const row = document.getElementById('r' + sel);
   if (row) row.querySelector('.name input').select(); // land the cursor where typing continues
 }
@@ -743,7 +808,7 @@ function addPhase() {
   proj().tasks.splice(at, 0,
     { id: proj().nextId++, name: 'New phase', duration: 1, level: 1, preds: [], pct: 0 },
     { id: proj().nextId++, name: 'First task', duration: 3, level: 2, preds: [], pct: 0 });
-  sel = at; render();
+  sel = at; multi = new Set([sel]); render();
   document.getElementById('r' + sel)?.querySelector('.name input')?.select();
 }
 // A milestone is simply a task of zero days; the chart draws those as a diamond.
@@ -754,20 +819,24 @@ function addMilestone() {
     id: proj().nextId++, name: 'New milestone', duration: 0,
     level: proj().tasks.length ? (Number(proj().tasks[sel].level) || 1) : 1, preds: [], pct: 0,
   });
-  sel = at; render();
+  sel = at; multi = new Set([sel]); render();
   document.getElementById('r' + sel)?.querySelector('.name input')?.select();
 }
 
 function delTask() {
-  const t = proj().tasks[sel];
-  if (!t) return;
-  const doomed = [sel, ...descendants(sel)];
-  if (doomed.length > 1 && !confirm('Delete "' + t.name + '" and its ' + (doomed.length - 1) + ' subtask(s)?')) return;
+  if (!proj().tasks[sel]) return;
+  // Every selected row, plus its subtasks if it's a phase — deduplicated, since a
+  // selected phase and a separately-selected child of that phase can overlap.
+  const doomed = [...new Set([...multi].flatMap(i => proj().tasks[i] ? [i, ...descendants(i)] : []))];
+  if (!doomed.length) return;
+  const label = multi.size > 1 ? multi.size + ' selected task(s)' : '"' + proj().tasks[sel].name + '"';
+  const extra = doomed.length - multi.size;
+  if (extra > 0 && !confirm('Delete ' + label + ' and ' + extra + ' subtask(s)?')) return;
   snapshot();
   const gone = new Set(doomed.map(i => proj().tasks[i].id));
   proj().tasks = proj().tasks.filter((_, i) => !doomed.includes(i));
   proj().tasks.forEach(x => x.preds = (x.preds || []).filter(p => !gone.has((parsePred(p) || {}).id)));
-  sel = Math.min(sel, proj().tasks.length - 1); render();
+  sel = Math.min(sel, proj().tasks.length - 1); multi = new Set([sel]); render();
 }
 function descendants(i) {
   const out = [];
@@ -805,7 +874,7 @@ function move(d) {
   }
   snapshot();
   tasks.splice(to, 0, ...tasks.splice(sel, len));
-  sel = to; render();
+  sel = to; multi = new Set([sel]); render();
 }
 function toggleFold(i) { snapshot(); const t = proj().tasks[i]; t.collapsed = !t.collapsed; render(); }
 
@@ -880,7 +949,7 @@ async function connect() {
 
 function adopt(w) {
   applying = true;
-  ws = normalize(w); cur = Math.min(cur, ws.projects.length - 1); sel = 0;
+  ws = normalize(w); cur = Math.min(cur, ws.projects.length - 1); sel = 0; multi = new Set([0]);
   baseline = JSON.stringify(strip(ws));
   render(); applying = false; dirty = false;
 }
@@ -946,6 +1015,8 @@ const banner = (id, msg) => {
 function render() {
   const p = proj();
   sel = Math.max(0, Math.min(sel, p.tasks.length - 1));
+  multi = new Set([...multi].filter(i => i >= 0 && i < p.tasks.length));
+  if (!multi.size) multi.add(sel);
   kids = childrenOf(p.tasks);
   codes = wbsCodes(p.tasks);
   let errMsg = '', warnMsg = '';
@@ -971,7 +1042,7 @@ function render() {
 
   const hidden = hiddenRows();
   const cell = (i, f, v, cls, ph) => `<td class="${cls || ''}"><input value="${esc(v ?? '')}"
-      placeholder="${ph || ''}" aria-label="${f}" onchange="edit(${i},'${f}',this.value)" onfocus="sel=${i};hl()"></td>`;
+      placeholder="${ph || ''}" aria-label="${f}" onchange="edit(${i},'${f}',this.value)" onfocus="selectRow(${i})"></td>`;
   // Explicit column widths: an <input> reports a fixed ~20-character intrinsic width to
   // the table's layout regardless of its value, so without this Days/% end up far wider
   // than they need and Task name ends up narrower than task names actually are.
@@ -985,51 +1056,42 @@ function render() {
   p.tasks.forEach((t, i) => {
     if (hidden.has(i)) return;
     const sum = kids[i].length > 0;
+    // A phase is a level-1 summary; mark every one but the first so a rule can separate
+    // it from the phase before it, without a stray line above the very top row.
+    const phaseStart = sum && (Number(t.level) || 1) === 1 && i > 0;
     const pad = ((Number(t.level) || 1) - 1) * 16;
     const twist = sum
       ? `<button class="fold ${t.collapsed ? 'closed' : ''}" onclick="toggleFold(${i})"
            aria-expanded="${!t.collapsed}" aria-label="${t.collapsed ? 'Expand' : 'Collapse'} ${esc(t.name)}"><svg class="icon"><use href="#i-chev"/></svg></button>`
       : `<span class="spacer"></span>`;
-    h += `<tr id="r${i}" class="${i === sel ? 'sel ' : ''}${sum ? 'sum' : ''}" onclick="sel=${i};hl()">` +
+    h += `<tr id="r${i}" class="${multi.has(i) ? 'sel ' : ''}${sum ? 'sum ' : ''}${phaseStart ? 'phase-start' : ''}" onclick="selectRow(${i}, event)">` +
       `<td class="ro">${codes[i]}</td><td class="n">${t.id}</td>` +
       `<td><div class="name" style="padding-left:${pad}px">${twist}` +
-      `<input value="${esc(t.name)}" title="${esc(t.name)}" aria-label="Task name" onchange="edit(${i},'name',this.value)" onfocus="sel=${i};hl()"></div></td>` +
+      `<input value="${esc(t.name)}" title="${esc(t.name)}" aria-label="Task name" onchange="edit(${i},'name',this.value)" onfocus="selectRow(${i})"></div></td>` +
       (sum ? `<td class="ro n">${t.rollDuration ?? ''}</td>` : cell(i, 'duration', t.duration, 'n')) +
       // Start is a real date field: filled in with the scheduled date, and editing it pins
       // the task to "no earlier than". Finish is pickable too and sets the duration.
       (sum ? `<td class="ro">${fd(t.startDate)}</td>`
         : `<td><input type="date" class="${t.start ? 'pinned' : ''}" value="${fd(t.startDate)}"
              aria-label="Start date" title="${t.start ? 'Pinned: starts no earlier than this' : 'Scheduled automatically — pick a date to pin it'}"
-             onchange="edit(${i},'start',this.value)" onfocus="sel=${i};hl()"></td>`) +
+             onchange="edit(${i},'start',this.value)" onfocus="selectRow(${i})"></td>`) +
       (sum || Number(t.duration) === 0 ? `<td class="ro">${fd(t.finishDate)}</td>`
         : `<td><input type="date" value="${fd(t.finishDate)}" aria-label="Finish date"
              title="Pick a finish date to set the duration" min="${fd(t.startDate)}"
-             onchange="edit(${i},'finish',this.value)" onfocus="sel=${i};hl()"></td>`) +
+             onchange="edit(${i},'finish',this.value)" onfocus="selectRow(${i})"></td>`) +
       (sum ? `<td class="ro"></td>` : cell(i, 'preds', (t.preds || []).map(fmtPred).join(','))) +
       (sum ? `<td class="ro n">${t.rollPct ?? ''}</td>` : cell(i, 'pct', t.pct, 'n')) + `</tr>`;
   });
   document.getElementById('tbl').innerHTML = h + '</tbody>';
-  const swatches = (current, fn, withClear) => Object.entries(PALETTE).map(([k, hex]) =>
-    `<button style="background:${hex}" aria-pressed="${current === k}" title="${k}"
-       aria-label="${k}" onclick="${fn}('${k}')"></button>`).join('') +
-    (withClear ? `<button class="clear" onclick="setRowColor('')" title="Follow the phase or project colour">Inherit</button>` : '');
   const others = ws.projects.filter(x => x !== p);
   document.getElementById('combineList').innerHTML = others.length
     ? others.map(x => `<button onclick="pick(this, () => combineFrom('${x.pid}'))">
         ${esc(x.name)} <span class="hint" style="margin:0">${(x.tasks || []).length} tasks</span></button>`).join('')
     : `<p class="hint">Nothing to combine — this is your only project.</p>`;
 
-  const selTask = p.tasks[sel];
-  document.getElementById('rowColourLabel').textContent =
-    selTask ? (kids[sel]?.length ? 'Phase: ' : 'Task: ') + selTask.name : 'No row selected';
-  document.getElementById('rowSwatches').innerHTML = swatches(selTask && selTask.color, 'setRowColor', true);
-  document.getElementById('projSwatches').innerHTML = swatches(p.color || 'blue', 'setProjectColor', false);
-  document.getElementById('bgLabel').textContent =
-    'Row background' + (selTask ? ' — ' + (kids[sel]?.length ? 'phase ' : '') + selTask.name : '');
-  document.getElementById('bgSwatches').innerHTML = Object.entries(BACKGROUNDS).map(([k, hex]) =>
-    `<button style="background:${hex}" aria-pressed="${selTask && selTask.bg === k}" title="${k}"
-       aria-label="${k}" onclick="setRowBg('${k}')"></button>`).join('') +
-    `<button class="clear" onclick="setRowBg('')" title="Follow the phase, or no background">None</button>`;
+  paintColourMenu();
+  document.getElementById('panes').style.setProperty('--phase-line', (Number(p.phaseLine) || 0) + 'px');
+  document.getElementById('phaseLineW').value = Number(p.phaseLine) || 0;
 
   document.getElementById('emptyState').innerHTML = p.tasks.length ? '' :
     `<div class="empty">No tasks yet. <button class="btn" onclick="addTask()">
@@ -1045,8 +1107,10 @@ function hiddenRows() {
 }
 function hl() {
   document.querySelectorAll('#tbl tr, #gantt .gantt-row').forEach(r => r.classList.remove('sel'));
-  document.getElementById('r' + sel)?.classList.add('sel');
-  document.getElementById('g' + sel)?.classList.add('sel');
+  multi.forEach(i => {
+    document.getElementById('r' + i)?.classList.add('sel');
+    document.getElementById('g' + i)?.classList.add('sel');
+  });
 }
 
 // The whole plan, start to finish — used by "All" and by the Excel export.
@@ -1193,10 +1257,11 @@ function drawGantt(hidden) {
     }
     const bg = resolvedBg(i);
     const ink = bg ? inkFor(bg) : null;
-    rows += `<div class="gantt-row ${i === sel ? 'sel' : ''}" id="g${i}" ` +
+    const phaseStart = isSummary && (Number(t.level) || 1) === 1 && i > 0;
+    rows += `<div class="gantt-row ${multi.has(i) ? 'sel' : ''}${phaseStart ? ' phase-start' : ''}" id="g${i}" ` +
       `style="width:${W}px;--rowc:${resolvedColor(i)}` +
       (bg ? `;--rowbg:${bg};--rowtext:${ink.ink};--rowmuted:${ink.soft}` : '') +
-      `" onclick="sel=${i};hl()">${inner}</div>`;
+      `" onclick="selectRow(${i}, event)">${inner}</div>`;
   });
 
   document.getElementById('gantt').innerHTML =
@@ -1539,7 +1604,7 @@ async function importSheet(input, wantedSheet) {
     p.tasks = tasks;
     p.nextId = tasks.length + 1;
     ws.projects.push(p);
-    cur = ws.projects.length - 1; sel = 0;
+    cur = ws.projects.length - 1; sel = 0; multi = new Set([0]);
     render();
     banner('warn', ['Imported ' + tasks.length + ' task(s) from ' + f.name +
       (sheetUsed ? ' (sheet "' + sheetUsed + '")' : '') + ' as a new project.',
@@ -1560,7 +1625,7 @@ function open_(input) {
       snapshot();
       list.forEach(x => ws.projects.push({ ...blank(x.name), ...x }));
       normalize(ws);
-      cur = ws.projects.length - 1; sel = 0; render();
+      cur = ws.projects.length - 1; sel = 0; multi = new Set([0]); render();
     } catch (e) { banner('err', 'Could not read that file: ' + e.message); }
   };
   r.readAsText(f); input.value = '';

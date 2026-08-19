@@ -94,6 +94,21 @@ subtasks instead.
 
 **Ctrl+Z** (or the Undo button) walks back through the last 100 changes.
 
+### Selecting several rows
+
+Click a row to select just it. **Ctrl/Cmd+Click** adds or removes a row from the
+selection; **Shift+Click** selects everything between your last click and the one you
+just made — the usual file-manager conventions. Selected rows highlight in both the
+table and the chart together.
+
+**Delete row** removes every selected row in one go (with their subtasks, cascading and
+confirming exactly as it does for one row). **Colour** and **Row background** apply to
+every selected row at once, and a swatch only shows as picked when *all* selected rows
+already share it — otherwise none does, rather than showing one row's colour as if it
+spoke for the rest. The whole bulk change undoes in a single step.
+
+Indent, Outdent, and Up/Down still act on one row (and its subtree) at a time.
+
 ## Multiple projects
 
 The **Project** dropdown switches between plans; **New** and **Delete project** manage
@@ -236,6 +251,10 @@ against a white row. The eight colours are mid-tones chosen to clear 3:1 contras
 both the light and the dark background, and the completed part of each bar is derived
 from the bar's own colour — darker on light, lighter on dark. The Excel export uses the
 same colours.
+
+**Line between phases**, at the bottom of the Colour menu, draws a rule above every phase
+but the first — in the table and the chart alike, so the two panes stay lined up. Set it
+in pixels (0–12); `0` turns it off. It's saved per project.
 
 Each row shows the **task name to the left of its bar and the dates to the right**
 (`Aug 14 – Aug 20`, with the percentage appended once you set one). Where a bar starts too
