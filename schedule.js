@@ -385,9 +385,14 @@ function tasksFromRows(rows, cal) {
 
     const rawName = col.name === undefined ? '' : (r[col.name] || '');
     const wbs = at(r, 'wbs');
-    // Depth comes from the WBS code (1.2.1) when there is one, otherwise from the
-    // leading spaces this app writes when it exports.
+    // Depth comes from a WBS code (1.2.1) when there's a dedicated column for one.
+    // Failing that, some sheets reuse the ID column itself as the WBS code — a row
+    // "13.1.1" under a row "13" is meant to nest under it — so a dotted, multi-segment
+    // ID counts too. A plain sequence number ("13") does not: it stays level 1, same as
+    // if this branch didn't exist, so sheets with ordinary IDs are unaffected.
+    const rawId = at(r, 'id');
     const level = /^\d+(\.\d+)*$/.test(wbs) ? wbs.split('.').length
+      : /^\d+\.\d+(\.\d+)*$/.test(rawId) ? rawId.split('.').length
       : Math.floor((rawName.match(/^ */)[0].length) / 2) + 1;
 
     const durText = at(r, 'duration');
@@ -447,15 +452,25 @@ function tasksFromRows(rows, cal) {
     delete t._start; delete t._finish; delete t._rawStart; delete t._rawFinish; delete t._type;
   });
 
-  // Splice in a zero-day milestone right after any task the Milestone column flagged,
-  // before phase grouping runs so each lands in the same phase as the task it follows.
+  // Splice in a zero-day milestone right after any task the Milestone column flagged —
+  // after its own detail rows too (any rows immediately deeper than it, e.g. a dotted-ID
+  // sub-breakdown), not wedged between the task and its own children. Otherwise, once a
+  // deeper level is possible at all, the milestone itself becomes the first "open" row
+  // at the task's level and silently adopts that subtree as its own.
   let milestonesAdded = 0, msNextId = body.length + 1;
-  tasks = tasks.flatMap(t => {
+  const withMs = [];
+  for (let i = 0; i < tasks.length; i++) {
+    const t = tasks[i];
     const msName = t._msName; delete t._msName;
-    if (!msName) return [t];
+    withMs.push(t);
+    if (!msName) continue;
+    let j = i + 1;
+    while (j < tasks.length && tasks[j].level > t.level) { delete tasks[j]._msName; withMs.push(tasks[j++]); }
+    i = j - 1; // resume the outer loop just past whatever subtree we copied ahead
     milestonesAdded++;
-    return [t, { id: msNextId++, name: msName, duration: 0, level: t.level, preds: [String(t.id)], pct: 0 }];
-  });
+    withMs.push({ id: msNextId++, name: msName, duration: 0, level: t.level, preds: [String(t.id)], pct: 0 });
+  }
+  tasks = withMs;
 
   // A Phase/Group column becomes real summary rows, so the outline matches the sheet.
   let grouped = tasks;
@@ -493,6 +508,12 @@ function wbsCodes(tasks) {
   const counters = [];
   return tasks.map(t => {
     const lvl = Math.max(1, Number(t.level) || 1);
+    // Growing via `counters.length = lvl` alone leaves a sparse hole at any skipped
+    // level (depth can jump by more than one — a dotted ID like "13.1.1" nesting
+    // straight under "13" does exactly that), and a hole is invisible to .map(), so it
+    // survives to .join() as a blank segment ("3.1..1") instead of the "1" intended.
+    // Padding with real zeros first means every slot map() actually visits.
+    while (counters.length < lvl) counters.push(0);
     counters.length = lvl;
     counters[lvl - 1] = (counters[lvl - 1] || 0) + 1;
     return counters.map(n => n || 1).join('.');

@@ -1018,6 +1018,11 @@ function render() {
   multi = new Set([...multi].filter(i => i >= 0 && i < p.tasks.length));
   if (!multi.size) multi.add(sel);
   kids = childrenOf(p.tasks);
+  // A row with subtasks is a summary: its own predecessor is superseded by the rollup
+  // from its children (same rule the importer applies on the way in), so it never keeps
+  // one — otherwise indenting rows under an existing task leaves it with a stale link
+  // that reads as broken, nagging every render with no way to clear it from the UI.
+  p.tasks.forEach((t, i) => { if (kids[i].length && (t.preds || []).length) t.preds = []; });
   codes = wbsCodes(p.tasks);
   let errMsg = '', warnMsg = '';
   try {

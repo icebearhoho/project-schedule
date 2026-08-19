@@ -75,6 +75,13 @@ assert.equal(fmtDate(t[3].startDate), '2026-08-31');
 assert.deepEqual(wbsCodes(t), ['1', '1.1', '1.2', '2', '2.1']);
 assert.deepEqual(childrenOf(t), [[1, 2], [], [], [4], []]);
 
+// A depth jump of more than one level (a summary whose only children sit two levels
+// down, e.g. from a dotted ID nesting straight under a plain one) must not leave a
+// blank WBS segment — growing the counters was creating a real array hole, invisible
+// to .map(), which .join() then rendered as "" instead of "1".
+assert.deepEqual(wbsCodes([{ level: 1 }, { level: 3 }, { level: 3 }, { level: 1 }]),
+  ['1', '1.1.1', '1.1.2', '2']);
+
 // A leaf can depend on a summary; links ON a summary are reported, not silently applied.
 t = [
   { id: 1, name: 'Phase', duration: 0, level: 1, preds: ['3'] },
@@ -194,6 +201,40 @@ assert.equal(fmtDate(t[0].startDate), '2026-08-15', 'an extra working day outran
   assert.deepEqual(r.tasks.map(t => t.preds), [[], ['1'], ['2FS+2']], 'foreign ids are remapped, lag kept');
   assert.deepEqual(r.tasks.map(t => t.level), [1, 1, 1]);
 
+  // some sheets have no WBS column but reuse ID for the same purpose: a dotted,
+  // multi-segment ID ("13.1.1" under "13") nests exactly like a real WBS code would.
+  r = tasksFromRows([
+    ['ID', 'Task', 'Duration'],
+    ['13', 'Sprint 1', '20 days'],
+    ['13.1.1', 'Design', '4 days'],
+    ['13.1.2', 'Build', '4 days'],
+    ['14', 'Sprint 2', '10 days'],
+  ]);
+  assert.deepEqual(r.tasks.map(t => t.level), [1, 3, 3, 1], 'dotted IDs set depth, plain ones stay flat');
+  assert.deepEqual(childrenOf(r.tasks), [[1, 2], [], [], []], 'Sprint 1 gets the two dotted rows as children');
+  // Sprint 1 is now a summary, so the importer clears its own now-meaningless duration
+  // and link right away — a fresh import never carries the "is a summary" warning.
+  r = tasksFromRows([
+    ['ID', 'Task', 'Duration', 'Dependency'],
+    ['12', 'Something earlier', '2 days', ''],
+    ['13', 'Sprint 1', '20 days', '12'],
+    ['13.1.1', 'Design', '4 days', ''],
+    ['13.1.2', 'Build', '4 days', '13.1.1'],
+  ]);
+  assert.deepEqual(r.tasks[1].preds, [], "the importer strips a new summary's own link");
+  assert.deepEqual(schedule(r.tasks, '2026-08-17'), []);
+  assert.equal(r.tasks[1].rollDuration, 8);
+  // schedule() itself still warns if handed a summary that DOES carry a stale link —
+  // this is what a hand-edited or manually-indented plan can produce, and it's the
+  // mechanism the app's render loop relies on to catch and clear it (see index.html).
+  const stale = JSON.parse(JSON.stringify(r.tasks));
+  stale[1].preds = ['12'];
+  assert.match(schedule(stale, '2026-08-17').join(' '), /Sprint 1.*is a summary/);
+
+  // a plain sequential ID ("13") with no dot is left alone — no behaviour change
+  r = tasksFromRows([['ID', 'Task', 'Duration'], ['13', 'A', '1 day'], ['14', 'B', '1 day']]);
+  assert.deepEqual(r.tasks.map(t => t.level), [1, 1]);
+
   // no duration column: worked out from the dates, and said so
   r = tasksFromRows([
     ['Task name', 'Start', 'Finish'],
@@ -242,6 +283,24 @@ assert.equal(fmtDate(t[0].startDate), '2026-08-15', 'an extra working day outran
   // and the plan schedules: an FS link, so the gate lands right where its task's work ends
   assert.deepEqual(schedule(r.tasks, '2026-08-17'), []);
   assert.equal(fmtDate(kickoffMs.startDate), fmtDate(r.tasks[1].endExclusive));
+
+  // a flagged task that has its OWN deeper-level children (a dotted-ID breakdown right
+  // under it) must get its milestone after that whole subtree, not wedged between the
+  // task and its first child — otherwise the milestone becomes the first "open" row at
+  // the task's level and silently adopts the children as its own.
+  r = tasksFromRows([
+    ['ID', 'Task', 'Duration', 'Milestone', 'Milestone Name'],
+    ['5', 'Sprint 1', '10 days', 'Yes', 'Sprint 1 done'],
+    ['5.1', 'Design', '4 days', 'No', ''],
+    ['5.2', 'Build', '4 days', 'No', ''],
+    ['6', 'Sprint 2', '5 days', 'No', ''],
+  ]);
+  assert.deepEqual(r.tasks.map(t => t.name), ['Sprint 1', 'Design', 'Build', 'Sprint 1 done', 'Sprint 2']);
+  assert.deepEqual(childrenOf(r.tasks), [[1, 2], [], [], [], []], 'the two dotted rows stay Sprint 1\'s children, not the milestone\'s');
+  const gate = r.tasks[3];
+  assert.equal(gate.duration, 0);
+  assert.deepEqual(gate.preds, [String(r.tasks[0].id)]);
+  assert.equal(gate.level, r.tasks[0].level, 'the milestone sits beside Sprint 1, not nested under it');
 
   // a "Milestone" column with no matching name column just reuses the task's own name
   r = tasksFromRows([
