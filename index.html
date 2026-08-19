@@ -256,6 +256,15 @@
   .bar { position: absolute; top: 6px; height: 18px; border-radius: 4px; background: var(--c, var(--bar)); overflow: hidden;
          box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c, var(--bar)), var(--text) 22%); }
   .bar .done { height: 100%; background: var(--cd, color-mix(in srgb, var(--c, var(--bar)), var(--shade) var(--shade-pct))); }
+  /* A parent/summary row's bar: the classic MS Project bracket — a thin rail with a
+     downward tab at each end — spanning the rollup of its children instead of the
+     rounded block a leaf task gets, so it reads as "this is the container" at a glance. */
+  .bar.summary { top: 9px; height: 5px; border-radius: 1px;
+    background: var(--c, var(--bar)); box-shadow: none; }
+  .bar.summary::before, .bar.summary::after { content: ''; position: absolute; top: 100%; width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 6px solid var(--c, var(--bar)); }
+  .bar.summary::before { left: -1px; }
+  .bar.summary::after { right: -1px; }
   /* colour picker */
   .swatches { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px; }
   .swatches button { width: 34px; height: 34px; min-height: 34px; padding: 0;
@@ -1231,22 +1240,26 @@ function drawGantt(hidden) {
     if (hidden.has(i)) return;
     let inner = '';
     const isSummary = kids[i].length > 0, isMilestone = !isSummary && Number(t.duration) === 0;
-    // Phases are shown by the row wash and milestones by the flags on the timeline, so
-    // neither draws anything of its own down here.
-    if (t.startDate instanceof Date && !isSummary && !isMilestone) {
+    // Milestones are shown by the flags on the timeline, so they draw nothing of their own
+    // down here. A summary still gets a bar — the bracket shape below — spanning whatever
+    // its subtasks add up to, the same rollup the grid's own Days/Start/Finish columns show,
+    // so the chart doesn't leave its parent rows blank the way the grid used to.
+    if (t.startDate instanceof Date && !isMilestone) {
       const s = colAt(t.startDate), e = colAt(t.endExclusive);
       if (e <= 0) inner = `<span class="offscreen left" title="${esc(t.name)} ended ${fd(t.finishDate)}">` +
         `<svg class="icon"><use href="#i-left"/></svg></span>`;
       else if (s >= n) inner = `<span class="offscreen right" title="${esc(t.name)} starts ${fd(t.startDate)}">` +
         `<svg class="icon"><use href="#i-right"/></svg></span>`;
       else {
-        const pct = t.pct || 0;
+        const pct = (isSummary ? t.rollPct : t.pct) || 0;
         const x = s * dw, w = Math.max(2, (Math.max(s + 1, e) - s) * dw - 3);
         const tip = esc(t.name) + ' — ' + fd(t.startDate) + ' to ' + fd(t.finishDate) + (pct ? ' · ' + pct + '%' : '');
         const barColor = resolvedColor(i);
         const col = `--c:${barColor};--cd:${doneColor(barColor)}`;
-        const shape = `<div class="bar" style="left:${x}px;width:${w}px;${col}" title="${tip}">` +
-          `<div class="done" style="width:${pct}%"></div></div>`;
+        const shape = isSummary
+          ? `<div class="bar summary" style="left:${x}px;width:${w}px;${col}" title="${tip}"></div>`
+          : `<div class="bar" style="left:${x}px;width:${w}px;${col}" title="${tip}">` +
+            `<div class="done" style="width:${pct}%"></div></div>`;
         const drawnEnd = x + w;
 
         // Name to the left of the bar, dates to the right of it. If the bar starts too
