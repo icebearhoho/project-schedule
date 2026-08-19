@@ -1,5 +1,5 @@
 {
-  "rev": 18,
+  "rev": 19,
   "data": {
     "projects": [
       {
@@ -444,13 +444,14 @@
             "duration": 1,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 0,
+            "collapsed": false
           },
           {
             "id": 6,
             "name": "New phase",
             "duration": 1,
-            "level": 1,
+            "level": 2,
             "preds": [],
             "pct": 0
           },
@@ -616,7 +617,7 @@
             "name": "Inception Project Management Plan",
             "level": 2,
             "duration": 5,
-            "pct": 50,
+            "pct": 0,
             "preds": [],
             "start": "2026-08-14",
             "color": "blue"
@@ -791,7 +792,7 @@
             "pct": 0,
             "color": "green",
             "bg": "ice",
-            "collapsed": true
+            "collapsed": false
           },
           {
             "id": 15,
@@ -882,7 +883,7 @@
             "preds": [],
             "pct": 0,
             "bg": "ice",
-            "collapsed": true
+            "collapsed": false
           },
           {
             "id": 23,
@@ -957,9 +958,832 @@
         "nextId": 45,
         "color": "violet",
         "phaseLine": 8
+      },
+      {
+        "pid": "pmt011eijs696",
+        "name": "Project 6",
+        "start": "2026-08-19",
+        "calendar": {
+          "workdays": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "holidays": [],
+          "extra": []
+        },
+        "tasks": [
+          {
+            "id": 1,
+            "name": "Task 1",
+            "duration": 5,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          }
+        ],
+        "nextId": 2,
+        "phaseLine": 2
+      },
+      {
+        "pid": "pmt00ppjs81gj",
+        "name": "Task schedule (imported)",
+        "start": "2026-08-14",
+        "calendar": {
+          "workdays": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "holidays": [],
+          "extra": []
+        },
+        "tasks": [
+          {
+            "id": 73,
+            "name": "P1: Initiation",
+            "duration": 0,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "collapsed": false,
+            "color": "gray"
+          },
+          {
+            "id": 1,
+            "name": "Kick-off meeting",
+            "level": 2,
+            "duration": 1,
+            "pct": 0,
+            "preds": [],
+            "start": "2026-08-14"
+          },
+          {
+            "id": 2,
+            "name": "Inception Project Management Plan",
+            "level": 2,
+            "duration": 6,
+            "pct": 0,
+            "preds": [
+              "1"
+            ]
+          },
+          {
+            "id": 3,
+            "name": "Draft implementation Plan",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "1"
+            ]
+          },
+          {
+            "id": 4,
+            "name": "System Topology & Cloud Infrastructure",
+            "level": 2,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "1"
+            ]
+          },
+          {
+            "id": 5,
+            "name": "Draft Master Acceptance Test Plan",
+            "level": 2,
+            "duration": 2,
+            "pct": 0,
+            "preds": [
+              "1"
+            ]
+          },
+          {
+            "id": 63,
+            "name": "Kick-off meeting",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "5"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 74,
+            "name": "P2: Planning",
+            "duration": 0,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "collapsed": false,
+            "color": "blue"
+          },
+          {
+            "id": 6,
+            "name": "Requirements Gathering",
+            "level": 2,
+            "duration": 10,
+            "pct": 0,
+            "preds": [
+              "1FF"
+            ]
+          },
+          {
+            "id": 64,
+            "name": "Requirement + Interface sign-off",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "6"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 7,
+            "name": "UX/UI Design (Wireframes)",
+            "level": 2,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "6FF"
+            ]
+          },
+          {
+            "id": 8,
+            "name": "Certificate & Logo Design",
+            "level": 2,
+            "duration": 2,
+            "pct": 0,
+            "preds": [
+              "6FF"
+            ]
+          },
+          {
+            "id": 9,
+            "name": "Data Migration Planning",
+            "level": 2,
+            "duration": 10,
+            "pct": 0,
+            "preds": [
+              "6SS"
+            ]
+          },
+          {
+            "id": 65,
+            "name": "Migration test run & Testing",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "9"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 10,
+            "name": "Master Acceptance Test Plan",
+            "level": 2,
+            "duration": 10,
+            "pct": 0,
+            "preds": [
+              "6"
+            ]
+          },
+          {
+            "id": 11,
+            "name": "IT Security Operation Plan",
+            "level": 2,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "6SS"
+            ]
+          },
+          {
+            "id": 12,
+            "name": "Exit Management Plan",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "6SS"
+            ]
+          },
+          {
+            "id": 75,
+            "name": "P3: Execution",
+            "duration": 0,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "collapsed": false
+          },
+          {
+            "id": 13,
+            "name": "Sprint 1: Architecture & Security Baseline",
+            "level": 2,
+            "duration": 20,
+            "pct": 0,
+            "preds": [
+              "10"
+            ],
+            "collapsed": false
+          },
+          {
+            "id": 14,
+            "name": "13.1.1 System Architecture & Environment Design",
+            "level": 3,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "10"
+            ]
+          },
+          {
+            "id": 15,
+            "name": "13.1.2 Interface & Data Flow Design",
+            "level": 3,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "14"
+            ]
+          },
+          {
+            "id": 16,
+            "name": "13.1.3 Security Risk Assessment & Baseline",
+            "level": 3,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "15"
+            ]
+          },
+          {
+            "id": 17,
+            "name": "13.1.4 Authentication, Access Control & Audit Design",
+            "level": 3,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "16"
+            ]
+          },
+          {
+            "id": 18,
+            "name": "13.1.5 Development & Test Environment Setup",
+            "level": 3,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "17"
+            ]
+          },
+          {
+            "id": 19,
+            "name": "13.1.6 Architecture & Security Review",
+            "level": 3,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "18"
+            ]
+          },
+          {
+            "id": 20,
+            "name": "Sprint 2: Core Development",
+            "level": 2,
+            "duration": 20,
+            "pct": 0,
+            "preds": [
+              "13"
+            ],
+            "collapsed": false
+          },
+          {
+            "id": 21,
+            "name": "14.2.1 SSS Portal & Workflow Development",
+            "level": 3,
+            "duration": 6,
+            "pct": 0,
+            "preds": [
+              "13"
+            ]
+          },
+          {
+            "id": 22,
+            "name": "14.2.2 Business Rules & Validation",
+            "level": 3,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "21"
+            ]
+          },
+          {
+            "id": 23,
+            "name": "14.2.3 Administration Functions",
+            "level": 3,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "22"
+            ]
+          },
+          {
+            "id": 24,
+            "name": "14.2.4 Authentication & Access Control Implementation",
+            "level": 3,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "23"
+            ]
+          },
+          {
+            "id": 25,
+            "name": "14.2.5 Audit Trail Implementation",
+            "level": 3,
+            "duration": 2,
+            "pct": 0,
+            "preds": [
+              "24"
+            ]
+          },
+          {
+            "id": 26,
+            "name": "14.2.6 Application Stabilisation & Feature Review",
+            "level": 3,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "25"
+            ]
+          },
+          {
+            "id": 27,
+            "name": "Sprint 3: Integration & ETL",
+            "level": 2,
+            "duration": 20,
+            "pct": 0,
+            "preds": [
+              "20"
+            ],
+            "collapsed": false
+          },
+          {
+            "id": 28,
+            "name": "15.3.1 External Interface Development",
+            "level": 3,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "20"
+            ]
+          },
+          {
+            "id": 29,
+            "name": "15.3.2 Data Profiling, Cleansing & Mapping",
+            "level": 3,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "28"
+            ]
+          },
+          {
+            "id": 30,
+            "name": "15.3.3 Data Transformation & ETL Development",
+            "level": 3,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "29"
+            ]
+          },
+          {
+            "id": 31,
+            "name": "15.3.4 Data Masking & Trial Migration",
+            "level": 3,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "30"
+            ]
+          },
+          {
+            "id": 32,
+            "name": "15.3.5 Data Validation & Reconciliation",
+            "level": 3,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "31"
+            ]
+          },
+          {
+            "id": 33,
+            "name": "15.3.6 Certificate, Reports & Dashboard Development",
+            "level": 3,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "32"
+            ]
+          },
+          {
+            "id": 34,
+            "name": "Sprint 4: Security Hardening & System Testing",
+            "level": 2,
+            "duration": 20,
+            "pct": 0,
+            "preds": [
+              "27"
+            ],
+            "collapsed": false
+          },
+          {
+            "id": 35,
+            "name": "16.4.1 Security Hardening & Configuration Review",
+            "level": 3,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "27"
+            ]
+          },
+          {
+            "id": 36,
+            "name": "16.4.2 Patch & Access Control Review",
+            "level": 3,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "35"
+            ]
+          },
+          {
+            "id": 37,
+            "name": "16.4.3 Audit Log & Security Scan Review",
+            "level": 3,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "36"
+            ]
+          },
+          {
+            "id": 38,
+            "name": "16.4.4 System Stabilisation & Defect Fixing",
+            "level": 3,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "37"
+            ]
+          },
+          {
+            "id": 39,
+            "name": "16.4.5 Backup & Recovery Preparation",
+            "level": 3,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "38"
+            ]
+          },
+          {
+            "id": 40,
+            "name": "16.4.6 Test Preparation & Development/Configuration Completion",
+            "level": 3,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "39"
+            ]
+          },
+          {
+            "id": 66,
+            "name": "Development/Configuration",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "34"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 76,
+            "name": "P4: Testing",
+            "duration": 0,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "collapsed": true
+          },
+          {
+            "id": 41,
+            "name": "Source Code Review",
+            "level": 2,
+            "duration": 2,
+            "pct": 0,
+            "preds": [
+              "34"
+            ]
+          },
+          {
+            "id": 42,
+            "name": "Unit Tests",
+            "level": 2,
+            "duration": 2,
+            "pct": 0,
+            "preds": [
+              "41"
+            ]
+          },
+          {
+            "id": 43,
+            "name": "System Tests",
+            "level": 2,
+            "duration": 2,
+            "pct": 0,
+            "preds": [
+              "42"
+            ]
+          },
+          {
+            "id": 44,
+            "name": "Performance Testing",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "43SS"
+            ]
+          },
+          {
+            "id": 45,
+            "name": "Interface Tests",
+            "level": 2,
+            "duration": 2,
+            "pct": 0,
+            "preds": [
+              "43SS"
+            ]
+          },
+          {
+            "id": 46,
+            "name": "System Integration Testing (SIT)",
+            "level": 2,
+            "duration": 1,
+            "pct": 0,
+            "preds": [
+              "45SS"
+            ]
+          },
+          {
+            "id": 47,
+            "name": "UAT Preparation Package (Plan, Updated MATP, Authority Briefing)",
+            "level": 2,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "43SS"
+            ]
+          },
+          {
+            "id": 48,
+            "name": "Authority review & approval of System Test Report",
+            "level": 2,
+            "duration": 10,
+            "pct": 0,
+            "preds": [
+              "43"
+            ]
+          },
+          {
+            "id": 67,
+            "name": "System Test Sign-off",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "48"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 49,
+            "name": "UAT Round 1 + on-site support + fix",
+            "level": 2,
+            "duration": 10,
+            "pct": 0,
+            "preds": [
+              "47",
+              "48"
+            ]
+          },
+          {
+            "id": 50,
+            "name": "UAT Round 2 + fix",
+            "level": 2,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "49"
+            ]
+          },
+          {
+            "id": 51,
+            "name": "UAT Round 3 (contingency) + fix",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "50"
+            ]
+          },
+          {
+            "id": 52,
+            "name": "UAT Report",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "50"
+            ]
+          },
+          {
+            "id": 68,
+            "name": "UAT Sign-off",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "52"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 53,
+            "name": "Data Migration Simulation Test + Report",
+            "level": 2,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "48SS"
+            ]
+          },
+          {
+            "id": 69,
+            "name": "Data Migration Test Sign-off",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "53"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 54,
+            "name": "Backup & Recovery Test + Evidence (RPO/RTO)",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "48SS"
+            ]
+          },
+          {
+            "id": 55,
+            "name": "System Security Acceptance Test (SSAT)",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "54"
+            ]
+          },
+          {
+            "id": 70,
+            "name": "Security Acceptance Sign-off (SSAT)",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "55"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 56,
+            "name": "Vulnerability Assessment and Penetration Test (VAPT)",
+            "level": 2,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "55"
+            ]
+          },
+          {
+            "id": 71,
+            "name": "VAPT before Rollout",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "56"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 77,
+            "name": "P5: Closure",
+            "duration": 0,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "collapsed": true
+          },
+          {
+            "id": 57,
+            "name": "Submit Backup & Recovery Plan",
+            "level": 2,
+            "duration": 30,
+            "pct": 0,
+            "preds": [
+              "54"
+            ]
+          },
+          {
+            "id": 58,
+            "name": "Submit VAPT report + re-scan",
+            "level": 2,
+            "duration": 14,
+            "pct": 0,
+            "preds": [
+              "56"
+            ]
+          },
+          {
+            "id": 59,
+            "name": "Submit Deployment Plan + Incident/Support templates",
+            "level": 2,
+            "duration": 14,
+            "pct": 0,
+            "preds": [
+              "48"
+            ]
+          },
+          {
+            "id": 60,
+            "name": "Final production data migration",
+            "level": 2,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "52",
+              "53"
+            ]
+          },
+          {
+            "id": 61,
+            "name": "Go-live",
+            "level": 2,
+            "duration": 1,
+            "pct": 0,
+            "preds": [
+              "57",
+              "58",
+              "59",
+              "60"
+            ]
+          },
+          {
+            "id": 62,
+            "name": "Handover / Knowledge Transfer Meeting to Authority",
+            "level": 2,
+            "duration": 1,
+            "pct": 0,
+            "preds": [
+              "61"
+            ]
+          },
+          {
+            "id": 72,
+            "name": "Handover / Project Closure Sign-off",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "62"
+            ],
+            "pct": 0
+          }
+        ],
+        "nextId": 78,
+        "phaseLine": 6
       }
     ],
-    "nextPid": 6
+    "nextPid": 7
   },
-  "at": "2026-08-19T02:55:49.995Z"
+  "at": "2026-08-19T11:53:30.830Z"
 }
