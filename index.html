@@ -1250,10 +1250,18 @@ function drawGantt(hidden) {
     // divider line at phase-start — so drawing a bar for it too just competes with that
     // instead of adding information. A deeper summary (Sprint 1, say) had no visual of its
     // own at all, which was the actual gap: it alone gets the bracket bar, spanning the
-    // rollup the grid's own Days/Start/Finish columns already show. Milestones are covered
-    // by the flags on the timeline, so they draw nothing here either.
+    // rollup the grid's own Days/Start/Finish columns already show.
     const isPhase = isSummary && (Number(t.level) || 1) === 1;
-    if (t.startDate instanceof Date && !isMilestone && !isPhase) {
+    if (t.startDate instanceof Date && !isPhase && isMilestone) {
+      // Its own row still exists (it's an editable task, same as any other), so leaving it
+      // fully blank there read as "this task has nothing" rather than "this is a milestone"
+      // — the flag it gets in the band up top doesn't point back down to this specific row.
+      // A small flag in the row itself, at its own date, closes that gap without duplicating
+      // the packed, collision-free labels the band already handles well.
+      const s = colAt(t.startDate);
+      if (s >= 0 && s < n) inner = `<div class="mflag" style="left:${s * dw + dw / 2 - 1.5}px;top:7px;--c:${resolvedColor(i)}"
+        title="${esc(t.name)} — ${fd(t.startDate)}"></div>`;
+    } else if (t.startDate instanceof Date && !isMilestone && !isPhase) {
       const s = colAt(t.startDate), e = colAt(t.endExclusive);
       if (e <= 0) inner = `<span class="offscreen left" title="${esc(t.name)} ended ${fd(t.finishDate)}">` +
         `<svg class="icon"><use href="#i-left"/></svg></span>`;
