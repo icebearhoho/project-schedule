@@ -313,6 +313,11 @@
     .pane-grid, .pane-gantt { overflow: visible; max-width: none; }
     th, .ghead { position: static; }
     tr.sel td { background: transparent; }
+    /* The grid and the Gantt compete for width on one shared page, which is what made a
+       combined print small enough to be unreadable — printing each alone lets it use the
+       whole page for itself. */
+    body.print-grid-only .pane-gantt, body.print-grid-only .splitter { display: none !important; }
+    body.print-gantt-only .pane-grid, body.print-gantt-only .splitter { display: none !important; }
   }
 </style>
 </head>
@@ -413,8 +418,8 @@
     <div class="sheet">
       <button onclick="pick(this, exportXML)">MS Project XML (.xml)</button>
       <button onclick="pick(this, exportXLSX)">Excel with Gantt (.xlsx)</button>
-      <button onclick="pick(this, exportPDF)">PDF / print (A3)</button>
-      <button onclick="pick(this, exportPDFFit)">PDF — fit to one page</button>
+      <button onclick="pick(this, exportPDFGrid)">PDF — task grid</button>
+      <button onclick="pick(this, exportPDFGantt)">PDF — Gantt chart</button>
       <button onclick="pick(this, exportCSV)">CSV (.csv)</button>
     </div>
   </details>
@@ -628,12 +633,13 @@ applyTheme();
 
 /* ---- timeline focus: how much of the calendar the Gantt shows at once.
    Kept in localStorage, never in the plan, so changing the view is not an edit. ---- */
-const SPANS = { day: { days: 1, label: 'Day' }, week: { days: 7, label: 'Week' },
-                month: { days: 30, label: 'Month' }, quarter: { days: 91, label: '3 months' },
+const SPANS = { day: { days: 1, label: 'Day' }, quarter: { days: 91, label: '3 months' },
+                m7: { days: 213, label: '7 months' }, m8: { days: 243, label: '8 months' },
+                m9: { days: 274, label: '9 months' },
                 year: { days: 365, label: '12 months' }, all: { days: 0, label: 'All' } };
 let view = (() => {
   try { const v = JSON.parse(localStorage.getItem('view')); if (v && SPANS[v.span]) return v; } catch (e) { }
-  return { span: 'month', anchor: null };
+  return { span: 'quarter', anchor: null };
 })();
 const saveView = () => localStorage.setItem('view', JSON.stringify(view));
 function anchorDate() {
@@ -1521,9 +1527,12 @@ async function exportXLSX() {
       const d = new Date(from); d.setDate(d.getDate() + i);
       const c = row.getCell(FIELDS + 1 + i);
       if (!sum && Number(t.duration) === 0) { if (i === s) { c.value = '◆'; c.alignment = { horizontal: 'center' }; } }
+      // A non-working day inside the span (a weekend the task's real, working-days-only
+      // duration runs through) still reads as non-working, not "busy" — otherwise a
+      // 1-day task that lands on a Friday paints three solid days through the weekend.
+      else if (!isWorkday(d, cal())) c.fill = fill('FFF2F2F2');
       else if (i >= s && i < s + n) c.fill = fill(sum ? mixHex(colour, '#3a4150', .6) // same colours as on screen
         : i < s + donePortion ? mixHex(colour, '#000000', .42) : 'FF' + colour.slice(1).toUpperCase());
-      else if (!isWorkday(d, cal())) c.fill = fill('FFF2F2F2');
     }
   });
   ws2.autoFilter = { from: { row: 2, column: 1 }, to: { row: proj().tasks.length + 2, column: FIELDS } };
@@ -1540,32 +1549,25 @@ function fitPageStyle() {
   return el;
 }
 
-// PDF via the browser's own print dialog: pick "Save as PDF". Prints the grid and the
-// Gantt exactly as drawn, scaled to fit a standard A3 landscape page — good for printing
-// on paper, though a plan with many rows can still spill onto a second page.
-function exportPDF() {
-  document.getElementById('ptitle').textContent = proj().name + ' — ' + fmtDate(new Date());
-  fitPageStyle().textContent = '';
-  const w = document.getElementById('tbl').offsetWidth + (document.getElementById('gantt')?.offsetWidth || 0);
-  document.documentElement.style.setProperty('--ps', Math.min(1, 1400 / w));
-  window.print();
-}
-
-// PDF sized to the plan itself: the page becomes exactly as big as the grid + chart, so
-// everything lands on a single page at full size with no scaling and no page breaks. The
-// trade is a page a physical printer likely can't match — meant for "Save as PDF".
-function exportPDFFit() {
-  document.getElementById('ptitle').textContent = proj().name + ' — ' + fmtDate(new Date());
+// PDF via the browser's own print dialog: pick "Save as PDF". Printing the grid and the
+// Gantt together forced both onto one shared page width, which is illegible for anything
+// past a handful of rows — so each prints alone instead, sized to exactly what it needs:
+// the grid tall (multi-page is normal for a data table), the chart wide (one page).
+function exportPDFOne(cls, elId, suffix) {
+  document.getElementById('ptitle').textContent = proj().name + ' — ' + fmtDate(new Date()) + suffix;
+  document.body.classList.add(cls);
   document.documentElement.style.setProperty('--ps', 1);
-  const w = document.getElementById('tbl').offsetWidth + (document.getElementById('gantt')?.offsetWidth || 0);
-  const h = Math.max(document.getElementById('tbl').offsetHeight, document.getElementById('gantt')?.offsetHeight || 0)
-    + 32; // headroom for the title, which is only laid out once print styles are active
+  const el = document.getElementById(elId);
+  const w = el.offsetWidth, h = el.offsetHeight + 32; // headroom for the title
   const MARGIN_MM = 10, PX_TO_MM = 25.4 / 96;
   const pageW = Math.max(80, w * PX_TO_MM + MARGIN_MM * 2).toFixed(1);
   const pageH = Math.max(60, h * PX_TO_MM + MARGIN_MM * 2).toFixed(1);
   fitPageStyle().textContent = `@media print { @page { size: ${pageW}mm ${pageH}mm; margin: ${MARGIN_MM}mm; } }`;
   window.print();
+  document.body.classList.remove(cls);
 }
+const exportPDFGrid = () => exportPDFOne('print-grid-only', 'tbl', ' — task grid');
+const exportPDFGantt = () => exportPDFOne('print-gantt-only', 'gantt', ' — Gantt chart');
 
 function exportCSV() {
   const q = s => '"' + String(s ?? '').replace(/"/g, '""') + '"';
