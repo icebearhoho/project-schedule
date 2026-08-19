@@ -207,7 +207,13 @@
      every cell instead — border-collapse would work but would also merge every other
      cell's borders, which we don't want. */
   tr.phase-start td { border-top: var(--phase-line, 0px) solid var(--line); }
-  .name { display: flex; align-items: center; gap: 2px; }
+  .name { display: flex; align-items: center; gap: 2px; position: relative; height: 100%; }
+  /* Tree guide lines through the indent gutter — one per ancestor level, lined up under
+     where that ancestor's own fold chevron sits, so a subtask visibly threads back to its
+     parent the way Explorer/VS Code trees do (the grid has no other way to show that). */
+  .name::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--indent, 0px);
+    background-image: repeating-linear-gradient(to right, transparent 0 10px, var(--line) 10px 11px, transparent 11px 16px);
+    pointer-events: none; }
   .fold { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 26px;
           flex: 0 0 22px; padding: 0; background: none; border: 0; border-radius: 5px; cursor: pointer; color: var(--muted); }
   .fold:hover { background: var(--line-soft); }
@@ -1071,7 +1077,7 @@ function render() {
       : `<span class="spacer"></span>`;
     h += `<tr id="r${i}" class="${multi.has(i) ? 'sel ' : ''}${sum ? 'sum ' : ''}${phaseStart ? 'phase-start' : ''}" onclick="selectRow(${i}, event)">` +
       `<td class="ro">${codes[i]}</td><td class="n">${t.id}</td>` +
-      `<td><div class="name" style="padding-left:${pad}px">${twist}` +
+      `<td><div class="name" style="padding-left:${pad}px;--indent:${pad}px">${twist}` +
       `<input value="${esc(t.name)}" title="${esc(t.name)}" aria-label="Task name" onchange="edit(${i},'name',this.value)" onfocus="selectRow(${i})"></div></td>` +
       (sum ? `<td class="ro n">${t.rollDuration ?? ''}</td>` : cell(i, 'duration', t.duration, 'n')) +
       // Start is a real date field: filled in with the scheduled date, and editing it pins
