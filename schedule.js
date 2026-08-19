@@ -333,6 +333,8 @@ const HEADINGS = {
   linkType: /^(type|link ?type|relationship)$/i,   // some sheets keep FS/SS in its own column
   phase: /^(phase|group|stage|workstream)$/i,      // ... and group their rows under a heading
   pct: /(%|percent|progress|complete)/i,
+  milestone: /^milestone$/i,             // a Yes/No flag: this task also marks a gate
+  milestoneName: /^milestone ?name$/i,   // the gate's own name, separate from the task's
 };
 
 // Sheets write dates every which way. Accept ISO, d/m/y and real date cells; anything
@@ -395,12 +397,16 @@ function tasksFromRows(rows, cal) {
     const finishText = col.finish === undefined ? '' : r[col.finish];
     // A link type held in its own column applies to every link on that row.
     const rowType = (at(r, 'linkType').match(/\b(FS|SS|FF|SF)\b/i) || [])[1];
+    // A Yes/No "Milestone" column marks this task as also being a sign-off gate; its own
+    // name (if given) becomes a separate milestone right after the task finishes.
+    const isMilestone = /^(y|yes|true|1)$/i.test(at(r, 'milestone'));
 
     return {
       id, name: rawName.trim(), level: Math.max(1, level),
       duration, pct: pctText === '' ? 0 : Math.min(100, Math.max(0, parseFloat(pctText.replace(/[^\d.\-]/g, '')) || 0)),
       preds: at(r, 'preds').split(/[,;]+/).map(x => x.trim()).filter(Boolean),
       _type: rowType ? rowType.toUpperCase() : '', _phase: at(r, 'phase'),
+      _msName: isMilestone ? (at(r, 'milestoneName') || rawName.trim()) : '',
       _start: readDate(startText), _finish: readDate(finishText),
       _rawStart: String(startText || '').trim(), _rawFinish: String(finishText || '').trim(),
     };
@@ -441,6 +447,16 @@ function tasksFromRows(rows, cal) {
     delete t._start; delete t._finish; delete t._rawStart; delete t._rawFinish; delete t._type;
   });
 
+  // Splice in a zero-day milestone right after any task the Milestone column flagged,
+  // before phase grouping runs so each lands in the same phase as the task it follows.
+  let milestonesAdded = 0, msNextId = body.length + 1;
+  tasks = tasks.flatMap(t => {
+    const msName = t._msName; delete t._msName;
+    if (!msName) return [t];
+    milestonesAdded++;
+    return [t, { id: msNextId++, name: msName, duration: 0, level: t.level, preds: [String(t.id)], pct: 0 }];
+  });
+
   // A Phase/Group column becomes real summary rows, so the outline matches the sheet.
   let grouped = tasks;
   const phases = tasks.map(t => t._phase || '');
@@ -464,6 +480,7 @@ function tasksFromRows(rows, cal) {
   grouped.forEach((t, i) => { if (kids[i].length) { t.duration = 0; t.preds = []; } });
   tasks = grouped;
 
+  if (milestonesAdded) notes.push(milestonesAdded + ' milestone(s) added from the Milestone column, each right after the task it follows.');
   if (guessedDuration) notes.push(guessedDuration + ' task(s) had no duration, so it was worked out from their start and finish dates.');
   if (droppedLinks) notes.push(droppedLinks + ' predecessor reference(s) pointed outside the file and were dropped.');
   if (unreadDates) notes.push(unreadDates + ' date(s) were not in YYYY-MM-DD format and were ignored.');

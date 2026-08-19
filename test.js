@@ -223,6 +223,38 @@ assert.equal(fmtDate(t[0].startDate), '2026-08-15', 'an extra working day outran
   assert.equal(r.tasks[0].start, '2026-08-17');
   assert.equal(r.tasks[0].duration, 2);
 
+  // a Yes/No Milestone column with its own Milestone Name splices in a zero-day gate
+  // right after the task it flags, inside the same phase
+  r = tasksFromRows([
+    ['ID', 'Phase', 'Task', 'Duration', 'Dependency', 'Milestone', 'Milestone Name'],
+    ['1', 'P1', 'Kickoff', '1 day', '', 'Yes', 'Kickoff'],
+    ['2', 'P1', 'Design', '3 days', '#1', 'No', ''],
+    ['3', 'P2', 'Build', '5 days', '#2', 'Yes', 'Design sign-off'],
+    ['4', 'P2', 'Test', '2 days', '#3', 'No', ''],
+  ]);
+  assert.deepEqual(r.tasks.map(t => t.name), ['P1', 'Kickoff', 'Kickoff', 'Design', 'P2', 'Build', 'Design sign-off', 'Test']);
+  const kickoffMs = r.tasks[2], buildMs = r.tasks[6];
+  assert.equal(kickoffMs.duration, 0);
+  assert.deepEqual(kickoffMs.preds, ['1']);          // follows the flagged task, not the next row
+  assert.equal(kickoffMs.level, r.tasks[1].level, 'sits alongside its task in the same phase');
+  assert.deepEqual(buildMs.preds, [String(r.tasks[5].id)]);
+  assert.match(r.notes.join(' '), /2 milestone\(s\) added from the Milestone column/);
+  // and the plan schedules: an FS link, so the gate lands right where its task's work ends
+  assert.deepEqual(schedule(r.tasks, '2026-08-17'), []);
+  assert.equal(fmtDate(kickoffMs.startDate), fmtDate(r.tasks[1].endExclusive));
+
+  // a "Milestone" column with no matching name column just reuses the task's own name
+  r = tasksFromRows([
+    ['Task', 'Duration', 'Milestone'],
+    ['Ship it', '1 day', 'Yes'],
+  ]);
+  assert.equal(r.tasks[1].name, 'Ship it');
+
+  // files with neither column behave exactly as before (no milestones invented)
+  r = tasksFromRows([['Task name', 'Duration'], ['A', '1']]);
+  assert.equal(r.tasks.length, 1);
+  assert.deepEqual(r.notes, []);
+
   // useless input fails loudly rather than making up a plan
   assert.throws(() => tasksFromRows([['Colour', 'Size'], ['red', 'big']]), /No task name column/);
   assert.throws(() => tasksFromRows([['Task name', 'Duration']]), /no task rows/);

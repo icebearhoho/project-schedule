@@ -116,18 +116,26 @@ Columns are matched by their heading, in any order, and extra columns are ignore
 | Task name | Name, Task, Description, Activity |
 | Duration | Days, Dur — and values like `5 days` |
 | Start / Finish | `YYYY-MM-DD`, or real spreadsheet date cells |
-| Predecessors | Pred, Depends — including `3SS+2` style links |
+| Predecessors | Pred, Depends — including `3SS+2` style links, `#4` refs, and a comma or `+` list |
+| Type | Type, Link Type, Relationship — an `FS`/`SS`/`FF`/`SF` column applied to every link on that row |
 | ID | UID, Ref, Task ID — used to resolve those links |
 | WBS | gives the outline depth (`1.2.1` = three levels deep) |
+| Phase | Group, Stage, Workstream — turns each distinct value into a summary row the matching tasks are grouped under |
+| Milestone | a Yes/No column marking a task as also being a sign-off gate |
+| Milestone Name | the gate's own name; falls back to the task's name if left blank |
 | % Complete | %, Percent, Progress |
 
 Anything it has to work out is reported in the yellow bar rather than done quietly:
 
 - **No duration column?** It's calculated from Start and Finish in working days, or
   defaults to one day.
+- **Dates** read `YYYY-MM-DD`, `DD/MM/YYYY`, or a real spreadsheet date cell.
 - **Links pointing outside the file** are dropped and counted.
 - **Outline depth** comes from the WBS codes, or failing that from leading spaces in the
-  task names — which is what this app's own CSV export writes.
+  task names — which is what this app's own CSV export writes. A Phase column groups on
+  top of that, so a flat sheet with only a Phase column still comes in as an outline.
+- **A Milestone flag** adds a zero-day task right after the one it marks, linked to it
+  finish-to-start, named from Milestone Name (or the task's own name).
 - **Only tasks with no predecessors keep their date** as a pin. Pinning everything would
   make the dependencies decorative.
 - The new project **inherits the working calendar** of the project you were viewing,
