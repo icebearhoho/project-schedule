@@ -1,5 +1,5 @@
 {
-  "rev": 17,
+  "rev": 18,
   "data": {
     "projects": [
       {
@@ -240,7 +240,8 @@
         ],
         "nextId": 27,
         "color": "rose",
-        "pid": "p0"
+        "pid": "p0",
+        "phaseLine": 2
       },
       {
         "name": "test",
@@ -316,7 +317,8 @@
           }
         ],
         "nextId": 8,
-        "pid": "p1"
+        "pid": "p1",
+        "phaseLine": 2
       },
       {
         "pid": "pmswp60utl7ef",
@@ -383,7 +385,8 @@
             "pct": 0
           }
         ],
-        "nextId": 7
+        "nextId": 7,
+        "phaseLine": 2
       },
       {
         "pid": "pmswp66lj0ciu",
@@ -536,7 +539,8 @@
             "pct": 0
           }
         ],
-        "nextId": 17
+        "nextId": 17,
+        "phaseLine": 2
       },
       {
         "pid": "pmsyd5ptf0e8t",
@@ -563,7 +567,8 @@
             "pct": 0
           }
         ],
-        "nextId": 2
+        "nextId": 2,
+        "phaseLine": 2
       },
       {
         "pid": "p-task-overview",
@@ -734,7 +739,7 @@
             "pct": 0,
             "color": "amber",
             "bg": "ice",
-            "collapsed": false
+            "collapsed": true
           },
           {
             "id": 11,
@@ -786,7 +791,7 @@
             "pct": 0,
             "color": "green",
             "bg": "ice",
-            "collapsed": false
+            "collapsed": true
           },
           {
             "id": 15,
@@ -877,7 +882,7 @@
             "preds": [],
             "pct": 0,
             "bg": "ice",
-            "collapsed": false
+            "collapsed": true
           },
           {
             "id": 23,
@@ -950,10 +955,11 @@
           }
         ],
         "nextId": 45,
-        "color": "violet"
+        "color": "violet",
+        "phaseLine": 8
       }
     ],
     "nextPid": 6
   },
-  "at": "2026-08-18T09:54:34.860Z"
+  "at": "2026-08-19T02:55:49.995Z"
 }
