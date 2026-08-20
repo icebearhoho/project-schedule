@@ -1171,6 +1171,10 @@ const textWidth = (() => {
   return (text, font) => { c.font = font; return c.measureText(text).width; };
 })();
 
+// Returns the band's HTML plus the total width it actually needs — wider than the day
+// grid's own W whenever a label near the end needs more room than the real dates leave
+// it, so the chart grows a little blank margin at the edge for it rather than truncating
+// text that's already been shortened once and didn't land well (see git log).
 function milestoneBand(colAt, dw, W) {
   const marks = proj().tasks
     .map((t, i) => ({ t, i }))
@@ -1178,17 +1182,19 @@ function milestoneBand(colAt, dw, W) {
     .map(({ t, i }) => ({ t, i, x: colAt(t.startDate) * dw + dw / 2 }))   // centred on its own day
     .filter(m => m.x >= 0 && m.x <= W)
     .sort((a, b) => a.x - b.x);
-  if (!marks.length) return '';
+  if (!marks.length) return { html: '', width: W };
 
   const LANE = 20, PAD = 22;
   const laneEnds = [];                       // right-hand edge of the last label in each lane
   const seenX = new Map();                   // same-day milestones would draw their flags on the exact same spot
+  let bandW = W;
   const placed = marks.map(m => {
     const date = m.t.startDate.toLocaleString('en', { day: 'numeric', month: 'short' });
     const w = PAD + textWidth(m.t.name + '  ' + date, '600 12px system-ui') + 14;
     let lane = laneEnds.findIndex(end => m.x > end);
     if (lane < 0) { lane = laneEnds.length; laneEnds.push(0); }
     laneEnds[lane] = m.x + w;
+    bandW = Math.max(bandW, m.x + w + 4);
     const dup = seenX.get(m.x) || 0; seenX.set(m.x, dup + 1);
     return { ...m, lane, date, flagNudge: dup * 4 };
   });
@@ -1197,17 +1203,12 @@ function milestoneBand(colAt, dw, W) {
 
   const body = placed.map(m => {
     const top = (lanes - 1 - m.lane) * LANE + 2;   // later lanes sit higher, like a stepped callout
-    // A label near the right edge has less room than its text needs — clamped with an
-    // ellipsis (via the max-width below) rather than letting it run off the chart. Trying
-    // to flip it to the other side of its flag was worse: for a long name that jump can
-    // land the label far from its own flag, on top of whatever else is out there.
-    const room = Math.max(40, W - (m.x + PAD) - 4);
     return `<div class="mstem" style="left:${m.x}px;top:${top + 10}px;height:${height - top - 10}px"></div>` +
       `<div class="mflag" style="left:${m.x - 1.5 + m.flagNudge}px;top:${top}px;--c:${resolvedColor(m.i)}"></div>` +
-      `<div class="mtext" style="left:${m.x + PAD}px;top:${top + 2}px;max-width:${room}px" onclick="sel=${m.i};hl()"` +
+      `<div class="mtext" style="left:${m.x + PAD}px;top:${top + 2}px" onclick="sel=${m.i};hl()"` +
       ` title="${esc(m.t.name)} — ${fd(m.t.startDate)}"><b>${esc(m.t.name)}</b> <span>${m.date}</span></div>`;
   }).join('');
-  return `<div class="mband" style="height:${height}px">${body}</div>`;
+  return { html: `<div class="mband" style="height:${height}px">${body}</div>`, width: bandW };
 }
 
 function drawGantt(hidden) {
@@ -1312,13 +1313,17 @@ function drawGantt(hidden) {
       `" onclick="selectRow(${i}, event)">${inner}</div>`;
   });
 
+  // A milestone label near the very end can need more room than the real dates leave —
+  // the band (and everything below it) grows a little wider to give it that room, rather
+  // than shrinking the label to fit.
+  const mband = milestoneBand(colAt, dw, W);
   document.getElementById('gantt').innerHTML =
-    `<div class="ghead" style="width:${W}px">${milestoneBand(colAt, dw, W)}` +
+    `<div class="ghead" style="width:${mband.width}px">${mband.html}` +
     `<div class="gmonths">${months}</div><div class="gdays">${days}</div></div>` +
-    `<div style="position:relative;width:${W}px">${todayLine}${rows}</div>`;
+    `<div style="position:relative;width:${mband.width}px">${todayLine}${rows}</div>`;
 
-  const band = document.querySelector('.mband');
-  document.getElementById('panes').style.setProperty('--bandh', (band ? band.offsetHeight : 0) + 'px');
+  const bandEl = document.querySelector('.mband');
+  document.getElementById('panes').style.setProperty('--bandh', (bandEl ? bandEl.offsetHeight : 0) + 'px');
 
   document.getElementById('seg').innerHTML = Object.entries(SPANS).map(([k, s]) =>
     `<button onclick="setSpan('${k}')" aria-pressed="${view.span === k}">${s.label}</button>`).join('');
