@@ -221,6 +221,7 @@
   @media (prefers-reduced-motion: reduce) { .fold svg { transition: none; } }
   .fold.closed svg { transform: rotate(-90deg); }
   .spacer { width: 22px; flex: 0 0 22px; }
+  .mstamp { display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: var(--accent); }
   .empty { padding: 24px 16px; color: var(--muted); }
 
   /* ---- gantt ---- */
@@ -1086,10 +1087,16 @@ function render() {
     // it from the phase before it, without a stray line above the very top row.
     const phaseStart = sum && (Number(t.level) || 1) === 1 && i > 0;
     const pad = ((Number(t.level) || 1) - 1) * 16;
+    // A milestone often shares its name with the task it marks — mark the row itself
+    // (not the name, which is a live input bound straight to t.name and would otherwise
+    // save the marker as part of the name on the next edit) so it doesn't read as a
+    // stray duplicate of a same-named task.
     const twist = sum
       ? `<button class="fold ${t.collapsed ? 'closed' : ''}" onclick="toggleFold(${i})"
            aria-expanded="${!t.collapsed}" aria-label="${t.collapsed ? 'Expand' : 'Collapse'} ${esc(t.name)}"><svg class="icon"><use href="#i-chev"/></svg></button>`
-      : `<span class="spacer"></span>`;
+      : !sum && Number(t.duration) === 0
+        ? `<span class="spacer mstamp" title="Milestone">◆</span>`
+        : `<span class="spacer"></span>`;
     h += `<tr id="r${i}" class="${multi.has(i) ? 'sel ' : ''}${sum ? 'sum ' : ''}${phaseStart ? 'phase-start' : ''}" onclick="selectRow(${i}, event)">` +
       `<td class="ro">${codes[i]}</td><td class="n">${t.id}</td>` +
       `<td><div class="name" style="padding-left:${pad}px;--indent:${pad}px">${twist}` +
