@@ -1465,20 +1465,23 @@ ${tasks}
   download(fileName('.xml'), xml, 'application/xml');
 }
 
+// Tasks that belong in the exported table — every milestone excluded outright. A milestone
+// already gets its own flag on the Gantt, and a flattened text table has no way to draw
+// that distinction; a milestone that happens to share a task's name (common — a sheet's
+// own "Milestone Name" column often just repeats it) would otherwise land as a row that
+// reads like an accidental duplicate to anyone opening the file.
+function tableTasks() {
+  return proj().tasks
+    .map((t, i) => ({ t, i, sum: kids[i].length > 0 }))
+    .filter(({ t, sum }) => sum || Number(t.duration) !== 0);
+}
 function tableRows() {
   return [['WBS', 'ID', 'Task name', 'Duration (days)', 'Start', 'Finish', 'Predecessors', '% Complete'],
-  ...proj().tasks.map((t, i) => {
-    const sum = kids[i].length > 0;
-    const milestone = !sum && Number(t.duration) === 0;
-    // A milestone often shares its name with the task it marks (imported from a sheet's
-    // own "Milestone Name" column, say) — flatten out to a text table and that reads as
-    // an accidental duplicate row instead of what it actually is.
-    return [codes[i], t.id, '  '.repeat((Number(t.level) || 1) - 1) + (milestone ? '◆ ' : '') + t.name,
-      sum ? (t.rollDuration || 0) : Number(t.duration) || 0,
-      fd(t.startDate), fd(t.finishDate),
-      sum ? '' : (t.preds || []).map(fmtPred).join(','),
-      (sum ? t.rollPct : Number(t.pct)) || 0];
-  })];
+  ...tableTasks().map(({ t, i, sum }) => [codes[i], t.id, '  '.repeat((Number(t.level) || 1) - 1) + t.name,
+    sum ? (t.rollDuration || 0) : Number(t.duration) || 0,
+    fd(t.startDate), fd(t.finishDate),
+    sum ? '' : (t.preds || []).map(fmtPred).join(','),
+    (sum ? t.rollPct : Number(t.pct)) || 0])];
 }
 
 // Excel: task columns + an embedded picture of the actual on-screen Gantt. A native chart
@@ -1496,12 +1499,19 @@ async function exportXLSX() {
   if (!window.html2canvas) await loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js').catch(e => { banner('err', e.message); throw e; });
 
   const FIELDS = 8;
+  const tt = tableTasks();
   const rows = tableRows();
 
   // The task columns always list the whole plan, so the chart beside them should match —
   // switch to the "All" span to capture it, then put the on-screen view back afterward.
   const savedSpan = view.span, savedAnchor = view.anchor;
   view.span = 'all'; render();
+  // Milestones are excluded from the table above, so their (already blank) row has to
+  // come out of the captured image too — otherwise the image would have more rows than
+  // the table and every bar below the first milestone would sit next to the wrong task.
+  const milestoneRows = new Set(proj().tasks
+    .map((t, i) => ({ t, i })).filter(({ t, i }) => !kids[i].length && Number(t.duration) === 0).map(({ i }) => i));
+  drawGantt(new Set([...hiddenRows(), ...milestoneRows]));
   const ganttEl = document.getElementById('gantt');
   const headH = document.querySelector('.ghead')?.offsetHeight || 40;
   const rowH = document.querySelector('.gantt-row')?.offsetHeight || 32;
@@ -1540,7 +1550,7 @@ async function exportXLSX() {
   rows.slice(1).forEach((r, i) => {
     const row = ws2.getRow(i + 2);
     row.values = r; row.height = rowH * 0.75;
-    if (kids[i].length > 0) row.font = { bold: true };
+    if (tt[i].sum) row.font = { bold: true };
   });
   ws2.autoFilter = { from: { row: 1, column: 1 }, to: { row: rows.length, column: FIELDS } };
 
