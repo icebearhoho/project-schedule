@@ -1181,14 +1181,21 @@ function milestoneBand(colAt, dw, W) {
   if (!marks.length) return '';
 
   const LANE = 20, PAD = 22;
-  const laneEnds = [];                       // right-hand edge of the last label in each lane
+  const laneEnds = [];                       // rightmost (or, for a flipped label, leftmost) edge used in each lane
+  const seenX = new Map();                   // same-day milestones would draw their flags on the exact same spot
   const placed = marks.map(m => {
     const date = m.t.startDate.toLocaleString('en', { day: 'numeric', month: 'short' });
     const w = PAD + textWidth(m.t.name + '  ' + date, '600 12px system-ui') + 14;
-    let lane = laneEnds.findIndex(end => m.x > end);
+    // Near the right edge there's no room for a label to the right of its flag — flip it
+    // to the left instead, the same trick a normal task bar already uses, rather than
+    // letting the last milestone's label run off the edge of the chart.
+    const flip = m.x + w > W;
+    const footStart = flip ? m.x - w : m.x, footEnd = flip ? m.x : m.x + w;
+    let lane = laneEnds.findIndex(end => footStart > end);
     if (lane < 0) { lane = laneEnds.length; laneEnds.push(0); }
-    laneEnds[lane] = m.x + w;
-    return { ...m, lane, date };
+    laneEnds[lane] = footEnd;
+    const dup = seenX.get(m.x) || 0; seenX.set(m.x, dup + 1);
+    return { ...m, lane, date, w, flip, flagNudge: dup * 4 };
   });
   const lanes = laneEnds.length;
   const height = lanes * LANE + 12;
@@ -1196,8 +1203,8 @@ function milestoneBand(colAt, dw, W) {
   const body = placed.map(m => {
     const top = (lanes - 1 - m.lane) * LANE + 2;   // later lanes sit higher, like a stepped callout
     return `<div class="mstem" style="left:${m.x}px;top:${top + 10}px;height:${height - top - 10}px"></div>` +
-      `<div class="mflag" style="left:${m.x - 1.5}px;top:${top}px;--c:${resolvedColor(m.i)}"></div>` +
-      `<div class="mtext" style="left:${m.x + PAD}px;top:${top + 2}px" onclick="sel=${m.i};hl()"` +
+      `<div class="mflag" style="left:${m.x - 1.5 + m.flagNudge}px;top:${top}px;--c:${resolvedColor(m.i)}"></div>` +
+      `<div class="mtext" style="left:${(m.flip ? m.x - m.w : m.x + PAD)}px;top:${top + 2}px" onclick="sel=${m.i};hl()"` +
       ` title="${esc(m.t.name)} — ${fd(m.t.startDate)}"><b>${esc(m.t.name)}</b> <span>${m.date}</span></div>`;
   }).join('');
   return `<div class="mband" style="height:${height}px">${body}</div>`;
