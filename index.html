@@ -237,7 +237,7 @@
                   border-top: 6px solid transparent; border-bottom: 6px solid transparent;
                   border-left: 14px solid var(--c, var(--bar)); }
   .mtext { position: absolute; white-space: nowrap; font-size: 12px; line-height: 15px; color: var(--text);
-           cursor: pointer; }
+           cursor: pointer; overflow: hidden; text-overflow: ellipsis; }
   .mtext b { font-weight: 600; }
   .mtext span { color: var(--muted); }
   .gmonths, .gdays { display: flex; }
@@ -1181,30 +1181,30 @@ function milestoneBand(colAt, dw, W) {
   if (!marks.length) return '';
 
   const LANE = 20, PAD = 22;
-  const laneEnds = [];                       // rightmost (or, for a flipped label, leftmost) edge used in each lane
+  const laneEnds = [];                       // right-hand edge of the last label in each lane
   const seenX = new Map();                   // same-day milestones would draw their flags on the exact same spot
   const placed = marks.map(m => {
     const date = m.t.startDate.toLocaleString('en', { day: 'numeric', month: 'short' });
     const w = PAD + textWidth(m.t.name + '  ' + date, '600 12px system-ui') + 14;
-    // Near the right edge there's no room for a label to the right of its flag — flip it
-    // to the left instead, the same trick a normal task bar already uses, rather than
-    // letting the last milestone's label run off the edge of the chart.
-    const flip = m.x + w > W;
-    const footStart = flip ? m.x - w : m.x, footEnd = flip ? m.x : m.x + w;
-    let lane = laneEnds.findIndex(end => footStart > end);
+    let lane = laneEnds.findIndex(end => m.x > end);
     if (lane < 0) { lane = laneEnds.length; laneEnds.push(0); }
-    laneEnds[lane] = footEnd;
+    laneEnds[lane] = m.x + w;
     const dup = seenX.get(m.x) || 0; seenX.set(m.x, dup + 1);
-    return { ...m, lane, date, w, flip, flagNudge: dup * 4 };
+    return { ...m, lane, date, flagNudge: dup * 4 };
   });
   const lanes = laneEnds.length;
   const height = lanes * LANE + 12;
 
   const body = placed.map(m => {
     const top = (lanes - 1 - m.lane) * LANE + 2;   // later lanes sit higher, like a stepped callout
+    // A label near the right edge has less room than its text needs — clamped with an
+    // ellipsis (via the max-width below) rather than letting it run off the chart. Trying
+    // to flip it to the other side of its flag was worse: for a long name that jump can
+    // land the label far from its own flag, on top of whatever else is out there.
+    const room = Math.max(40, W - (m.x + PAD) - 4);
     return `<div class="mstem" style="left:${m.x}px;top:${top + 10}px;height:${height - top - 10}px"></div>` +
       `<div class="mflag" style="left:${m.x - 1.5 + m.flagNudge}px;top:${top}px;--c:${resolvedColor(m.i)}"></div>` +
-      `<div class="mtext" style="left:${(m.flip ? m.x - m.w : m.x + PAD)}px;top:${top + 2}px" onclick="sel=${m.i};hl()"` +
+      `<div class="mtext" style="left:${m.x + PAD}px;top:${top + 2}px;max-width:${room}px" onclick="sel=${m.i};hl()"` +
       ` title="${esc(m.t.name)} — ${fd(m.t.startDate)}"><b>${esc(m.t.name)}</b> <span>${m.date}</span></div>`;
   }).join('');
   return `<div class="mband" style="height:${height}px">${body}</div>`;
