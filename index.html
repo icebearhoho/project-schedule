@@ -1469,7 +1469,11 @@ function tableRows() {
   return [['WBS', 'ID', 'Task name', 'Duration (days)', 'Start', 'Finish', 'Predecessors', '% Complete'],
   ...proj().tasks.map((t, i) => {
     const sum = kids[i].length > 0;
-    return [codes[i], t.id, '  '.repeat((Number(t.level) || 1) - 1) + t.name,
+    const milestone = !sum && Number(t.duration) === 0;
+    // A milestone often shares its name with the task it marks (imported from a sheet's
+    // own "Milestone Name" column, say) — flatten out to a text table and that reads as
+    // an accidental duplicate row instead of what it actually is.
+    return [codes[i], t.id, '  '.repeat((Number(t.level) || 1) - 1) + (milestone ? '◆ ' : '') + t.name,
       sum ? (t.rollDuration || 0) : Number(t.duration) || 0,
       fd(t.startDate), fd(t.finishDate),
       sum ? '' : (t.preds || []).map(fmtPred).join(','),
