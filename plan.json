@@ -1,5 +1,5 @@
 {
-  "rev": 34,
+  "rev": 35,
   "data": {
     "projects": [
       {
@@ -2818,7 +2818,7 @@
             "level": 1,
             "preds": [],
             "pct": 0,
-            "collapsed": true,
+            "collapsed": false,
             "color": "blue",
             "bg": "ice"
           },
@@ -2999,8 +2999,9 @@
             "level": 1,
             "preds": [],
             "pct": 0,
-            "collapsed": true,
-            "bg": "ice"
+            "collapsed": false,
+            "bg": "ice",
+            "color": "amber"
           },
           {
             "id": 57,
@@ -3084,5 +3085,5 @@
     ],
     "nextPid": 10
   },
-  "at": "2026-08-21T09:19:47.214Z"
+  "at": "2026-08-21T09:23:12.417Z"
 }
