@@ -1482,10 +1482,10 @@ ${tasks}
 // that distinction; a milestone that happens to share a task's name (common — a sheet's
 // own "Milestone Name" column often just repeats it) would otherwise land as a row that
 // reads like an accidental duplicate to anyone opening the file.
-function tableTasks() {
+function tableTasks(includeMilestones) {
   return proj().tasks
     .map((t, i) => ({ t, i, sum: kids[i].length > 0 }))
-    .filter(({ t, sum }) => sum || Number(t.duration) !== 0);
+    .filter(({ t, sum }) => sum || Number(t.duration) !== 0 || includeMilestones);
 }
 function tableRows() {
   return [['WBS', 'ID', 'Task name', 'Duration (days)', 'Start', 'Finish', 'Predecessors', '% Complete'],
@@ -1494,6 +1494,21 @@ function tableRows() {
     fd(t.startDate), fd(t.finishDate),
     sum ? '' : (t.preds || []).map(fmtPred).join(','),
     (sum ? t.rollPct : Number(t.pct)) || 0])];
+}
+// Same table, but for the XLSX export specifically: a milestone gets its row back (with a
+// flag glyph on the name, same as the live grid's own marker) instead of vanishing outright
+// — the Excel Gantt has no separate flag band to point to like the on-screen chart did, so
+// dropping the row entirely left milestones with no representation anywhere in the file.
+function xlsxRows(tt) {
+  return [['WBS', 'ID', 'Task name', 'Duration (days)', 'Start', 'Finish', 'Predecessors', '% Complete'],
+  ...tt.map(({ t, i, sum }) => {
+    const milestone = !sum && Number(t.duration) === 0;
+    return [codes[i], t.id, '  '.repeat((Number(t.level) || 1) - 1) + (milestone ? '◆ ' : '') + t.name,
+      sum ? (t.rollDuration || 0) : Number(t.duration) || 0,
+      fd(t.startDate), fd(t.finishDate),
+      sum ? '' : (t.preds || []).map(fmtPred).join(','),
+      (sum ? t.rollPct : Number(t.pct)) || 0];
+  })];
 }
 
 // Excel: task columns + a real Gantt drawn as coloured day cells to the right — each
@@ -1508,8 +1523,8 @@ async function exportXLSX() {
   }).catch(e => { banner('err', e.message); throw e; });
 
   const FIELDS = 8;
-  const tt = tableTasks();
-  const rows = tableRows();
+  const tt = tableTasks(true);
+  const rows = xlsxRows(tt);
   const [from, to] = autoBounds(); // a spreadsheet holds the whole plan, not just the focused window
   const days = Math.max(20, dayIdx(from, to));
   const fill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
@@ -1552,8 +1567,17 @@ async function exportXLSX() {
   tt.forEach(({ t, i, sum }, r) => {
     const row = ws2.addRow(rows[r + 1]);
     const colour = resolvedColor(i);
+    const milestone = !sum && Number(t.duration) === 0;
     if (sum) row.font = { bold: true };
+    // Muted and italic, not bold like a real task — a flag glyph on its own isn't always
+    // enough to keep a milestone from reading as a stray duplicate of a same-named task.
+    else if (milestone) row.font = { italic: true, color: { argb: 'FF8A93A6' } };
     if (!(t.startDate instanceof Date)) return;
+    if (milestone) {
+      const s = dayIdx(from, t.startDate);
+      if (s >= 0 && s < days) { const c = row.getCell(FIELDS + 1 + s); c.value = '◆'; c.alignment = { horizontal: 'center' }; }
+      return;
+    }
     const s = dayIdx(from, t.startDate), n = Math.max(1, dayIdx(t.startDate, t.endExclusive));
     const donePortion = Math.round(n * ((sum ? t.rollPct : Number(t.pct)) || 0) / 100);
     // A non-working day inside the span (a weekend the task's real, working-days-only
