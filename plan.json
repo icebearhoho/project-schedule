@@ -1,5 +1,5 @@
 {
-  "rev": 35,
+  "rev": 36,
   "data": {
     "projects": [
       {
@@ -2269,7 +2269,7 @@
       },
       {
         "pid": "pmt2nfwkvlctk",
-        "name": "Task overview - Task Schedule (compressed, 7-month target)",
+        "name": "SSS timeline",
         "start": "2026-08-14",
         "calendar": {
           "workdays": [
@@ -3085,5 +3085,5 @@
     ],
     "nextPid": 10
   },
-  "at": "2026-08-21T09:23:12.417Z"
+  "at": "2026-08-21T09:26:05.844Z"
 }
