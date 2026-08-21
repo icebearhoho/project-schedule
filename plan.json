@@ -1,5 +1,5 @@
 {
-  "rev": 37,
+  "rev": 38,
   "data": {
     "projects": [
       {
@@ -2279,7 +2279,20 @@
             4,
             5
           ],
-          "holidays": [],
+          "holidays": [
+            "2027-01-01",
+            "2027-02-06",
+            "2027-02-07",
+            "2027-02-08",
+            "2027-03-09",
+            "2027-03-26",
+            "2027-05-01",
+            "2027-05-17",
+            "2027-05-20",
+            "2027-08-09",
+            "2027-10-28",
+            "2027-12-25"
+          ],
           "extra": []
         },
         "tasks": [
@@ -2834,9 +2847,9 @@
           },
           {
             "id": 46,
-            "name": "UAT Preparation Package (Plan, Updated MATP, Authority Briefing)",
+            "name": "UAT Preparation Package (Authority Briefing, Plan, Updated MATP)",
             "level": 2,
-            "duration": 14,
+            "duration": 7,
             "pct": 0,
             "preds": [
               "45"
@@ -3085,5 +3098,5 @@
     ],
     "nextPid": 10
   },
-  "at": "2026-08-21T09:31:17.304Z"
+  "at": "2026-08-21T09:40:18.674Z"
 }
