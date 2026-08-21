@@ -1496,81 +1496,93 @@ function tableRows() {
     (sum ? t.rollPct : Number(t.pct)) || 0])];
 }
 
-// Excel: task columns + an embedded picture of the actual on-screen Gantt. A native chart
-// object can't reproduce the web app's own styling (per-bar date labels, the today-line,
-// month/week bands, milestone flags) without a lot more hand-written chart XML, and some
-// of that — the today-line especially — isn't something a plain Excel chart does at all.
-// A screenshot of the real thing is what actually looks like the app.
+// Excel: task columns + a real Gantt drawn as coloured day cells to the right — each
+// task's contiguous same-coloured days merged into one bordered block instead of one cell
+// per day, so a span draws as a clean rectangle rather than a jagged pixel staircase.
 async function exportXLSX() {
-  const loadScript = src => new Promise((ok, no) => { // loaded on demand: rest of the app works offline
+  if (!window.ExcelJS) await new Promise((ok, no) => { // loaded on demand: rest of the app works offline
     const s = document.createElement('script');
-    s.src = src; s.onload = ok; s.onerror = () => no(new Error('Could not load ' + src.split('/').pop() + ' (no internet?). Use CSV instead.'));
+    s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+    s.onload = ok; s.onerror = () => no(new Error('Could not load the Excel library (no internet?). Use CSV instead.'));
     document.head.appendChild(s);
-  });
-  if (!window.ExcelJS) await loadScript('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js').catch(e => { banner('err', e.message); throw e; });
-  if (!window.html2canvas) await loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js').catch(e => { banner('err', e.message); throw e; });
+  }).catch(e => { banner('err', e.message); throw e; });
 
   const FIELDS = 8;
   const tt = tableTasks();
   const rows = tableRows();
-
-  // The task columns always list the whole plan, so the chart beside them should match —
-  // switch to the "All" span to capture it, then put the on-screen view back afterward.
-  const savedSpan = view.span, savedAnchor = view.anchor;
-  view.span = 'all'; render();
-  // Milestones are excluded from the table above, so their (already blank) row has to
-  // come out of the captured image too — otherwise the image would have more rows than
-  // the table and every bar below the first milestone would sit next to the wrong task.
-  const milestoneRows = new Set(proj().tasks
-    .map((t, i) => ({ t, i })).filter(({ t, i }) => !kids[i].length && Number(t.duration) === 0).map(({ i }) => i));
-  drawGantt(new Set([...hiddenRows(), ...milestoneRows]));
-  const ganttEl = document.getElementById('gantt');
-  const headH = document.querySelector('.ghead')?.offsetHeight || 40;
-  const rowH = document.querySelector('.gantt-row')?.offsetHeight || 32;
-  const bg = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff';
-  // html2canvas's CSS parser (unmaintained since 2022) doesn't recognise the CSS Color 4
-  // color(srgb ...) function Chrome resolves color-mix() to for some properties, and
-  // throws — so every color-mix(...) call is cut from the stylesheet text in a clone
-  // (paren-depth aware, since var(--x, var(--y)) nests parens inside the call it would
-  // otherwise cut short), leaving the live page untouched.
-  const stripColorMix = css => {
-    let out = '', i = 0;
-    for (let idx; (idx = css.indexOf('color-mix(', i)) >= 0;) {
-      out += css.slice(i, idx);
-      let depth = 0, j = idx;
-      for (; j < css.length; j++) { if (css[j] === '(') depth++; else if (css[j] === ')' && --depth === 0) { j++; break; } }
-      out += 'transparent'; i = j;
-    }
-    return out + css.slice(i);
-  };
-  const canvas = await html2canvas(ganttEl, {
-    backgroundColor: bg, scale: 2,
-    onclone: doc => doc.querySelectorAll('style').forEach(el => { el.textContent = stripColorMix(el.textContent); })
-  });
-  view.span = savedSpan; view.anchor = savedAnchor; render();
-  const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
-  const buf = await blob.arrayBuffer();
+  const [from, to] = autoBounds(); // a spreadsheet holds the whole plan, not just the focused window
+  const days = Math.max(20, dayIdx(from, to));
+  const fill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
+  // Excel has no color-mix(), so the same blend the CSS does is computed here.
+  const mixHex = (a, b, amount) => 'FF' + [0, 2, 4].map(i => Math.round(
+    parseInt(a.slice(1 + i, 3 + i), 16) * (1 - amount) + parseInt(b.slice(1 + i, 3 + i), 16) * amount
+  ).toString(16).padStart(2, '0')).join('').toUpperCase();
 
   const wb = new ExcelJS.Workbook();
-  const ws2 = wb.addWorksheet('Gantt', { views: [{ state: 'frozen', xSplit: FIELDS, ySplit: 1 }] });
-  ws2.columns = [{ width: 8 }, { width: 5 }, { width: 32 }, { width: 14 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 11 }];
+  const ws2 = wb.addWorksheet('Gantt', { views: [{ state: 'frozen', xSplit: FIELDS, ySplit: 2 }] });
+  ws2.columns = [{ width: 8 }, { width: 5 }, { width: 32 }, { width: 14 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 11 },
+  ...Array.from({ length: days }, () => ({ width: 3 }))];
 
-  // Row heights matched to the chart's own pixel rows (1px = 0.75pt at 96dpi), so each
-  // task's grid row lines up with its bar in the image sitting beside it.
-  const headerRow = ws2.getRow(1);
-  headerRow.values = rows[0]; headerRow.font = { bold: true }; headerRow.height = headH * 0.75;
-  rows.slice(1).forEach((r, i) => {
-    const row = ws2.getRow(i + 2);
-    row.values = r; row.height = rowH * 0.75;
-    if (tt[i].sum) row.font = { bold: true };
+  // Two header rows: a merged band naming each month, then the day numbers. A month name
+  // written into a 3-character day column just gets clipped, which is what it used to do.
+  const months = ws2.addRow([...rows[0].map(() => ''), ...Array.from({ length: days }, () => '')]);
+  const head = ws2.addRow([...rows[0], ...Array.from({ length: days }, (_, i) => {
+    const d = new Date(from); d.setDate(d.getDate() + i);
+    return d.getDate();
+  })]);
+  for (let i = 0, runStart = 0; i <= days; i++) {
+    const d = new Date(from); d.setDate(d.getDate() + i);
+    const last = i === days;
+    if (!last && i !== 0 && d.getDate() !== 1) continue;
+    if (i > runStart || last) {
+      const a = new Date(from); a.setDate(a.getDate() + runStart);
+      const cell = months.getCell(FIELDS + 1 + runStart);
+      cell.value = a.toLocaleString('en', { month: 'long', year: 'numeric' });
+      cell.alignment = { horizontal: 'center' };
+      const end = (last ? days : i) - 1;
+      if (end > runStart) ws2.mergeCells(1, FIELDS + 1 + runStart, 1, FIELDS + 1 + end);
+    }
+    runStart = i;
+  }
+  months.font = { bold: true };
+  head.font = { bold: true };
+  head.alignment = { horizontal: 'center' };
+
+  const barBorder = { style: 'thin', color: { argb: 'FFB7BEC9' } };
+  tt.forEach(({ t, i, sum }, r) => {
+    const row = ws2.addRow(rows[r + 1]);
+    const colour = resolvedColor(i);
+    if (sum) row.font = { bold: true };
+    if (!(t.startDate instanceof Date)) return;
+    const s = dayIdx(from, t.startDate), n = Math.max(1, dayIdx(t.startDate, t.endExclusive));
+    const donePortion = Math.round(n * ((sum ? t.rollPct : Number(t.pct)) || 0) / 100);
+    // A non-working day inside the span (a weekend the task's real, working-days-only
+    // duration runs through) still reads as non-working, not "busy" — otherwise a 1-day
+    // task that lands on a Friday paints three solid days through the weekend.
+    const kindAt = di => {
+      const d = new Date(from); d.setDate(d.getDate() + di);
+      if (!isWorkday(d, cal())) return 'off';
+      if (di >= s && di < s + n) return sum ? 'sum' : di < s + donePortion ? 'done' : 'rem';
+      return null;
+    };
+    for (let di = 0; di < days;) {
+      const kind = kindAt(di);
+      if (!kind) { di++; continue; }
+      let j = di + 1;
+      while (j < days && kindAt(j) === kind) j++;
+      const c1 = FIELDS + 1 + di, c2 = FIELDS + 1 + (j - 1);
+      const cell = row.getCell(c1);
+      cell.fill = fill(kind === 'off' ? 'FFF2F2F2' : kind === 'sum' ? mixHex(colour, '#3a4150', .6) // same colours as on screen
+        : kind === 'done' ? mixHex(colour, '#000000', .42) : 'FF' + colour.slice(1).toUpperCase());
+      if (kind !== 'off') cell.border = { top: barBorder, left: barBorder, bottom: barBorder, right: barBorder };
+      if (c2 > c1) ws2.mergeCells(row.number, c1, row.number, c2);
+      di = j;
+    }
   });
-  ws2.autoFilter = { from: { row: 1, column: 1 }, to: { row: rows.length, column: FIELDS } };
+  ws2.autoFilter = { from: { row: 2, column: 1 }, to: { row: tt.length + 2, column: FIELDS } };
 
-  const imageId = wb.addImage({ buffer: buf, extension: 'png' });
-  ws2.addImage(imageId, { tl: { col: FIELDS, row: 0 }, ext: { width: canvas.width / 2, height: canvas.height / 2 } });
-
-  const outBuf = await wb.xlsx.writeBuffer();
-  download(fileName('.xlsx'), outBuf, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  const buf = await wb.xlsx.writeBuffer();
+  download(fileName('.xlsx'), buf, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
 // A <style> whose @page overrides the default one — set to a size matching the plan for
