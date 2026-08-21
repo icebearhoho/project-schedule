@@ -1,5 +1,5 @@
 {
-  "rev": 31,
+  "rev": 32,
   "data": {
     "projects": [
       {
@@ -2464,7 +2464,8 @@
             "duration": 0,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 0,
+            "collapsed": true
           },
           {
             "id": 13,
@@ -2472,7 +2473,8 @@
             "level": 2,
             "duration": 0,
             "pct": 0,
-            "preds": []
+            "preds": [],
+            "collapsed": true
           },
           {
             "id": 14,
@@ -2553,7 +2555,8 @@
             "level": 2,
             "duration": 0,
             "pct": 0,
-            "preds": []
+            "preds": [],
+            "collapsed": true
           },
           {
             "id": 22,
@@ -2644,7 +2647,8 @@
             "level": 2,
             "duration": 0,
             "pct": 0,
-            "preds": []
+            "preds": [],
+            "collapsed": true
           },
           {
             "id": 31,
@@ -2724,7 +2728,8 @@
             "level": 2,
             "duration": 0,
             "pct": 0,
-            "preds": []
+            "preds": [],
+            "collapsed": true
           },
           {
             "id": 39,
@@ -2804,7 +2809,8 @@
             "duration": 0,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 0,
+            "collapsed": false
           },
           {
             "id": 45,
@@ -2903,7 +2909,7 @@
             "duration": 3,
             "pct": 0,
             "preds": [
-              "47SS"
+              "51"
             ]
           },
           {
@@ -2913,7 +2919,7 @@
             "duration": 4,
             "pct": 0,
             "preds": [
-              "47SS"
+              "52SS"
             ]
           },
           {
@@ -2933,7 +2939,7 @@
             "duration": 3,
             "pct": 0,
             "preds": [
-              "47SS"
+              "52SS"
             ]
           },
           {
@@ -2988,7 +2994,7 @@
             "id": 57,
             "name": "Submit Backup & Recovery Plan",
             "level": 2,
-            "duration": 22,
+            "duration": 30,
             "pct": 0,
             "preds": [
               "54"
@@ -2998,7 +3004,7 @@
             "id": 58,
             "name": "Submit VAPT report + re-scan",
             "level": 2,
-            "duration": 10,
+            "duration": 14,
             "pct": 0,
             "preds": [
               "56"
@@ -3008,7 +3014,7 @@
             "id": 59,
             "name": "Submit Deployment Plan + Incident/Support templates",
             "level": 2,
-            "duration": 10,
+            "duration": 14,
             "pct": 0,
             "preds": [
               "52"
@@ -3065,5 +3071,5 @@
     ],
     "nextPid": 10
   },
-  "at": "2026-08-21T08:43:37.193Z"
+  "at": "2026-08-21T08:57:41.564Z"
 }
