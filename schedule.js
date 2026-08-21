@@ -400,8 +400,11 @@ function tasksFromRows(rows, cal) {
     const pctText = at(r, 'pct');
     const startText = col.start === undefined ? '' : r[col.start];
     const finishText = col.finish === undefined ? '' : r[col.finish];
-    // A link type held in its own column applies to every link on that row.
-    const rowType = (at(r, 'linkType').match(/\b(FS|SS|FF|SF)\b/i) || [])[1];
+    // A link type held in its own column applies to every link on that row — and can carry
+    // its own lag right there ("SS+1d"), which a bare "#13.1.1" token has no way to express.
+    const rowTypeM = at(r, 'linkType').match(/\b(FS|SS|FF|SF)\b\s*([+-]\s*\d+)?/i);
+    const rowType = rowTypeM && rowTypeM[1];
+    const rowLag = rowTypeM && rowTypeM[2] ? Number(rowTypeM[2].replace(/\s/g, '')) : 0;
     // A Yes/No "Milestone" column marks this task as also being a sign-off gate; its own
     // name (if given) becomes a separate milestone right after the task finishes.
     const isMilestone = /^(y|yes|true|1)$/i.test(at(r, 'milestone'));
@@ -410,7 +413,7 @@ function tasksFromRows(rows, cal) {
       id, name: rawName.trim(), level: Math.max(1, level),
       duration, pct: pctText === '' ? 0 : Math.min(100, Math.max(0, parseFloat(pctText.replace(/[^\d.\-]/g, '')) || 0)),
       preds: at(r, 'preds').split(/[,;]+/).map(x => x.trim()).filter(Boolean),
-      _type: rowType ? rowType.toUpperCase() : '', _phase: at(r, 'phase'),
+      _type: rowType ? rowType.toUpperCase() : '', _lag: rowLag, _phase: at(r, 'phase'),
       _msName: isMilestone ? (at(r, 'milestoneName') || rawName.trim()) : '',
       _start: readDate(startText), _finish: readDate(finishText),
       _rawStart: String(startText || '').trim(), _rawFinish: String(finishText || '').trim(),
@@ -425,8 +428,14 @@ function tasksFromRows(rows, cal) {
       const key = clean.replace(/(FS|SS|FF|SF).*$/i, '').replace(/[+-]\d+\s*$/, '').trim();
       if (!idMap.has(key)) return null;
       const link = parsePred(clean) || { id: 0, type: 'FS', lag: 0 };
-      // An explicit type on the token wins; otherwise the row's Type column applies.
-      return fmtPred({ ...link, id: idMap.get(key), type: link.type !== 'FS' ? link.type : (t._type || 'FS') });
+      // An explicit type on the token wins over the row's Type column; independently, an
+      // explicit lag on the token wins over the row's lag ("SS+1d") — but a row lag only
+      // carries over when the row's type does too, so it doesn't attach itself to some
+      // other type the token asked for on its own.
+      const tokHasType = /\b(FS|SS|FF|SF)\b/i.test(clean), tokHasLag = /[+-]\s*\d/.test(clean);
+      const type = tokHasType ? link.type : (t._type || 'FS');
+      const lag = tokHasLag ? link.lag : (tokHasType ? 0 : (t._lag || 0));
+      return fmtPred({ ...link, id: idMap.get(key), type, lag });
     };
     t.preds = t.preds.flatMap(tok => {
       const whole = one(tok);            // "4", "#4", "4.0", "200FS+2"
@@ -449,7 +458,7 @@ function tasksFromRows(rows, cal) {
     // Only tasks with nothing driving them keep their date, or the links would be pointless.
     if (t._start && !t.preds.length) t.start = t._start;
     else if (t._rawStart && !t._start) unreadDates++;
-    delete t._start; delete t._finish; delete t._rawStart; delete t._rawFinish; delete t._type;
+    delete t._start; delete t._finish; delete t._rawStart; delete t._rawFinish; delete t._type; delete t._lag;
   });
 
   // Splice in a zero-day milestone right after any task the Milestone column flagged —

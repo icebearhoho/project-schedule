@@ -314,6 +314,23 @@ assert.equal(fmtDate(t[0].startDate), '2026-08-15', 'an extra working day outran
   assert.equal(r.tasks.length, 1);
   assert.deepEqual(r.notes, []);
 
+  // a Type column can carry its own lag ("SS+1d"), not just the bare FS/SS/FF/SF — a bare
+  // "#1" dependency token has no way to express that lag itself
+  r = tasksFromRows([
+    ['ID', 'Task', 'Duration', 'Dependency', 'Type'],
+    ['1', 'A', '4 days', '', 'FS'],
+    ['2', 'B', '3 days', '#1', 'SS+1d'],
+  ]);
+  assert.deepEqual(r.tasks[1].preds, ['1SS+1']);
+  // an explicit lag on the token itself overrides the row's Type-column lag, even without
+  // an explicit type on the token — the row's type still applies, just not its lag
+  r = tasksFromRows([
+    ['ID', 'Task', 'Duration', 'Dependency', 'Type'],
+    ['1', 'A', '4 days', '', 'FS'],
+    ['2', 'B', '3 days', '#1+3', 'SS+1d'],
+  ]);
+  assert.deepEqual(r.tasks[1].preds, ['1SS+3']);
+
   // useless input fails loudly rather than making up a plan
   assert.throws(() => tasksFromRows([['Colour', 'Size'], ['red', 'big']]), /No task name column/);
   assert.throws(() => tasksFromRows([['Task name', 'Duration']]), /no task rows/);
