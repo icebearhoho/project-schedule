@@ -408,10 +408,10 @@
         marked * is a year whose official notice isn't published yet — those dates are estimates.
         Always check before committing to a plan; China's make-up weekends are announced yearly.</p>
       <label for="holidays">Holidays / days off</label>
-      <textarea id="holidays" onchange="setHolidays(this.value)" placeholder="2026-12-25"></textarea>
+      <textarea id="holidays" onchange="setHolidays(this.value)" placeholder="25/12/2026"></textarea>
       <label for="extraDays">Extra working days (worked though normally off)</label>
-      <textarea id="extraDays" onchange="setExtra(this.value)" placeholder="2026-02-14"></textarea>
-      <p class="hint">One date per line, YYYY-MM-DD. Durations and lag count working days only.</p>
+      <textarea id="extraDays" onchange="setExtra(this.value)" placeholder="14/02/2026"></textarea>
+      <p class="hint">One date per line, dd/mm/yyyy. Durations and lag count working days only.</p>
     </div>
   </details>
   <details class="menu" id="m-export">
@@ -794,7 +794,14 @@ function setWorkday(d, on) {
   cal().workdays = [...w].sort();
   render();
 }
-const dateLines = v => v.split(/\s+/).map(s => s.trim()).filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s));
+// Holidays/extra days show and read as dd/mm/yyyy (matching the spreadsheets these plans
+// get built from) — stored internally as ISO, same as every other date in the app.
+const dmyToIso = s => {
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null;
+};
+const isoToDmy = s => { const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; };
+const dateLines = v => v.split(/\s+/).map(s => dmyToIso(s.trim())).filter(Boolean);
 function setHolidays(v) { snapshot(); cal().holidays = dateLines(v); render(); }
 function setExtra(v) { snapshot(); cal().extra = dateLines(v); render(); }
 
@@ -1061,8 +1068,8 @@ function render() {
   document.getElementById('wdays').innerHTML = DAY_NAMES.map((n, d) =>
     `<label><input type="checkbox" ${cal().workdays.includes(d) ? 'checked' : ''}
       onchange="setWorkday(${d},this.checked)" aria-label="${n} is a working day">${n}</label>`).join('');
-  document.getElementById('holidays').value = (cal().holidays || []).join('\n');
-  document.getElementById('extraDays').value = (cal().extra || []).join('\n');
+  document.getElementById('holidays').value = (cal().holidays || []).map(isoToDmy).join('\n');
+  document.getElementById('extraDays').value = (cal().extra || []).map(isoToDmy).join('\n');
   document.getElementById('presets').innerHTML = Object.entries(NATIONAL_CALENDARS).map(([k, v]) =>
     `<button onclick="addNational('${k}')" class="${v.provisional ? 'unconfirmed' : ''}"
        title="${v.provisional ? esc(v.provisional) : 'Published dates'}">${esc(v.label)}${v.provisional ? ' *' : ''}</button>`).join('');
