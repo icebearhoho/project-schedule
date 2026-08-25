@@ -1,5 +1,5 @@
 {
-  "rev": 42,
+  "rev": 43,
   "data": {
     "projects": [
       {
@@ -2317,6 +2317,26 @@
             "bg": "ice"
           },
           {
+            "id": 82,
+            "name": "LOAs Acceptance ",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "1SS-5"
+            ],
+            "pct": 0,
+            "start": "2026-08-10"
+          },
+          {
+            "id": 83,
+            "name": "LOAs Acceptance ",
+            "duration": 1,
+            "level": 2,
+            "preds": [],
+            "pct": 0,
+            "start": "2026-08-10"
+          },
+          {
             "id": 1,
             "name": "Kick-off meeting",
             "level": 2,
@@ -2331,10 +2351,10 @@
             "duration": 0,
             "level": 2,
             "preds": [
-              "1"
+              "1SS"
             ],
             "pct": 0,
-            "start": "2026-08-10"
+            "start": "2026-08-14"
           },
           {
             "id": 2,
@@ -3101,12 +3121,12 @@
             "pct": 0
           }
         ],
-        "nextId": 82,
+        "nextId": 84,
         "phaseLine": 2,
         "color": "amber"
       }
     ],
     "nextPid": 10
   },
-  "at": "2026-08-25T17:34:50.148Z"
+  "at": "2026-08-25T17:36:07.077Z"
 }
