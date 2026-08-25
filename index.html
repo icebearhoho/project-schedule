@@ -395,7 +395,7 @@
     <summary><svg class="icon"><use href="#i-cal"/></svg>Schedule<svg class="icon"><use href="#i-chev"/></svg></summary>
     <div class="sheet">
       <label for="pstart">Project starts</label>
-      <input id="pstart" placeholder="dd/mm/yyyy">
+      <input id="pstart" placeholder="dd/mm/yyyy" onfocus="this.select()">
       <label>Working days</label>
       <div class="days" id="wdays"></div>
       <label>Public holidays</label>
@@ -1121,11 +1121,11 @@ function render() {
       (sum ? `<td class="ro">${isoToDmy(fd(t.startDate))}</td>`
         : `<td><input class="${t.start ? 'pinned' : ''}" value="${isoToDmy(fd(t.startDate))}"
              aria-label="Start date" placeholder="dd/mm/yyyy" title="${t.start ? 'Pinned: starts no earlier than this' : 'Scheduled automatically — type a date to pin it'} (dd/mm/yyyy)"
-             onchange="editDate(${i},'start',this.value)" onfocus="selectRow(${i})"></td>`) +
+             onchange="editDate(${i},'start',this.value)" onfocus="selectRow(${i});this.select()"></td>`) +
       (sum || Number(t.duration) === 0 ? `<td class="ro">${isoToDmy(fd(t.finishDate))}</td>`
         : `<td><input value="${isoToDmy(fd(t.finishDate))}" aria-label="Finish date"
              placeholder="dd/mm/yyyy" title="Type a finish date to set the duration (dd/mm/yyyy)"
-             onchange="editDate(${i},'finish',this.value)" onfocus="selectRow(${i})"></td>`) +
+             onchange="editDate(${i},'finish',this.value)" onfocus="selectRow(${i});this.select()"></td>`) +
       (sum ? `<td class="ro"></td>` : cell(i, 'preds', (t.preds || []).map(fmtPred).join(','))) +
       (sum ? `<td class="ro n">${t.rollPct ?? ''}</td>` : cell(i, 'pct', t.pct, 'n')) + `</tr>`;
   });
