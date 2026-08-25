@@ -189,6 +189,18 @@
   td.n input { text-align: right; }
   td.n:has(input), td.ro:has(input) { padding: 0; }
   td input.pinned { color: var(--accent); font-weight: 600; } /* a start date the user fixed */
+  /* Start/Finish: a plain dd/mm/yyyy text field (typing it doesn't fight a locale-dependent
+     picker), plus a small button that still opens the browser's real date picker for anyone
+     who'd rather click than type — backed by a zero-size native date input only ever driven
+     programmatically via showPicker(), never a click target itself. */
+  .datecell { display: flex; align-items: center; height: 100%; gap: 2px; padding-right: 2px; }
+  .datecell input:not(.pickhidden) { flex: 1 1 auto; min-width: 0; }
+  .pick { flex: 0 0 20px; display: inline-flex; align-items: center; justify-content: center;
+          width: 20px; height: 22px; padding: 0; background: none; border: 0;
+          border-radius: 4px; color: var(--faint); cursor: pointer; }
+  .pick:hover { color: var(--text); background: var(--line-soft); }
+  .pick .icon { width: 13px; height: 13px; }
+  .pickhidden { position: absolute; width: 0; height: 0; padding: 0; border: 0; opacity: 0; pointer-events: none; }
   /* The name header clears the fold-chevron gutter so it lines up with top-level tasks. */
   th.tname { padding-left: 32px; }
   td input:hover { border-color: var(--line); }
@@ -924,6 +936,15 @@ function edit(i, field, v) {
 // segment order (and everything typed into it) follows the browser's own locale, which is
 // not always dd/mm/yyyy and isn't something CSS/JS can override, so typing one out of habit
 // silently fights the picker instead of setting the date.
+// The calendar button next to a date field opens the browser's real picker — a hidden
+// native <input type=date> sitting right after it that's never a click target itself, only
+// ever driven programmatically, so typing still works the plain dd/mm/yyyy way above it.
+function pickDate(btn, i, field) {
+  selectRow(i);
+  const hidden = btn.nextElementSibling;
+  if (hidden.showPicker) { try { hidden.showPicker(); return; } catch (e) { } }
+  hidden.focus();
+}
 function editDate(i, field, v) {
   const s = v.trim();
   if (!s) { edit(i, field, ''); return; }
@@ -1119,13 +1140,17 @@ function render() {
       // Start is a real date field: filled in with the scheduled date, and editing it pins
       // the task to "no earlier than". Finish is typeable too and sets the duration.
       (sum ? `<td class="ro">${isoToDmy(fd(t.startDate))}</td>`
-        : `<td><input class="${t.start ? 'pinned' : ''}" value="${isoToDmy(fd(t.startDate))}"
+        : `<td><div class="datecell"><input class="${t.start ? 'pinned' : ''}" value="${isoToDmy(fd(t.startDate))}"
              aria-label="Start date" placeholder="dd/mm/yyyy" title="${t.start ? 'Pinned: starts no earlier than this' : 'Scheduled automatically — type a date to pin it'} (dd/mm/yyyy)"
-             onchange="editDate(${i},'start',this.value)" onfocus="selectRow(${i});this.select()"></td>`) +
+             onchange="editDate(${i},'start',this.value)" onfocus="selectRow(${i});this.select()">
+             <button type="button" class="pick" tabindex="-1" aria-label="Pick a start date" onclick="pickDate(this,${i},'start')"><svg class="icon"><use href="#i-cal"/></svg></button>
+             <input type="date" class="pickhidden" tabindex="-1" aria-hidden="true" value="${fd(t.startDate)}" onchange="edit(${i},'start',this.value)"></div></td>`) +
       (sum || Number(t.duration) === 0 ? `<td class="ro">${isoToDmy(fd(t.finishDate))}</td>`
-        : `<td><input value="${isoToDmy(fd(t.finishDate))}" aria-label="Finish date"
+        : `<td><div class="datecell"><input value="${isoToDmy(fd(t.finishDate))}" aria-label="Finish date"
              placeholder="dd/mm/yyyy" title="Type a finish date to set the duration (dd/mm/yyyy)"
-             onchange="editDate(${i},'finish',this.value)" onfocus="selectRow(${i});this.select()"></td>`) +
+             onchange="editDate(${i},'finish',this.value)" onfocus="selectRow(${i});this.select()">
+             <button type="button" class="pick" tabindex="-1" aria-label="Pick a finish date" onclick="pickDate(this,${i},'finish')"><svg class="icon"><use href="#i-cal"/></svg></button>
+             <input type="date" class="pickhidden" tabindex="-1" aria-hidden="true" value="${fd(t.finishDate)}" onchange="edit(${i},'finish',this.value)"></div></td>`) +
       (sum ? `<td class="ro"></td>` : cell(i, 'preds', (t.preds || []).map(fmtPred).join(','))) +
       (sum ? `<td class="ro n">${t.rollPct ?? ''}</td>` : cell(i, 'pct', t.pct, 'n')) + `</tr>`;
   });
