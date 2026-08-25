@@ -809,6 +809,22 @@ const dmyToIso = s => {
   return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null;
 };
 const isoToDmy = s => { if (!s) return ''; const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; };
+// A grid date field always has a "current" date to fall back on (the value it already
+// showed), so — unlike the holidays list, which has no such context per line — it can take
+// a bare day ("10") or day/month ("10/8") and fill in the rest from that, not just a full
+// dd/mm/yyyy.
+function smartDate(s, prevIso) {
+  s = s.trim();
+  let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  const prev = prevIso ? prevIso.split('-') : null;
+  if (!prev) return null;
+  m = s.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (m) return `${prev[0]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  m = s.match(/^(\d{1,2})$/);
+  if (m) return `${prev[0]}-${prev[1]}-${m[1].padStart(2, '0')}`;
+  return null;
+}
 const dateLines = v => v.split(/\s+/).map(s => dmyToIso(s.trim())).filter(Boolean);
 function setHolidays(v) { snapshot(); cal().holidays = dateLines(v); render(); }
 function setExtra(v) { snapshot(); cal().extra = dateLines(v); render(); }
@@ -945,11 +961,22 @@ function pickDate(btn, i, field) {
   if (hidden.showPicker) { try { hidden.showPicker(); return; } catch (e) { } }
   hidden.focus();
 }
-function editDate(i, field, v) {
+function editDate(i, field, v, el) {
   const s = v.trim();
   if (!s) { edit(i, field, ''); return; }
-  const iso = dmyToIso(s);
-  if (!iso) { render(); return; } // not a real dd/mm/yyyy date — redraw the last good value instead of saving garbage
+  const t = proj().tasks[i];
+  const prevIso = fd(field === 'start' ? t.startDate : t.finishDate);
+  const iso = smartDate(s, prevIso);
+  if (!iso) {
+    // Not the shared err/warn banner: render() (called by every edit, including this one
+    // once it succeeds) unconditionally overwrites that banner with the schedule's own
+    // status, so anything put there gets clobbered on the very next render — same reason
+    // render() isn't called here at all, since it would tear down and replace el before the
+    // browser's own validation bubble ever got a chance to point at it.
+    if (el) { el.setCustomValidity(`Couldn't read "${s}" as a date — try dd/mm/yyyy (or just the day, or day/month, to reuse the current month and year).`); el.reportValidity(); }
+    return;
+  }
+  if (el) el.setCustomValidity('');
   edit(i, field, iso);
 }
 
@@ -1142,13 +1169,13 @@ function render() {
       (sum ? `<td class="ro">${isoToDmy(fd(t.startDate))}</td>`
         : `<td><div class="datecell"><input class="${t.start ? 'pinned' : ''}" value="${isoToDmy(fd(t.startDate))}"
              aria-label="Start date" placeholder="dd/mm/yyyy" title="${t.start ? 'Pinned: starts no earlier than this' : 'Scheduled automatically — type a date to pin it'} (dd/mm/yyyy)"
-             onchange="editDate(${i},'start',this.value)" onfocus="selectRow(${i});this.select()">
+             onchange="editDate(${i},'start',this.value,this)" oninput="this.setCustomValidity('')" onfocus="selectRow(${i});this.select()">
              <button type="button" class="pick" tabindex="-1" aria-label="Pick a start date" onclick="pickDate(this,${i},'start')"><svg class="icon"><use href="#i-cal"/></svg></button>
              <input type="date" class="pickhidden" tabindex="-1" aria-hidden="true" value="${fd(t.startDate)}" onchange="edit(${i},'start',this.value)"></div></td>`) +
       (sum || Number(t.duration) === 0 ? `<td class="ro">${isoToDmy(fd(t.finishDate))}</td>`
         : `<td><div class="datecell"><input value="${isoToDmy(fd(t.finishDate))}" aria-label="Finish date"
              placeholder="dd/mm/yyyy" title="Type a finish date to set the duration (dd/mm/yyyy)"
-             onchange="editDate(${i},'finish',this.value)" onfocus="selectRow(${i});this.select()">
+             onchange="editDate(${i},'finish',this.value,this)" oninput="this.setCustomValidity('')" onfocus="selectRow(${i});this.select()">
              <button type="button" class="pick" tabindex="-1" aria-label="Pick a finish date" onclick="pickDate(this,${i},'finish')"><svg class="icon"><use href="#i-cal"/></svg></button>
              <input type="date" class="pickhidden" tabindex="-1" aria-hidden="true" value="${fd(t.finishDate)}" onchange="edit(${i},'finish',this.value)"></div></td>`) +
       (sum ? `<td class="ro"></td>` : cell(i, 'preds', (t.preds || []).map(fmtPred).join(','))) +
@@ -1765,9 +1792,16 @@ function open_(input) {
 }
 
 document.getElementById('pname').onchange = e => { snapshot(); proj().name = e.target.value; render(); };
+document.getElementById('pstart').oninput = e => e.target.setCustomValidity('');
 document.getElementById('pstart').onchange = e => {
-  const iso = dmyToIso(e.target.value.trim());
-  if (!iso) { render(); return; } // not a real dd/mm/yyyy date — redraw the last good value
+  const s = e.target.value.trim();
+  const iso = smartDate(s, proj().start);
+  if (!iso) {
+    e.target.setCustomValidity(`Couldn't read "${s}" as a date — try dd/mm/yyyy (or just the day, or day/month, to reuse the current month and year).`);
+    e.target.reportValidity();
+    return;
+  }
+  e.target.setCustomValidity('');
   snapshot(); proj().start = iso; render();
 };
 render();
