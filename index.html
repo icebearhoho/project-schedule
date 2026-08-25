@@ -188,10 +188,6 @@
      An input already carries its own 8px inset, so the cell must not add a second one. */
   td.n input { text-align: right; }
   td.n:has(input), td.ro:has(input) { padding: 0; }
-  /* date cells: the picker button stays quiet until you go near it */
-  td input[type=date]::-webkit-calendar-picker-indicator { opacity: .35; cursor: pointer; }
-  td input[type=date]:hover::-webkit-calendar-picker-indicator,
-  td input[type=date]:focus::-webkit-calendar-picker-indicator { opacity: .9; }
   td input.pinned { color: var(--accent); font-weight: 600; } /* a start date the user fixed */
   /* The name header clears the fold-chevron gutter so it lines up with top-level tasks. */
   th.tname { padding-left: 32px; }
@@ -399,7 +395,7 @@
     <summary><svg class="icon"><use href="#i-cal"/></svg>Schedule<svg class="icon"><use href="#i-chev"/></svg></summary>
     <div class="sheet">
       <label for="pstart">Project starts</label>
-      <input type="date" id="pstart">
+      <input id="pstart" placeholder="dd/mm/yyyy">
       <label>Working days</label>
       <div class="days" id="wdays"></div>
       <label>Public holidays</label>
@@ -924,6 +920,17 @@ function edit(i, field, v) {
   else t[field] = v;
   render();
 }
+// Grid date fields are plain dd/mm/yyyy text, not a native <input type=date> — that picker's
+// segment order (and everything typed into it) follows the browser's own locale, which is
+// not always dd/mm/yyyy and isn't something CSS/JS can override, so typing one out of habit
+// silently fights the picker instead of setting the date.
+function editDate(i, field, v) {
+  const s = v.trim();
+  if (!s) { edit(i, field, ''); return; }
+  const iso = dmyToIso(s);
+  if (!iso) { render(); return; } // not a real dd/mm/yyyy date — redraw the last good value instead of saving garbage
+  edit(i, field, iso);
+}
 
 /* ---- shared storage (serve.js / api/data.js). Edits stay a local draft until Publish. ---- */
 let shared = false, rev = 0, dirty = false, serverAhead = false, publishing = false, applying = false;
@@ -1064,7 +1071,7 @@ function render() {
   document.getElementById('plist').innerHTML = ws.projects
     .map((x, i) => `<option value="${i}" ${i === cur ? 'selected' : ''}>${esc(x.name)}</option>`).join('');
   document.getElementById('pname').value = p.name;
-  document.getElementById('pstart').value = p.start;
+  document.getElementById('pstart').value = isoToDmy(p.start);
   document.getElementById('wdays').innerHTML = DAY_NAMES.map((n, d) =>
     `<label><input type="checkbox" ${cal().workdays.includes(d) ? 'checked' : ''}
       onchange="setWorkday(${d},this.checked)" aria-label="${n} is a working day">${n}</label>`).join('');
@@ -1110,15 +1117,15 @@ function render() {
       `<input value="${esc(t.name)}" title="${esc(t.name)}" aria-label="Task name" onchange="edit(${i},'name',this.value)" onfocus="selectRow(${i})"></div></td>` +
       (sum ? `<td class="ro n">${t.rollDuration ?? ''}</td>` : cell(i, 'duration', t.duration, 'n')) +
       // Start is a real date field: filled in with the scheduled date, and editing it pins
-      // the task to "no earlier than". Finish is pickable too and sets the duration.
+      // the task to "no earlier than". Finish is typeable too and sets the duration.
       (sum ? `<td class="ro">${fd(t.startDate)}</td>`
-        : `<td><input type="date" class="${t.start ? 'pinned' : ''}" value="${fd(t.startDate)}"
-             aria-label="Start date" title="${t.start ? 'Pinned: starts no earlier than this' : 'Scheduled automatically — pick a date to pin it'}"
-             onchange="edit(${i},'start',this.value)" onfocus="selectRow(${i})"></td>`) +
+        : `<td><input class="${t.start ? 'pinned' : ''}" value="${isoToDmy(fd(t.startDate))}"
+             aria-label="Start date" placeholder="dd/mm/yyyy" title="${t.start ? 'Pinned: starts no earlier than this' : 'Scheduled automatically — type a date to pin it'} (dd/mm/yyyy)"
+             onchange="editDate(${i},'start',this.value)" onfocus="selectRow(${i})"></td>`) +
       (sum || Number(t.duration) === 0 ? `<td class="ro">${fd(t.finishDate)}</td>`
-        : `<td><input type="date" value="${fd(t.finishDate)}" aria-label="Finish date"
-             title="Pick a finish date to set the duration" min="${fd(t.startDate)}"
-             onchange="edit(${i},'finish',this.value)" onfocus="selectRow(${i})"></td>`) +
+        : `<td><input value="${isoToDmy(fd(t.finishDate))}" aria-label="Finish date"
+             placeholder="dd/mm/yyyy" title="Type a finish date to set the duration (dd/mm/yyyy)"
+             onchange="editDate(${i},'finish',this.value)" onfocus="selectRow(${i})"></td>`) +
       (sum ? `<td class="ro"></td>` : cell(i, 'preds', (t.preds || []).map(fmtPred).join(','))) +
       (sum ? `<td class="ro n">${t.rollPct ?? ''}</td>` : cell(i, 'pct', t.pct, 'n')) + `</tr>`;
   });
@@ -1733,7 +1740,11 @@ function open_(input) {
 }
 
 document.getElementById('pname').onchange = e => { snapshot(); proj().name = e.target.value; render(); };
-document.getElementById('pstart').onchange = e => { snapshot(); proj().start = e.target.value; render(); };
+document.getElementById('pstart').onchange = e => {
+  const iso = dmyToIso(e.target.value.trim());
+  if (!iso) { render(); return; } // not a real dd/mm/yyyy date — redraw the last good value
+  snapshot(); proj().start = iso; render();
+};
 render();
 connect();
 </script>
