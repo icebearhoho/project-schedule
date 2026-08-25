@@ -796,7 +796,7 @@ const dmyToIso = s => {
   const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null;
 };
-const isoToDmy = s => { const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; };
+const isoToDmy = s => { if (!s) return ''; const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; };
 const dateLines = v => v.split(/\s+/).map(s => dmyToIso(s.trim())).filter(Boolean);
 function setHolidays(v) { snapshot(); cal().holidays = dateLines(v); render(); }
 function setExtra(v) { snapshot(); cal().extra = dateLines(v); render(); }
@@ -1118,11 +1118,11 @@ function render() {
       (sum ? `<td class="ro n">${t.rollDuration ?? ''}</td>` : cell(i, 'duration', t.duration, 'n')) +
       // Start is a real date field: filled in with the scheduled date, and editing it pins
       // the task to "no earlier than". Finish is typeable too and sets the duration.
-      (sum ? `<td class="ro">${fd(t.startDate)}</td>`
+      (sum ? `<td class="ro">${isoToDmy(fd(t.startDate))}</td>`
         : `<td><input class="${t.start ? 'pinned' : ''}" value="${isoToDmy(fd(t.startDate))}"
              aria-label="Start date" placeholder="dd/mm/yyyy" title="${t.start ? 'Pinned: starts no earlier than this' : 'Scheduled automatically — type a date to pin it'} (dd/mm/yyyy)"
              onchange="editDate(${i},'start',this.value)" onfocus="selectRow(${i})"></td>`) +
-      (sum || Number(t.duration) === 0 ? `<td class="ro">${fd(t.finishDate)}</td>`
+      (sum || Number(t.duration) === 0 ? `<td class="ro">${isoToDmy(fd(t.finishDate))}</td>`
         : `<td><input value="${isoToDmy(fd(t.finishDate))}" aria-label="Finish date"
              placeholder="dd/mm/yyyy" title="Type a finish date to set the duration (dd/mm/yyyy)"
              onchange="editDate(${i},'finish',this.value)" onfocus="selectRow(${i})"></td>`) +
