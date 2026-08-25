@@ -1,5 +1,5 @@
 {
-  "rev": 39,
+  "rev": 40,
   "data": {
     "projects": [
       {
@@ -2280,6 +2280,7 @@
             5
           ],
           "holidays": [
+            "2026-12-25",
             "2027-01-01",
             "2027-02-05",
             "2027-02-06",
@@ -2314,6 +2315,14 @@
             "collapsed": false,
             "color": "green",
             "bg": "ice"
+          },
+          {
+            "id": 80,
+            "name": "LOAs Acceptance",
+            "duration": 0,
+            "level": 2,
+            "preds": [],
+            "pct": 0
           },
           {
             "id": 1,
@@ -2758,7 +2767,7 @@
             "duration": 0,
             "pct": 0,
             "preds": [],
-            "collapsed": true
+            "collapsed": false
           },
           {
             "id": 39,
@@ -3099,12 +3108,12 @@
             "pct": 0
           }
         ],
-        "nextId": 79,
+        "nextId": 81,
         "phaseLine": 2,
         "color": "amber"
       }
     ],
     "nextPid": 10
   },
-  "at": "2026-08-21T09:41:30.905Z"
+  "at": "2026-08-25T16:55:04.123Z"
 }
