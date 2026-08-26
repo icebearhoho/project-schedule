@@ -424,10 +424,18 @@ function tasksFromRows(rows, cal) {
   tasks.forEach(t => {
     // Links are rewritten to the new ids; a link to something not in the file is dropped.
     const one = tok => {
-      const clean = idKey(tok);
+      let clean = idKey(tok);
+      // "13.2 (+11d)" — a lag written in parentheses after the id, instead of glued on
+      // like "13.2+11". Fold it into the glued form the rest of this function expects.
+      const paren = clean.match(/^(.*?)\s*\(\s*([+-]?\d+)\s*d?a?y?s?\s*\)\s*$/i);
+      if (paren) clean = paren[1] + (/^[+-]/.test(paren[2]) ? paren[2] : '+' + paren[2]);
       const key = clean.replace(/(FS|SS|FF|SF).*$/i, '').replace(/[+-]\d+\s*$/, '').trim();
       if (!idMap.has(key)) return null;
-      const link = parsePred(clean) || { id: 0, type: 'FS', lag: 0 };
+      // parsePred only reads a plain integer id ("3FS+1"), so a dotted id ("13.2+1") never
+      // matches and silently falls back to lag 0. The id is thrown away below anyway (it's
+      // replaced with the real mapped id), so swap in "0" and hand parsePred just the
+      // type/lag suffix it actually knows how to read.
+      const link = parsePred('0' + clean.slice(key.length)) || { id: 0, type: 'FS', lag: 0 };
       // An explicit type on the token wins over the row's Type column; independently, an
       // explicit lag on the token wins over the row's lag ("SS+1d") — but a row lag only
       // carries over when the row's type does too, so it doesn't attach itself to some
