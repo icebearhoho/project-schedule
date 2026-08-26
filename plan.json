@@ -1,5 +1,5 @@
 {
-  "rev": 43,
+  "rev": 44,
   "data": {
     "projects": [
       {
@@ -2525,7 +2525,7 @@
             "duration": 0,
             "pct": 0,
             "preds": [],
-            "collapsed": true
+            "collapsed": false
           },
           {
             "id": 14,
@@ -2780,7 +2780,7 @@
             "duration": 0,
             "pct": 0,
             "preds": [],
-            "collapsed": false
+            "collapsed": true
           },
           {
             "id": 39,
@@ -3124,9 +3124,1011 @@
         "nextId": 84,
         "phaseLine": 2,
         "color": "amber"
+      },
+      {
+        "pid": "pmtah23wosdn8",
+        "name": "Project 10",
+        "start": "2026-08-27",
+        "calendar": {
+          "workdays": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "holidays": [],
+          "extra": []
+        },
+        "tasks": [
+          {
+            "id": 1,
+            "name": "Task 1",
+            "duration": 5,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          }
+        ],
+        "nextId": 2,
+        "phaseLine": 2
+      },
+      {
+        "pid": "pmtagyil2",
+        "name": "SSS Master Project Timeline",
+        "start": "2026-08-14",
+        "calendar": {
+          "workdays": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "holidays": [],
+          "extra": []
+        },
+        "tasks": [
+          {
+            "id": 91,
+            "name": "P1: Initiation",
+            "duration": 0,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 1,
+            "name": "LOA Acceptance",
+            "level": 2,
+            "duration": 1,
+            "pct": 0,
+            "preds": [],
+            "start": "2026-08-14"
+          },
+          {
+            "id": 77,
+            "name": "LOA Acceptance",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "1"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 2,
+            "name": "Kick-off meeting",
+            "level": 2,
+            "duration": 1,
+            "pct": 0,
+            "preds": [],
+            "start": "2026-08-17"
+          },
+          {
+            "id": 78,
+            "name": "Kick-off meeting",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "2"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 3,
+            "name": "Inception Project Management Plan",
+            "level": 2,
+            "duration": 6,
+            "pct": 0,
+            "preds": [
+              "2"
+            ]
+          },
+          {
+            "id": 4,
+            "name": "Draft implementation Plan",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "2"
+            ]
+          },
+          {
+            "id": 5,
+            "name": "System Topology & Cloud Infrastructure",
+            "level": 2,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "2"
+            ]
+          },
+          {
+            "id": 6,
+            "name": "Draft Master Acceptance Test Plan",
+            "level": 2,
+            "duration": 2,
+            "pct": 0,
+            "preds": [
+              "2"
+            ]
+          },
+          {
+            "id": 79,
+            "name": "Draft Master Acceptance Test Plan",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "6"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 92,
+            "name": "P2: Planning",
+            "duration": 0,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 7,
+            "name": "Requirements Gathering",
+            "level": 2,
+            "duration": 20,
+            "pct": 0,
+            "preds": [
+              "2FF"
+            ]
+          },
+          {
+            "id": 80,
+            "name": "Requirements Gathering",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "7"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 8,
+            "name": "UX/UI Design (Wireframes)",
+            "level": 2,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "7FF"
+            ]
+          },
+          {
+            "id": 9,
+            "name": "Certificate & Logo Design",
+            "level": 2,
+            "duration": 2,
+            "pct": 0,
+            "preds": [
+              "7FF"
+            ]
+          },
+          {
+            "id": 10,
+            "name": "Data Migration Planning",
+            "level": 2,
+            "duration": 10,
+            "pct": 0,
+            "preds": [
+              "7SS"
+            ]
+          },
+          {
+            "id": 81,
+            "name": "Data Migration Planning",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "10"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 11,
+            "name": "Master Acceptance Test Plan",
+            "level": 2,
+            "duration": 10,
+            "pct": 0,
+            "preds": [
+              "7"
+            ]
+          },
+          {
+            "id": 12,
+            "name": "Security Operation Plan",
+            "level": 2,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "7SS"
+            ]
+          },
+          {
+            "id": 82,
+            "name": "Security Operation Plan",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "12"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 13,
+            "name": "Exit Management Plan",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "7SS"
+            ]
+          },
+          {
+            "id": 93,
+            "name": "P3: Execution",
+            "duration": 0,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 14,
+            "name": "Sprint 1 - Foundation (Login, Roles, Admin & Audit)",
+            "level": 2,
+            "duration": 0,
+            "pct": 0,
+            "preds": []
+          },
+          {
+            "id": 15,
+            "name": "Plan sprint",
+            "level": 3,
+            "duration": 1,
+            "pct": 0,
+            "preds": [
+              "11"
+            ]
+          },
+          {
+            "id": 16,
+            "name": "Set up core infrastructure",
+            "level": 3,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "15"
+            ]
+          },
+          {
+            "id": 17,
+            "name": "Implement officer SSO login",
+            "level": 3,
+            "duration": 22,
+            "pct": 0,
+            "preds": [
+              "16"
+            ]
+          },
+          {
+            "id": 18,
+            "name": "Implement company Singpass/Myinfo login",
+            "level": 3,
+            "duration": 10,
+            "pct": 0,
+            "preds": [
+              "16SS"
+            ]
+          },
+          {
+            "id": 19,
+            "name": "Define user roles",
+            "level": 3,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "16SS"
+            ]
+          },
+          {
+            "id": 20,
+            "name": "Initialize role access",
+            "level": 3,
+            "duration": 10,
+            "pct": 0,
+            "preds": [
+              "19"
+            ]
+          },
+          {
+            "id": 21,
+            "name": "Build audit log",
+            "level": 3,
+            "duration": 6,
+            "pct": 0,
+            "preds": [
+              "16SS"
+            ]
+          },
+          {
+            "id": 22,
+            "name": "Build admin console",
+            "level": 3,
+            "duration": 6,
+            "pct": 0,
+            "preds": [
+              "20"
+            ]
+          },
+          {
+            "id": 23,
+            "name": "Test login, roles, admin settings & audit log",
+            "level": 3,
+            "duration": 6,
+            "pct": 0,
+            "preds": [
+              "17SS",
+              "18SS",
+              "21SS",
+              "22SS"
+            ]
+          },
+          {
+            "id": 24,
+            "name": "Conduct sprint review",
+            "level": 3,
+            "duration": 1,
+            "pct": 0,
+            "preds": [
+              "22",
+              "23"
+            ]
+          },
+          {
+            "id": 25,
+            "name": "Sprint 2 - Application & Discovery",
+            "level": 2,
+            "duration": 0,
+            "pct": 0,
+            "preds": []
+          },
+          {
+            "id": 26,
+            "name": "Design application form",
+            "level": 3,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "16"
+            ]
+          },
+          {
+            "id": 27,
+            "name": "Build submission page",
+            "level": 3,
+            "duration": 10,
+            "pct": 0,
+            "preds": [
+              "26"
+            ]
+          },
+          {
+            "id": 28,
+            "name": "Build application data handling",
+            "level": 3,
+            "duration": 7,
+            "pct": 0,
+            "preds": [
+              "26SS"
+            ]
+          },
+          {
+            "id": 29,
+            "name": "Build public search page",
+            "level": 3,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "28"
+            ]
+          },
+          {
+            "id": 30,
+            "name": "Extend search to expired/withdrawn",
+            "level": 3,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "29"
+            ]
+          },
+          {
+            "id": 31,
+            "name": "Test application submission",
+            "level": 3,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "27SS+5"
+            ]
+          },
+          {
+            "id": 32,
+            "name": "Test search results",
+            "level": 3,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "30SS"
+            ]
+          },
+          {
+            "id": 33,
+            "name": "Conduct sprint review",
+            "level": 3,
+            "duration": 1,
+            "pct": 0,
+            "preds": [
+              "27",
+              "28",
+              "30",
+              "31",
+              "32"
+            ]
+          },
+          {
+            "id": 34,
+            "name": "Sprint 3 - Approval & Certification",
+            "level": 2,
+            "duration": 0,
+            "pct": 0,
+            "preds": []
+          },
+          {
+            "id": 35,
+            "name": "Define application statuses",
+            "level": 3,
+            "duration": 2,
+            "pct": 0,
+            "preds": [
+              "16SS"
+            ]
+          },
+          {
+            "id": 36,
+            "name": "Build approval workflow",
+            "level": 3,
+            "duration": 17,
+            "pct": 0,
+            "preds": [
+              "20",
+              "28",
+              "35"
+            ]
+          },
+          {
+            "id": 37,
+            "name": "Test approval workflow",
+            "level": 3,
+            "duration": 6,
+            "pct": 0,
+            "preds": [
+              "36SS+11"
+            ]
+          },
+          {
+            "id": 38,
+            "name": "Generate certificate & logo",
+            "level": 3,
+            "duration": 7,
+            "pct": 0,
+            "preds": [
+              "36",
+              "37"
+            ]
+          },
+          {
+            "id": 39,
+            "name": "Test certificate generation",
+            "level": 3,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "38SS+3"
+            ]
+          },
+          {
+            "id": 40,
+            "name": "Conduct sprint review",
+            "level": 3,
+            "duration": 1,
+            "pct": 0,
+            "preds": [
+              "38",
+              "39"
+            ]
+          },
+          {
+            "id": 41,
+            "name": "Sprint 4 - Reporting, Account, Migration & Final Integration",
+            "level": 2,
+            "duration": 0,
+            "pct": 0,
+            "preds": []
+          },
+          {
+            "id": 42,
+            "name": "Clean up legacy data",
+            "level": 3,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "16"
+            ]
+          },
+          {
+            "id": 43,
+            "name": "Map legacy data",
+            "level": 3,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "42"
+            ]
+          },
+          {
+            "id": 44,
+            "name": "Build data migration tool",
+            "level": 3,
+            "duration": 6,
+            "pct": 0,
+            "preds": [
+              "43"
+            ]
+          },
+          {
+            "id": 45,
+            "name": "Run trial migration",
+            "level": 3,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "44"
+            ]
+          },
+          {
+            "id": 46,
+            "name": "Test migrated data",
+            "level": 3,
+            "duration": 8,
+            "pct": 0,
+            "preds": [
+              "45SS"
+            ]
+          },
+          {
+            "id": 47,
+            "name": "Build KPI report",
+            "level": 3,
+            "duration": 6,
+            "pct": 0,
+            "preds": [
+              "28"
+            ]
+          },
+          {
+            "id": 48,
+            "name": "Build reporting dashboard",
+            "level": 3,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "47"
+            ]
+          },
+          {
+            "id": 49,
+            "name": "Build company account portal",
+            "level": 3,
+            "duration": 7,
+            "pct": 0,
+            "preds": [
+              "18",
+              "38"
+            ]
+          },
+          {
+            "id": 50,
+            "name": "Test migration, dashboard & account portal",
+            "level": 3,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "46SS",
+              "48SS",
+              "49SS+2"
+            ]
+          },
+          {
+            "id": 51,
+            "name": "Refactor code",
+            "level": 3,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "49",
+              "50",
+              "24",
+              "33",
+              "40",
+              "57"
+            ]
+          },
+          {
+            "id": 52,
+            "name": "Test system integration",
+            "level": 3,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "51SS"
+            ]
+          },
+          {
+            "id": 53,
+            "name": "Conduct final sprint review",
+            "level": 3,
+            "duration": 1,
+            "pct": 0,
+            "preds": [
+              "51",
+              "52"
+            ]
+          },
+          {
+            "id": 54,
+            "name": "Sprint 5 - Government Data Exchange (optional)",
+            "level": 2,
+            "duration": 0,
+            "pct": 0,
+            "preds": []
+          },
+          {
+            "id": 55,
+            "name": "Build government data exchange",
+            "level": 3,
+            "duration": 10,
+            "pct": 0,
+            "preds": [
+              "28"
+            ]
+          },
+          {
+            "id": 56,
+            "name": "Test data exchange",
+            "level": 3,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "55SS+6"
+            ]
+          },
+          {
+            "id": 57,
+            "name": "Conduct sprint review",
+            "level": 3,
+            "duration": 1,
+            "pct": 0,
+            "preds": [
+              "55",
+              "56"
+            ]
+          },
+          {
+            "id": 94,
+            "name": "P4: Testing",
+            "duration": 0,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 58,
+            "name": "System Integration Testing (SIT)",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "41"
+            ]
+          },
+          {
+            "id": 59,
+            "name": "UAT Preparation Package (Plan, Updated MATP, Authority Briefing)",
+            "level": 2,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "58"
+            ]
+          },
+          {
+            "id": 60,
+            "name": "Authority review & approval of System Test Report",
+            "level": 2,
+            "duration": 10,
+            "pct": 0,
+            "preds": [
+              "59"
+            ]
+          },
+          {
+            "id": 83,
+            "name": "Authority review & approval of System Test Report",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "60"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 61,
+            "name": "UAT Round 1 + on-site support + fix",
+            "level": 2,
+            "duration": 10,
+            "pct": 0,
+            "preds": [
+              "60"
+            ]
+          },
+          {
+            "id": 62,
+            "name": "UAT Round 2 + fix",
+            "level": 2,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "61"
+            ]
+          },
+          {
+            "id": 63,
+            "name": "UAT Round 3 (contingency) + fix",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "62"
+            ]
+          },
+          {
+            "id": 64,
+            "name": "UAT Report",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "62"
+            ]
+          },
+          {
+            "id": 84,
+            "name": "UAT Report",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "64"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 65,
+            "name": "Performance Testing",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "60SS"
+            ]
+          },
+          {
+            "id": 66,
+            "name": "Data Migration Simulation Test + Report",
+            "level": 2,
+            "duration": 4,
+            "pct": 0,
+            "preds": [
+              "60SS"
+            ]
+          },
+          {
+            "id": 85,
+            "name": "Data Migration Simulation Test + Report",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "66"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 67,
+            "name": "Backup & Recovery Test + Evidence (RPO/RTO)",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "60SS"
+            ]
+          },
+          {
+            "id": 68,
+            "name": "System Security Acceptance Test (SSAT)",
+            "level": 2,
+            "duration": 3,
+            "pct": 0,
+            "preds": [
+              "67"
+            ]
+          },
+          {
+            "id": 86,
+            "name": "System Security Acceptance Test (SSAT)",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "68"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 69,
+            "name": "VAPT (Vulnerability Assessment & Penetration Test)",
+            "level": 2,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "68"
+            ]
+          },
+          {
+            "id": 87,
+            "name": "VAPT (Vulnerability Assessment & Penetration Test)",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "69"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 70,
+            "name": "Submit VAPT report + re-scan",
+            "level": 2,
+            "duration": 14,
+            "pct": 0,
+            "preds": [
+              "69"
+            ]
+          },
+          {
+            "id": 95,
+            "name": "P5: Closure",
+            "duration": 0,
+            "level": 1,
+            "preds": [],
+            "pct": 0
+          },
+          {
+            "id": 71,
+            "name": "Submit Backup & Recovery Plan",
+            "level": 2,
+            "duration": 30,
+            "pct": 0,
+            "preds": [
+              "67"
+            ]
+          },
+          {
+            "id": 72,
+            "name": "Submit Deployment Plan & Support Templates",
+            "level": 2,
+            "duration": 14,
+            "pct": 0,
+            "preds": [
+              "65"
+            ]
+          },
+          {
+            "id": 88,
+            "name": "Submit Deployment Plan & Support Templates",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "72"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 73,
+            "name": "Final production data migration",
+            "level": 2,
+            "duration": 14,
+            "pct": 0,
+            "preds": [
+              "69",
+              "71"
+            ]
+          },
+          {
+            "id": 74,
+            "name": "Execute Production Deployment",
+            "level": 2,
+            "duration": 5,
+            "pct": 0,
+            "preds": [
+              "70",
+              "72",
+              "73",
+              "71"
+            ]
+          },
+          {
+            "id": 75,
+            "name": "Official go-live",
+            "level": 2,
+            "duration": 1,
+            "pct": 0,
+            "preds": [
+              "74"
+            ]
+          },
+          {
+            "id": 89,
+            "name": "Official go-live",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "75"
+            ],
+            "pct": 0
+          },
+          {
+            "id": 76,
+            "name": "Handover / Knowledge Transfer Meeting to Authority",
+            "level": 2,
+            "duration": 1,
+            "pct": 0,
+            "preds": [
+              "75"
+            ]
+          },
+          {
+            "id": 90,
+            "name": "Handover / Knowledge Transfer Meeting to Authority",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "76"
+            ],
+            "pct": 0
+          }
+        ],
+        "nextId": 96,
+        "phaseLine": 2
       }
     ],
-    "nextPid": 10
+    "nextPid": 11
   },
-  "at": "2026-08-25T17:36:07.077Z"
+  "at": "2026-08-26T19:14:11.533Z"
 }
