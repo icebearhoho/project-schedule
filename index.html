@@ -189,6 +189,9 @@
   td.n input { text-align: right; }
   td.n:has(input), td.ro:has(input) { padding: 0; }
   td input.pinned { color: var(--accent); font-weight: 600; } /* a start date the user fixed */
+  /* The pin is set but isn't actually in effect — a predecessor or the project's own start
+     pushes the task later regardless, so the field can't show the pinned date at all. */
+  td input.pinned.overridden { color: var(--warn); text-decoration: underline dotted; }
   /* Start/Finish: a plain dd/mm/yyyy text field (typing it doesn't fight a locale-dependent
      picker), plus a small button that still opens the browser's real date picker for anyone
      who'd rather click than type — backed by a zero-size native date input only ever driven
@@ -407,7 +410,7 @@
     <summary><svg class="icon"><use href="#i-cal"/></svg>Schedule<svg class="icon"><use href="#i-chev"/></svg></summary>
     <div class="sheet">
       <label for="pstart">Project starts</label>
-      <input id="pstart" placeholder="dd/mm/yyyy" onfocus="this.select()">
+      <input id="pstart" placeholder="dd/mm/yyyy" autocomplete="off" onfocus="this.select()">
       <label>Working days</label>
       <div class="days" id="wdays"></div>
       <label>Public holidays</label>
@@ -1149,6 +1152,11 @@ function render() {
     // it from the phase before it, without a stray line above the very top row.
     const phaseStart = sum && (Number(t.level) || 1) === 1 && i > 0;
     const pad = ((Number(t.level) || 1) - 1) * 16;
+    // A pin only ever pushes a task later, never earlier — the project's own start date,
+    // or a predecessor link, can still force it later than the pin, in which case setting
+    // it "did nothing" as far as the field's own display is concerned. Flag that plainly
+    // instead of just quietly showing a date that doesn't match what was typed.
+    const overridden = t.start && fd(t.startDate) !== t.start;
     // A milestone often shares its name with the task it marks — mark the row itself
     // (not the name, which is a live input bound straight to t.name and would otherwise
     // save the marker as part of the name on the next edit) so it doesn't read as a
@@ -1167,13 +1175,15 @@ function render() {
       // Start is a real date field: filled in with the scheduled date, and editing it pins
       // the task to "no earlier than". Finish is typeable too and sets the duration.
       (sum ? `<td class="ro">${isoToDmy(fd(t.startDate))}</td>`
-        : `<td><div class="datecell"><input class="${t.start ? 'pinned' : ''}" value="${isoToDmy(fd(t.startDate))}"
-             aria-label="Start date" placeholder="dd/mm/yyyy" title="${t.start ? 'Pinned: starts no earlier than this' : 'Scheduled automatically — type a date to pin it'} (dd/mm/yyyy)"
+        : `<td><div class="datecell"><input class="${t.start ? (overridden ? 'pinned overridden' : 'pinned') : ''}" value="${isoToDmy(fd(t.startDate))}" autocomplete="off"
+             aria-label="Start date" placeholder="dd/mm/yyyy" title="${overridden
+               ? `Pinned to ${isoToDmy(t.start)}, but scheduled from ${isoToDmy(fd(t.startDate))} instead — a predecessor or the project's own start date requires it no earlier than this`
+               : (t.start ? 'Pinned: starts no earlier than this' : 'Scheduled automatically — type a date to pin it') + ' (dd/mm/yyyy)'}"
              onchange="editDate(${i},'start',this.value,this)" oninput="this.setCustomValidity('')" onfocus="selectRow(${i});this.select()">
              <button type="button" class="pick" tabindex="-1" aria-label="Pick a start date" onclick="pickDate(this,${i},'start')"><svg class="icon"><use href="#i-cal"/></svg></button>
              <input type="date" class="pickhidden" tabindex="-1" aria-hidden="true" value="${fd(t.startDate)}" onchange="edit(${i},'start',this.value)"></div></td>`) +
       (sum || Number(t.duration) === 0 ? `<td class="ro">${isoToDmy(fd(t.finishDate))}</td>`
-        : `<td><div class="datecell"><input value="${isoToDmy(fd(t.finishDate))}" aria-label="Finish date"
+        : `<td><div class="datecell"><input value="${isoToDmy(fd(t.finishDate))}" autocomplete="off" aria-label="Finish date"
              placeholder="dd/mm/yyyy" title="Type a finish date to set the duration (dd/mm/yyyy)"
              onchange="editDate(${i},'finish',this.value,this)" oninput="this.setCustomValidity('')" onfocus="selectRow(${i});this.select()">
              <button type="button" class="pick" tabindex="-1" aria-label="Pick a finish date" onclick="pickDate(this,${i},'finish')"><svg class="icon"><use href="#i-cal"/></svg></button>
