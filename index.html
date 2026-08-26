@@ -264,6 +264,10 @@
   .gantt-row.sel { background: var(--accent-soft); }
   .gantt-row.phase-start { border-top: var(--phase-line, 0px) solid var(--line); }
   .today { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--danger); opacity: .55; }
+  /* One per milestone, straight down through the rows at its date — a guide line, not a
+     second flag, so it doesn't repeat the "this is a milestone" the band above already says. */
+  .mline { position: absolute; top: 0; bottom: 0; width: 1px; pointer-events: none;
+           background-image: repeating-linear-gradient(to bottom, var(--line) 0 4px, transparent 4px 8px); }
   /* --c is set per bar from the task's colour; everything else is derived from it. */
   .bar { position: absolute; top: 6px; height: 18px; border-radius: 4px; background: var(--c, var(--bar)); overflow: hidden;
          box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c, var(--bar)), var(--text) 22%); }
@@ -1393,10 +1397,19 @@ function drawGantt(hidden) {
   // the band (and everything below it) grows a little wider to give it that room, rather
   // than shrinking the label to fit.
   const mband = milestoneBand(colAt, dw, W);
+  // A dashed guide line straight down through the rows at each milestone's date — the flag
+  // up in the band says a milestone exists, this is what lets you actually see where it
+  // falls against the bars around it without a second flag repeating inside every row.
+  const msLines = proj().tasks
+    .map((t, i) => ({ t, i }))
+    .filter(({ t, i }) => !kids[i].length && Number(t.duration) === 0 && t.startDate instanceof Date)
+    .map(({ t }) => colAt(t.startDate) * dw + dw / 2)
+    .filter(x => x >= 0 && x <= W)
+    .map(x => `<div class="mline" style="left:${x - 0.5}px"></div>`).join('');
   document.getElementById('gantt').innerHTML =
     `<div class="ghead" style="width:${mband.width}px">${mband.html}` +
     `<div class="gmonths">${months}</div><div class="gdays">${days}</div></div>` +
-    `<div style="position:relative;width:${mband.width}px">${todayLine}${rows}</div>`;
+    `<div style="position:relative;width:${mband.width}px">${todayLine}${msLines}${rows}</div>`;
 
   const bandEl = document.querySelector('.mband');
   document.getElementById('panes').style.setProperty('--bandh', (bandEl ? bandEl.offsetHeight : 0) + 'px');
