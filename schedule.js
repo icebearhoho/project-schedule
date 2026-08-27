@@ -334,7 +334,7 @@ const HEADINGS = {
   phase: /^(phase|group|stage|workstream)$/i,      // ... and group their rows under a heading
   pct: /(%|percent|progress|complete)/i,
   milestone: /^milestone$/i,             // a Yes/No flag: this task also marks a gate
-  milestoneName: /^milestone ?name$/i,   // the gate's own name, separate from the task's
+  milestoneName: /^milestone ?(name|description)$/i, // the gate's own name, separate from the task's
 };
 
 // Sheets write dates every which way. Accept ISO, d/m/y and real date cells; anything
