@@ -1,5 +1,5 @@
 {
-  "rev": 47,
+  "rev": 48,
   "data": {
     "projects": [
       {
@@ -4187,7 +4187,22 @@
             4,
             5
           ],
-          "holidays": [],
+          "holidays": [
+            "2026-12-25",
+            "2027-01-01",
+            "2027-02-06",
+            "2027-02-07",
+            "2027-02-08",
+            "2027-03-09",
+            "2027-03-26",
+            "2027-05-01",
+            "2027-05-17",
+            "2027-05-20",
+            "2027-08-09",
+            "2027-10-28",
+            "2027-12-25",
+            "2026-12-25"
+          ],
           "extra": []
         },
         "tasks": [
@@ -4213,7 +4228,7 @@
           },
           {
             "id": 79,
-            "name": "Letter of Award (LOA) accepted / contract signed",
+            "name": "LOA accepted ",
             "duration": 0,
             "level": 2,
             "preds": [
@@ -4287,7 +4302,7 @@
             "duration": 0,
             "level": 2,
             "preds": [
-              "6"
+              "3FF -1"
             ],
             "pct": 0
           },
@@ -4349,7 +4364,7 @@
             "duration": 10,
             "pct": 0,
             "preds": [
-              "7SS"
+              "7FF"
             ]
           },
           {
@@ -4379,7 +4394,7 @@
             "duration": 5,
             "pct": 0,
             "preds": [
-              "7SS"
+              "11SS"
             ]
           },
           {
@@ -4399,7 +4414,7 @@
             "duration": 3,
             "pct": 0,
             "preds": [
-              "7SS"
+              "11SS"
             ]
           },
           {
@@ -5181,20 +5196,23 @@
             "id": 77,
             "name": "Training Material Preparation & Planning",
             "level": 2,
-            "duration": 30,
+            "duration": 15,
             "pct": 0,
-            "preds": [],
+            "preds": [
+              "60SS"
+            ],
             "start": "2027-01-13"
           },
           {
             "id": 78,
             "name": "Training",
             "level": 2,
-            "duration": 1,
+            "duration": 3,
             "pct": 0,
             "preds": [
-              "76SS"
-            ]
+              "77FS+20"
+            ],
+            "start": "2026-02-04"
           },
           {
             "id": 93,
@@ -5213,5 +5231,5 @@
     ],
     "nextPid": 12
   },
-  "at": "2026-08-27T03:03:04.330Z"
+  "at": "2026-08-27T03:25:17.863Z"
 }
