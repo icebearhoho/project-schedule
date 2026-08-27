@@ -1,5 +1,5 @@
 {
-  "rev": 44,
+  "rev": 45,
   "data": {
     "projects": [
       {
@@ -3175,7 +3175,9 @@
             "duration": 0,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 0,
+            "collapsed": false,
+            "bg": "ice"
           },
           {
             "id": 1,
@@ -3271,7 +3273,10 @@
             "duration": 0,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 0,
+            "color": "teal",
+            "collapsed": false,
+            "bg": "ice"
           },
           {
             "id": 7,
@@ -3379,7 +3384,10 @@
             "duration": 0,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 0,
+            "color": "green",
+            "collapsed": false,
+            "bg": "ice"
           },
           {
             "id": 14,
@@ -3387,7 +3395,8 @@
             "level": 2,
             "duration": 0,
             "pct": 0,
-            "preds": []
+            "preds": [],
+            "collapsed": false
           },
           {
             "id": 15,
@@ -3499,7 +3508,8 @@
             "level": 2,
             "duration": 0,
             "pct": 0,
-            "preds": []
+            "preds": [],
+            "collapsed": false
           },
           {
             "id": 26,
@@ -3591,7 +3601,8 @@
             "level": 2,
             "duration": 0,
             "pct": 0,
-            "preds": []
+            "preds": [],
+            "collapsed": false
           },
           {
             "id": 35,
@@ -3663,7 +3674,8 @@
             "level": 2,
             "duration": 0,
             "pct": 0,
-            "preds": []
+            "preds": [],
+            "collapsed": false
           },
           {
             "id": 42,
@@ -3800,7 +3812,8 @@
             "level": 2,
             "duration": 0,
             "pct": 0,
-            "preds": []
+            "preds": [],
+            "collapsed": false
           },
           {
             "id": 55,
@@ -3839,7 +3852,10 @@
             "duration": 0,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 0,
+            "color": "violet",
+            "collapsed": false,
+            "bg": "ice"
           },
           {
             "id": 58,
@@ -4027,7 +4043,10 @@
             "duration": 0,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 0,
+            "color": "amber",
+            "collapsed": true,
+            "bg": "ice"
           },
           {
             "id": 71,
@@ -4130,5 +4149,5 @@
     ],
     "nextPid": 11
   },
-  "at": "2026-08-26T19:14:11.533Z"
+  "at": "2026-08-27T02:05:16.783Z"
 }
