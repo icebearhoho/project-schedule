@@ -1,5 +1,5 @@
 {
-  "rev": 55,
+  "rev": 56,
   "data": {
     "projects": [
       {
@@ -6648,7 +6648,7 @@
             "id": 60,
             "name": "Authority review & approval of System Test Report",
             "level": 2,
-            "duration": 10,
+            "duration": 7,
             "pct": 0,
             "preds": [
               "59"
@@ -6923,5 +6923,5 @@
     ],
     "nextPid": 13
   },
-  "at": "2026-09-03T15:07:53.242Z"
+  "at": "2026-09-03T15:08:43.095Z"
 }
