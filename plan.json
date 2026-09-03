@@ -1,5 +1,5 @@
 {
-  "rev": 57,
+  "rev": 58,
   "data": {
     "projects": [
       {
@@ -6143,7 +6143,9 @@
             "duration": 0,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 0,
+            "collapsed": false,
+            "bg": "ice"
           },
           {
             "id": 1,
@@ -6240,7 +6242,10 @@
             "duration": 0,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 0,
+            "collapsed": false,
+            "color": "teal",
+            "bg": "ice"
           },
           {
             "id": 7,
@@ -6348,7 +6353,10 @@
             "duration": 0,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 0,
+            "collapsed": false,
+            "color": "amber",
+            "bg": "ice"
           },
           {
             "id": 100,
@@ -6622,7 +6630,10 @@
             "duration": 0,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 0,
+            "collapsed": false,
+            "color": "rose",
+            "bg": "ice"
           },
           {
             "id": 58,
@@ -6790,7 +6801,10 @@
             "duration": 0,
             "level": 1,
             "preds": [],
-            "pct": 0
+            "pct": 0,
+            "collapsed": false,
+            "color": "violet",
+            "bg": "ice"
           },
           {
             "id": 71,
@@ -6923,5 +6937,5 @@
     ],
     "nextPid": 13
   },
-  "at": "2026-09-03T15:10:51.442Z"
+  "at": "2026-09-03T15:11:50.465Z"
 }
