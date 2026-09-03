@@ -1,5 +1,5 @@
 {
-  "rev": 51,
+  "rev": 52,
   "data": {
     "projects": [
       {
@@ -5844,16 +5844,6 @@
             ]
           },
           {
-            "id": 63,
-            "name": "UAT Round 3 (contingency) + fix",
-            "level": 2,
-            "duration": 3,
-            "pct": 0,
-            "preds": [
-              "62"
-            ]
-          },
-          {
             "id": 64,
             "name": "UAT Report",
             "level": 2,
@@ -6079,10 +6069,8 @@
             "level": 2,
             "duration": 30,
             "pct": 0,
-            "preds": [
-              "85SS"
-            ],
-            "start": "2027-01-13"
+            "preds": [],
+            "start": "2026-12-29"
           },
           {
             "id": 78,
@@ -6091,7 +6079,7 @@
             "duration": 1,
             "pct": 0,
             "preds": [
-              "76SS"
+              "76SS-7"
             ]
           },
           {
@@ -6111,5 +6099,5 @@
     ],
     "nextPid": 13
   },
-  "at": "2026-09-03T14:54:06.129Z"
+  "at": "2026-09-03T15:04:25.359Z"
 }
