@@ -1,5 +1,5 @@
 {
-  "rev": 49,
+  "rev": 50,
   "data": {
     "projects": [
       {
@@ -5820,16 +5820,6 @@
             ]
           },
           {
-            "id": 63,
-            "name": "UAT Round 3 (contingency) + fix",
-            "level": 2,
-            "duration": 3,
-            "pct": 0,
-            "preds": [
-              "62"
-            ]
-          },
-          {
             "id": 64,
             "name": "UAT Report",
             "level": 2,
@@ -6085,5 +6075,5 @@
     ],
     "nextPid": 13
   },
-  "at": "2026-09-03T10:26:56.003Z"
+  "at": "2026-09-03T10:31:18.873Z"
 }
