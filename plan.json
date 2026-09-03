@@ -1,5 +1,5 @@
 {
-  "rev": 54,
+  "rev": 55,
   "data": {
     "projects": [
       {
@@ -6785,16 +6785,6 @@
             "pct": 0
           },
           {
-            "id": 70,
-            "name": "Submit VAPT report + re-scan",
-            "level": 2,
-            "duration": 14,
-            "pct": 0,
-            "preds": [
-              "69"
-            ]
-          },
-          {
             "id": 98,
             "name": "P5: Closure",
             "duration": 0,
@@ -6850,7 +6840,6 @@
             "duration": 5,
             "pct": 0,
             "preds": [
-              "70",
               "72",
               "73",
               "71"
@@ -6902,8 +6891,10 @@
             "level": 2,
             "duration": 30,
             "pct": 0,
-            "preds": [],
-            "start": "2027-01-13"
+            "preds": [
+              "61"
+            ],
+            "start": "2027-01-14"
           },
           {
             "id": 78,
@@ -6932,5 +6923,5 @@
     ],
     "nextPid": 13
   },
-  "at": "2026-09-03T15:07:06.013Z"
+  "at": "2026-09-03T15:07:53.242Z"
 }
