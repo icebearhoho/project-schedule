@@ -1,5 +1,5 @@
 {
-  "rev": 65,
+  "rev": 66,
   "data": {
     "projects": [
       {
@@ -8315,9 +8315,466 @@
         ],
         "nextId": 45,
         "phaseLine": 2
+      },
+      {
+        "pid": "pmtms77s6",
+        "name": "SSS Master Project Timeline — Primary View",
+        "start": "2026-08-18",
+        "calendar": {
+          "workdays": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "holidays": [
+            "2026-01-01",
+            "2026-02-17",
+            "2026-02-18",
+            "2026-03-20",
+            "2026-04-03",
+            "2026-05-01",
+            "2026-05-27",
+            "2026-06-01",
+            "2026-08-10",
+            "2026-11-09",
+            "2026-12-25",
+            "2027-01-01",
+            "2027-02-06",
+            "2027-02-07",
+            "2027-02-08",
+            "2027-03-09",
+            "2027-03-26",
+            "2027-05-01",
+            "2027-05-17",
+            "2027-05-20",
+            "2027-08-09",
+            "2027-10-28",
+            "2027-12-25"
+          ],
+          "extra": []
+        },
+        "tasks": [
+          {
+            "id": 1,
+            "name": "P1: Initiation",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "collapsed": false,
+            "bg": "ice"
+          },
+          {
+            "id": 2,
+            "name": "Inception PMP",
+            "duration": 6,
+            "level": 2,
+            "preds": [],
+            "pct": 0,
+            "start": "2026-08-18"
+          },
+          {
+            "id": 3,
+            "name": "Draft implementation plan",
+            "duration": 3,
+            "level": 2,
+            "preds": [],
+            "pct": 0,
+            "start": "2026-08-18"
+          },
+          {
+            "id": 4,
+            "name": "Draft MATP",
+            "duration": 2,
+            "level": 2,
+            "preds": [],
+            "pct": 0,
+            "start": "2026-08-18"
+          },
+          {
+            "id": 5,
+            "name": "Letter of Award (LOA) accepted / contract signed",
+            "duration": 0,
+            "level": 2,
+            "preds": [],
+            "pct": 0,
+            "start": "2026-08-18"
+          },
+          {
+            "id": 6,
+            "name": "Inception Plan Submission",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "4SS+2"
+            ],
+            "pct": 0,
+            "start": "2026-08-20"
+          },
+          {
+            "id": 7,
+            "name": "P2: Planning",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "collapsed": false,
+            "color": "teal",
+            "bg": "ice"
+          },
+          {
+            "id": 8,
+            "name": "Requirement gathering",
+            "duration": 20,
+            "level": 2,
+            "preds": [],
+            "pct": 0,
+            "start": "2026-09-07"
+          },
+          {
+            "id": 9,
+            "name": "Data Migration plan",
+            "duration": 10,
+            "level": 2,
+            "preds": [
+              "8SS"
+            ],
+            "pct": 0,
+            "start": "2026-09-07"
+          },
+          {
+            "id": 10,
+            "name": "MATP",
+            "duration": 10,
+            "level": 2,
+            "preds": [
+              "8SS+20"
+            ],
+            "pct": 0,
+            "start": "2026-10-05"
+          },
+          {
+            "id": 11,
+            "name": "Security Operation Plan",
+            "duration": 5,
+            "level": 2,
+            "preds": [
+              "8SS"
+            ],
+            "pct": 0,
+            "start": "2026-09-07"
+          },
+          {
+            "id": 12,
+            "name": "Exit management plan",
+            "duration": 3,
+            "level": 2,
+            "preds": [
+              "8SS"
+            ],
+            "pct": 0,
+            "start": "2026-09-07"
+          },
+          {
+            "id": 13,
+            "name": "Requirement + Interface sign-off",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "8SS+20"
+            ],
+            "pct": 0,
+            "start": "2026-10-05"
+          },
+          {
+            "id": 14,
+            "name": "P3: Execution",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "collapsed": false,
+            "color": "green",
+            "bg": "ice"
+          },
+          {
+            "id": 15,
+            "name": "Sprint 1",
+            "duration": 13,
+            "level": 2,
+            "preds": [],
+            "pct": 0,
+            "start": "2026-10-19"
+          },
+          {
+            "id": 16,
+            "name": "Sprint 2",
+            "duration": 16,
+            "level": 2,
+            "preds": [],
+            "pct": 0,
+            "start": "2026-11-05"
+          },
+          {
+            "id": 17,
+            "name": "Sprint 3",
+            "duration": 14,
+            "level": 2,
+            "preds": [],
+            "pct": 0,
+            "start": "2026-11-20"
+          },
+          {
+            "id": 18,
+            "name": "Sprint 4",
+            "duration": 13,
+            "level": 2,
+            "preds": [],
+            "pct": 0,
+            "start": "2026-12-04"
+          },
+          {
+            "id": 19,
+            "name": "P4: Testing",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "collapsed": false,
+            "color": "rose",
+            "bg": "ice"
+          },
+          {
+            "id": 20,
+            "name": "SIT",
+            "duration": 3,
+            "level": 2,
+            "preds": [
+              "18SS+13"
+            ],
+            "pct": 0,
+            "start": "2026-12-23"
+          },
+          {
+            "id": 21,
+            "name": "UAT",
+            "duration": 17,
+            "level": 2,
+            "preds": [
+              "20FS"
+            ],
+            "pct": 0,
+            "start": "2027-01-15"
+          },
+          {
+            "id": 22,
+            "name": "VAPT",
+            "duration": 5,
+            "level": 2,
+            "preds": [
+              "21"
+            ],
+            "pct": 0,
+            "start": "2027-01-14"
+          },
+          {
+            "id": 23,
+            "name": "Performance testing",
+            "duration": 3,
+            "level": 2,
+            "preds": [
+              "22"
+            ],
+            "pct": 0,
+            "start": "2027-01-06"
+          },
+          {
+            "id": 24,
+            "name": "Security testing",
+            "duration": 3,
+            "level": 2,
+            "preds": [
+              "22"
+            ],
+            "pct": 0,
+            "start": "2027-01-11"
+          },
+          {
+            "id": 25,
+            "name": "System Test Sign-off",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "20SS+15"
+            ],
+            "pct": 0,
+            "start": "2027-01-15"
+          },
+          {
+            "id": 26,
+            "name": "UAT Sign-off",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "21SS+17"
+            ],
+            "pct": 0,
+            "start": "2027-02-10"
+          },
+          {
+            "id": 27,
+            "name": "Security Acceptance Sign-off (SSAT)",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "24SS+3"
+            ],
+            "pct": 0,
+            "start": "2027-01-14"
+          },
+          {
+            "id": 28,
+            "name": "VAPT before Rollout",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "22SS+5"
+            ],
+            "pct": 0,
+            "start": "2027-01-21"
+          },
+          {
+            "id": 29,
+            "name": "P5: Training & Closing",
+            "duration": 1,
+            "level": 1,
+            "preds": [],
+            "pct": 0,
+            "collapsed": false,
+            "color": "amber",
+            "bg": "ice"
+          },
+          {
+            "id": 30,
+            "name": "Backup & recovery plan",
+            "duration": 30,
+            "level": 2,
+            "preds": [
+              "20SS+11"
+            ],
+            "pct": 0,
+            "start": "2027-01-11"
+          },
+          {
+            "id": 31,
+            "name": "Training plan",
+            "duration": 30,
+            "level": 2,
+            "preds": [
+              "32SS-31"
+            ],
+            "pct": 0,
+            "start": "2026-12-23"
+          },
+          {
+            "id": 32,
+            "name": "Training",
+            "duration": 1,
+            "level": 2,
+            "preds": [
+              "35SS-29"
+            ],
+            "pct": 0,
+            "start": "2027-02-09"
+          },
+          {
+            "id": 33,
+            "name": "Final production data migration",
+            "duration": 14,
+            "level": 2,
+            "preds": [
+              "22SS+27",
+              "30SS+30"
+            ],
+            "pct": 0,
+            "start": "2027-02-23"
+          },
+          {
+            "id": 34,
+            "name": "Execute Production Deployment",
+            "duration": 5,
+            "level": 2,
+            "preds": [
+              "23SS+47",
+              "33SS+14",
+              "30SS+44"
+            ],
+            "pct": 0,
+            "start": "2027-03-16"
+          },
+          {
+            "id": 35,
+            "name": "Go live",
+            "duration": 1,
+            "level": 2,
+            "preds": [
+              "34SS+5"
+            ],
+            "pct": 0,
+            "start": "2027-03-23"
+          },
+          {
+            "id": 36,
+            "name": "Hand-over",
+            "duration": 1,
+            "level": 2,
+            "preds": [
+              "35SS+1"
+            ],
+            "pct": 0,
+            "start": "2027-03-24"
+          },
+          {
+            "id": 37,
+            "name": "Production Deployment Sign-Off",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "23SS+17"
+            ],
+            "pct": 0,
+            "start": "2027-01-29"
+          },
+          {
+            "id": 38,
+            "name": "System Go-Live / Service Commencement Date",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "35SS+1"
+            ],
+            "pct": 0,
+            "start": "2027-03-24"
+          },
+          {
+            "id": 39,
+            "name": "Handover / Project Closure Sign-off",
+            "duration": 0,
+            "level": 2,
+            "preds": [
+              "36SS+1"
+            ],
+            "pct": 0,
+            "start": "2027-03-25"
+          }
+        ],
+        "nextId": 40,
+        "phaseLine": 2
       }
     ],
     "nextPid": 15
   },
-  "at": "2026-09-04T09:53:37.066Z"
+  "at": "2026-09-04T10:39:06.082Z"
 }
