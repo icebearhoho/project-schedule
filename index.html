@@ -838,16 +838,34 @@ const dateLines = v => v.split(/\s+/).map(s => dmyToIso(s.trim())).filter(Boolea
 function setHolidays(v) { snapshot(); cal().holidays = dateLines(v); render(); }
 function setExtra(v) { snapshot(); cal().extra = dateLines(v); render(); }
 
-// One click adds a country's public holidays to this project's calendar.
-function addNational(key) {
+// Presets are keyed "SG-2026", grouped here by the country code before the dash - a plan
+// almost always spans a year boundary, so one click adds every year on file for that
+// country instead of making you click each year's button separately.
+function nationalGroups() {
+  const groups = {};
+  Object.entries(NATIONAL_CALENDARS).forEach(([k]) => {
+    const cc = k.split('-')[0];
+    (groups[cc] = groups[cc] || []).push(k);
+  });
+  return groups;
+}
+
+// One click adds a country's public holidays, every year on file, to this project's calendar.
+function addNational(cc) {
   snapshot();
-  const r = applyNationalCalendar(cal(), key);
-  cal().holidays = r.holidays;
-  cal().extra = r.extra;
+  const keys = nationalGroups()[cc] || [];
+  let added = 0;
+  keys.forEach(key => {
+    const r = applyNationalCalendar(cal(), key);
+    cal().holidays = r.holidays;
+    cal().extra = r.extra;
+    added += r.added;
+  });
   render();
-  const preset = NATIONAL_CALENDARS[key];
-  banner('warn', 'Added ' + r.added + ' holiday(s) from ' + preset.label + '. ' +
-    (preset.provisional || 'Please check them against the official notice before relying on the dates.'));
+  const country = keys.length ? NATIONAL_CALENDARS[keys[0]].label.replace(/\s*\d{4}$/, '') : cc;
+  const provisional = keys.map(k => NATIONAL_CALENDARS[k].provisional).filter(Boolean).join(' ');
+  banner('warn', 'Added ' + added + ' holiday(s) for ' + country + '. ' +
+    (provisional || 'Please check them against the official notice before relying on the dates.'));
 }
 
 /* ---- tasks ---- */
@@ -1134,9 +1152,13 @@ function render() {
       onchange="setWorkday(${d},this.checked)" aria-label="${n} is a working day">${n}</label>`).join('');
   document.getElementById('holidays').value = (cal().holidays || []).map(isoToDmy).join('\n');
   document.getElementById('extraDays').value = (cal().extra || []).map(isoToDmy).join('\n');
-  document.getElementById('presets').innerHTML = Object.entries(NATIONAL_CALENDARS).map(([k, v]) =>
-    `<button onclick="addNational('${k}')" class="${v.provisional ? 'unconfirmed' : ''}"
-       title="${v.provisional ? esc(v.provisional) : 'Published dates'}">${esc(v.label)}${v.provisional ? ' *' : ''}</button>`).join('');
+  document.getElementById('presets').innerHTML = Object.entries(nationalGroups()).map(([cc, keys]) => {
+    const provisional = keys.map(k => NATIONAL_CALENDARS[k].provisional).filter(Boolean);
+    const years = keys.map(k => NATIONAL_CALENDARS[k].label.match(/\d{4}/)[0]).join('–');
+    const country = NATIONAL_CALENDARS[keys[0]].label.replace(/\s*\d{4}$/, '');
+    return `<button onclick="addNational('${cc}')" class="${provisional.length ? 'unconfirmed' : ''}"
+       title="${esc(provisional.join(' ') || 'Published dates')}">${esc(country)} ${years}${provisional.length ? ' *' : ''}</button>`;
+  }).join('');
 
   const hidden = hiddenRows();
   const cell = (i, f, v, cls, ph) => `<td class="${cls || ''}"><input value="${esc(v ?? '')}"
