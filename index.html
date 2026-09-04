@@ -232,7 +232,6 @@
   @media (prefers-reduced-motion: reduce) { .fold svg { transition: none; } }
   .fold.closed svg { transform: rotate(-90deg); }
   .spacer { width: 22px; flex: 0 0 22px; }
-  .mstamp { display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: var(--accent); }
   .empty { padding: 24px 16px; color: var(--muted); }
 
   /* ---- gantt ---- */
@@ -1174,8 +1173,11 @@ function render() {
       <th title="Predecessor. 3 = finish-to-start. Also 3FS, 3SS, 3FF, 3SF, with lag in working days: 3SS+2, 3FF-1. Separate several with commas.">Pred</th>
       <th class="n">%</th></tr></thead><tbody>`;
   p.tasks.forEach((t, i) => {
-    if (hidden.has(i)) return;
     const sum = kids[i].length > 0;
+    // A milestone lives only as a flag in the band above the chart now - no in-row
+    // duplicate, no grid line of its own either, so it never occupies a row's worth of
+    // space anywhere for what's a single point in time.
+    if (hidden.has(i) || (!sum && Number(t.duration) === 0)) return;
     // A phase is a level-1 summary; mark every one but the first so a rule can separate
     // it from the phase before it, without a stray line above the very top row.
     const phaseStart = sum && (Number(t.level) || 1) === 1 && i > 0;
@@ -1185,23 +1187,11 @@ function render() {
     // it "did nothing" as far as the field's own display is concerned. Flag that plainly
     // instead of just quietly showing a date that doesn't match what was typed.
     const overridden = t.start && fd(t.startDate) !== t.start;
-    // A milestone often shares its name with the task it marks — mark the row itself
-    // (not the name, which is a live input bound straight to t.name and would otherwise
-    // save the marker as part of the name on the next edit) so it doesn't read as a
-    // stray duplicate of a same-named task.
-    const isMilestone = !sum && Number(t.duration) === 0;
     const twist = sum
       ? `<button class="fold ${t.collapsed ? 'closed' : ''}" onclick="toggleFold(${i})"
            aria-expanded="${!t.collapsed}" aria-label="${t.collapsed ? 'Expand' : 'Collapse'} ${esc(t.name)}"><svg class="icon"><use href="#i-chev"/></svg></button>`
-      : isMilestone
-        ? `<span class="spacer mstamp" title="Milestone">◆</span>`
-        : `<span class="spacer"></span>`;
-    // A milestone marks a single point in time - giving its row the same height as a real
-    // task's just to hold one line of text wastes space, more so the more of them there
-    // are (this Gantt panel draws nothing at all for a milestone's row, so a run of them
-    // reads as a run of dead space unless they're this much shorter).
-    h += `<tr id="r${i}" class="${multi.has(i) ? 'sel ' : ''}${sum ? 'sum ' : ''}${phaseStart ? 'phase-start' : ''}"` +
-      `${isMilestone ? ' style="--row:22px"' : ''} onclick="selectRow(${i}, event)">` +
+      : `<span class="spacer"></span>`;
+    h += `<tr id="r${i}" class="${multi.has(i) ? 'sel ' : ''}${sum ? 'sum ' : ''}${phaseStart ? 'phase-start' : ''}" onclick="selectRow(${i}, event)">` +
       `<td class="ro">${codes[i]}</td><td class="n">${t.id}</td>` +
       `<td><div class="name" style="padding-left:${pad}px;--indent:${pad}px">${twist}` +
       `<input value="${esc(t.name)}" title="${esc(t.name)}" aria-label="Task name" onchange="edit(${i},'name',this.value)" onfocus="selectRow(${i})"></div></td>` +
@@ -1368,18 +1358,18 @@ function drawGantt(hidden) {
 
   let rows = '';
   proj().tasks.forEach((t, i) => {
-    if (hidden.has(i)) return;
-    let inner = '';
     const isSummary = kids[i].length > 0, isMilestone = !isSummary && Number(t.duration) === 0;
+    // A milestone lives only as a flag in the band above — no row of its own down here,
+    // same as the grid: a second appearance right below the flag would just repeat it.
+    if (hidden.has(i) || isMilestone) return;
+    let inner = '';
     // A phase (level 1) already reads as its own band — the row wash below plus the
     // divider line at phase-start — so drawing a bar for it too just competes with that
     // instead of adding information. A deeper summary (Sprint 1, say) had no visual of its
     // own at all, which was the actual gap: it alone gets the bracket bar, spanning the
     // rollup the grid's own Days/Start/Finish columns already show.
     const isPhase = isSummary && (Number(t.level) || 1) === 1;
-    // Milestones are shown once, up in the band above the timeline — a second flag inside
-    // the row itself was tried and reverted, it read as a duplicate rather than a pointer.
-    if (t.startDate instanceof Date && !isMilestone && !isPhase) {
+    if (t.startDate instanceof Date && !isPhase) {
       const s = colAt(t.startDate), e = colAt(t.endExclusive);
       if (e <= 0) inner = `<span class="offscreen left" title="${esc(t.name)} ended ${fd(t.finishDate)}">` +
         `<svg class="icon"><use href="#i-left"/></svg></span>`;
@@ -1420,9 +1410,6 @@ function drawGantt(hidden) {
     rows += `<div class="gantt-row ${multi.has(i) ? 'sel' : ''}${phaseStart ? ' phase-start' : ''}" id="g${i}" ` +
       `style="width:${W}px;--rowc:${resolvedColor(i)}` +
       (bg ? `;--rowbg:${bg};--rowtext:${ink.ink};--rowmuted:${ink.soft}` : '') +
-      // Matches the grid's own shorter row for a milestone (nothing is drawn here for one
-      // anyway), so the two panes stay aligned row-for-row instead of drifting apart.
-      (isMilestone ? ';--row:22px' : '') +
       `" onclick="selectRow(${i}, event)">${inner}</div>`;
   });
 
