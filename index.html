@@ -436,6 +436,8 @@
       <button onclick="pick(this, exportXLSX)">Excel with Gantt (.xlsx)</button>
       <button onclick="pick(this, exportPDFGrid)">PDF — task grid</button>
       <button onclick="pick(this, exportPDFGantt)">PDF — Gantt chart</button>
+      <button onclick="pick(this, () => exportPDFByPhase('grid'))">PDF — task grid, by phase…</button>
+      <button onclick="pick(this, () => exportPDFByPhase('gantt'))">PDF — Gantt chart, by phase…</button>
       <button onclick="pick(this, exportCSV)">CSV (.csv)</button>
     </div>
   </details>
@@ -1255,10 +1257,10 @@ const textWidth = (() => {
 // grid's own W whenever a label near the end needs more room than the real dates leave
 // it, so the chart grows a little blank margin at the edge for it rather than truncating
 // text that's already been shortened once and didn't land well (see git log).
-function milestoneBand(colAt, dw, W) {
+function milestoneBand(colAt, dw, W, hidden) {
   const marks = proj().tasks
     .map((t, i) => ({ t, i }))
-    .filter(({ t, i }) => !kids[i].length && Number(t.duration) === 0 && t.startDate instanceof Date)
+    .filter(({ t, i }) => !hidden.has(i) && !kids[i].length && Number(t.duration) === 0 && t.startDate instanceof Date)
     .map(({ t, i }) => ({ t, i, x: colAt(t.startDate) * dw + dw / 2 }))   // centred on its own day
     .filter(m => m.x >= 0 && m.x <= W)
     .sort((a, b) => a.x - b.x);
@@ -1396,13 +1398,13 @@ function drawGantt(hidden) {
   // A milestone label near the very end can need more room than the real dates leave —
   // the band (and everything below it) grows a little wider to give it that room, rather
   // than shrinking the label to fit.
-  const mband = milestoneBand(colAt, dw, W);
+  const mband = milestoneBand(colAt, dw, W, hidden);
   // A dashed guide line straight down through the rows at each milestone's date — the flag
   // up in the band says a milestone exists, this is what lets you actually see where it
   // falls against the bars around it without a second flag repeating inside every row.
   const msLines = proj().tasks
     .map((t, i) => ({ t, i }))
-    .filter(({ t, i }) => !kids[i].length && Number(t.duration) === 0 && t.startDate instanceof Date)
+    .filter(({ t, i }) => !hidden.has(i) && !kids[i].length && Number(t.duration) === 0 && t.startDate instanceof Date)
     .map(({ t }) => colAt(t.startDate) * dw + dw / 2)
     .filter(x => x >= 0 && x <= W)
     .map(x => `<div class="mline" style="left:${x - 0.5}px"></div>`).join('');
@@ -1725,6 +1727,48 @@ function exportPDFOne(cls, elId, suffix) {
 }
 const exportPDFGrid = () => exportPDFOne('print-grid-only', 'tbl', ' — task grid');
 const exportPDFGantt = () => exportPDFOne('print-gantt-only', 'gantt', ' — Gantt chart');
+
+// A big plan printed whole is illegible either way — the grid runs to many pages and the
+// Gantt shrinks to fit them all on one. Printing one phase (or a short run of them) at a
+// time keeps each page readable. Reuses the fold feature already on every phase row rather
+// than adding a second, parallel notion of "hidden": every other phase collapses to its own
+// one-line rolled-up summary for context, prints that way, then unfolds back to normal.
+function exportPDFByPhase(kind) {
+  const p = proj();
+  const heads = p.tasks.map((t, i) => (Number(t.level) || 1) === 1 ? i : -1).filter(i => i >= 0);
+  if (heads.length < 2) { kind === 'grid' ? exportPDFGrid() : exportPDFGantt(); return; }
+  const list = heads.map((i, n) => (n + 1) + ') ' + p.tasks[i].name).join('\n');
+  const pick = prompt('Which phase(s) to print? A number (e.g. 2) or a range (e.g. 2-3).\n\n' + list, '1');
+  if (pick === null) return;
+  const m = pick.trim().match(/^(\d+)\s*-\s*(\d+)$/);
+  let from = m ? +m[1] : (parseInt(pick, 10) || 1), to = m ? +m[2] : from;
+  from = Math.max(1, Math.min(heads.length, from));
+  to = Math.max(from, Math.min(heads.length, to));
+
+  const prevCollapsed = p.tasks.map(t => t.collapsed);
+  heads.forEach((i, n) => { p.tasks[i].collapsed = !(n + 1 >= from && n + 1 <= to); });
+
+  // The Gantt chart only draws whatever date range the current view window covers — a
+  // phase months away from today would otherwise print blank. Zoom the view to exactly the
+  // selected phase(s)' own span instead of whatever span happened to be on screen.
+  const prevView = view;
+  if (kind === 'gantt') {
+    const selHeads = heads.slice(from - 1, to);
+    const starts = selHeads.map(i => +p.tasks[i].startDate).filter(Boolean);
+    const ends = selHeads.map(i => +p.tasks[i].endExclusive).filter(Boolean);
+    if (starts.length) {
+      const spanDays = Math.ceil((Math.max(...ends) - Math.min(...starts)) / 864e5) + 4; // a little padding
+      const spanKey = Object.keys(SPANS).find(k => k !== 'all' && SPANS[k].days >= spanDays) || 'all';
+      view = { span: spanKey, anchor: fmtDate(new Date(Math.min(...starts))) };
+    }
+  }
+
+  render();
+  kind === 'grid' ? exportPDFGrid() : exportPDFGantt();
+  p.tasks.forEach((t, i) => { t.collapsed = prevCollapsed[i]; });
+  view = prevView;
+  render();
+}
 
 function exportCSV() {
   const q = s => '"' + String(s ?? '').replace(/"/g, '""') + '"';
