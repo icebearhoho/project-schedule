@@ -1189,13 +1189,19 @@ function render() {
     // (not the name, which is a live input bound straight to t.name and would otherwise
     // save the marker as part of the name on the next edit) so it doesn't read as a
     // stray duplicate of a same-named task.
+    const isMilestone = !sum && Number(t.duration) === 0;
     const twist = sum
       ? `<button class="fold ${t.collapsed ? 'closed' : ''}" onclick="toggleFold(${i})"
            aria-expanded="${!t.collapsed}" aria-label="${t.collapsed ? 'Expand' : 'Collapse'} ${esc(t.name)}"><svg class="icon"><use href="#i-chev"/></svg></button>`
-      : !sum && Number(t.duration) === 0
+      : isMilestone
         ? `<span class="spacer mstamp" title="Milestone">◆</span>`
         : `<span class="spacer"></span>`;
-    h += `<tr id="r${i}" class="${multi.has(i) ? 'sel ' : ''}${sum ? 'sum ' : ''}${phaseStart ? 'phase-start' : ''}" onclick="selectRow(${i}, event)">` +
+    // A milestone marks a single point in time - giving its row the same height as a real
+    // task's just to hold one line of text wastes space, more so the more of them there
+    // are (this Gantt panel draws nothing at all for a milestone's row, so a run of them
+    // reads as a run of dead space unless they're this much shorter).
+    h += `<tr id="r${i}" class="${multi.has(i) ? 'sel ' : ''}${sum ? 'sum ' : ''}${phaseStart ? 'phase-start' : ''}"` +
+      `${isMilestone ? ' style="--row:22px"' : ''} onclick="selectRow(${i}, event)">` +
       `<td class="ro">${codes[i]}</td><td class="n">${t.id}</td>` +
       `<td><div class="name" style="padding-left:${pad}px;--indent:${pad}px">${twist}` +
       `<input value="${esc(t.name)}" title="${esc(t.name)}" aria-label="Task name" onchange="edit(${i},'name',this.value)" onfocus="selectRow(${i})"></div></td>` +
@@ -1414,6 +1420,9 @@ function drawGantt(hidden) {
     rows += `<div class="gantt-row ${multi.has(i) ? 'sel' : ''}${phaseStart ? ' phase-start' : ''}" id="g${i}" ` +
       `style="width:${W}px;--rowc:${resolvedColor(i)}` +
       (bg ? `;--rowbg:${bg};--rowtext:${ink.ink};--rowmuted:${ink.soft}` : '') +
+      // Matches the grid's own shorter row for a milestone (nothing is drawn here for one
+      // anyway), so the two panes stay aligned row-for-row instead of drifting apart.
+      (isMilestone ? ';--row:22px' : '') +
       `" onclick="selectRow(${i}, event)">${inner}</div>`;
   });
 
